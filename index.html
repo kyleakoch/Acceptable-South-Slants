@@ -116,10 +116,6 @@
       border-color: #27ae60;
       box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.2);
     }
-    .slot.pending {
-      border-color: #6f42c1;
-      box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.2);
-    }
     .slot .unknown-badge {
       position: absolute;
       top: 6px;
@@ -161,35 +157,9 @@
       color: #111827;
       font-weight: 600;
     }
-    .collect-actions {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      opacity: 0;
-      transform: scale(0.98);
-      pointer-events: none;
-      transition: opacity 0.2s ease, transform 0.2s ease;
-    }
-    .slot.pending:hover .collect-actions,
-    .slot.pending:focus-within .collect-actions {
-      opacity: 1;
-      transform: scale(1);
-      pointer-events: auto;
-    }
-    .collect-actions button {
-      flex: 1;
-      border-radius: 0;
-      font-size: 12px;
-      font-weight: 700;
-      opacity: 0.95;
-      padding: 0;
-      height: 100%;
-    }
-    .collect-actions button:first-child {
-      border-radius: 10px 0 0 10px;
-    }
-    .collect-actions button:last-child {
-      border-radius: 0 10px 10px 0;
+    .result-badge {
+      font-size: 13px;
+      margin-left: 4px;
     }
     .tag {
       display: inline-flex;
@@ -280,6 +250,8 @@
       <h3>Collected Conditions</h3>
       <div id="collectedPile" class="pile"></div>
       <div id="score" class="status"></div>
+      <h3>Scoreboard</h3>
+      <div id="scoreHistory" class="status"></div>
       <h3>Decks</h3>
       <div class="status" id="deckStatus"></div>
       <h3>Difficulty Legend</h3>
@@ -305,10 +277,11 @@
       mountain: [],
       activePlayerId: "P1",
       activeRun: null,
-      pendingCollect: null,
       awaitingStartChoice: false,
       gameEnded: false,
-      message: ""
+      message: "",
+      scoreHistory: [],
+      lastRunScore: null
     };
 
     function shuffle(array) {
@@ -412,7 +385,8 @@
             idx,
             conditionCardId: draw?.cardId || null,
             isFaceUp: draw?.isFaceUp || false,
-            occupiedBySkierId: null
+            occupiedBySkierId: null,
+            lastResult: null
           });
         }
       });
@@ -539,9 +513,10 @@
       state.mountain = dealMountain();
       state.players = [dealSkiers()];
       state.activeRun = null;
-      state.pendingCollect = null;
       state.gameEnded = false;
       state.message = "Game ready. Start your first run!";
+      state.scoreHistory = [];
+      state.lastRunScore = null;
       updateTurn();
     }
 
@@ -601,7 +576,6 @@
     function resolveSlot(slotId, skierId) {
       const slot = state.mountain[slotId];
       if (!slot.conditionCardId) {
-        state.pendingCollect = null;
         return;
       }
       if (!slot.isFaceUp) {
@@ -610,26 +584,15 @@
       const card = state.cards[slot.conditionCardId];
       const skierCard = state.cards[state.cards[skierId].cardId];
       if (card.difficultyRank <= skierCard.difficultyRank) {
-        state.pendingCollect = { slotId, cardId: slot.conditionCardId };
-      } else {
-        state.pendingCollect = null;
-      }
-    }
-
-    function collectCondition(collect) {
-      const pending = state.pendingCollect;
-      if (!pending) return;
-      const slot = state.mountain[pending.slotId];
-      if (collect) {
         slot.conditionCardId = null;
         slot.isFaceUp = false;
-        getPlayer().collectedPile.push(pending.cardId);
+        slot.lastResult = { cardId: card.id, outcome: "collected" };
+        getPlayer().collectedPile.push(card.id);
         state.message = "Condition collected!";
       } else {
-        state.message = "Skipped collection.";
+        slot.lastResult = { cardId: card.id, outcome: "missed" };
+        state.message = "Condition too difficult. It remains on the mountain.";
       }
-      state.pendingCollect = null;
-      render();
     }
 
     function moveTo(slotId) {
@@ -637,7 +600,7 @@
       state.activeRun.currentSlotId = slotId;
       resolveSlot(slotId, state.activeRun.leadSkierId);
       const { row } = rowIdxFromSlotId(slotId);
-      if (row === 5 && !state.pendingCollect) {
+      if (row === 5) {
         finishRun();
         return;
       }
@@ -650,6 +613,7 @@
       skierState.status = "used";
       skierState.pausedPos = null;
       state.activeRun = null;
+      recordScore();
       state.message = "Run complete! Mountain is refilling.";
       refillMountain();
       updateTurn();
@@ -667,6 +631,7 @@
         const draw = state.cloudDeck.pop();
         slot.conditionCardId = draw.cardId;
         slot.isFaceUp = draw.isFaceUp;
+        slot.lastResult = null;
       });
     }
 
@@ -687,15 +652,6 @@
       updateTurn();
     }
 
-    function continueAfterCollect() {
-      const run = state.activeRun;
-      if (!run) return;
-      const { row } = rowIdxFromSlotId(run.currentSlotId);
-      if (row === 5) {
-        finishRun();
-      }
-    }
-
     function computeScore() {
       const pile = getPlayer().collectedPile.map((cardId) => state.cards[cardId]);
       const baseTotal = pile.reduce((sum, card) => sum + Number(card.rank), 0);
@@ -708,8 +664,19 @@
       return { baseTotal, mult, finalScore: baseTotal * mult, counts };
     }
 
+    function recordScore() {
+      const summary = computeScore();
+      state.lastRunScore = {
+        ...summary,
+        collected: [...getPlayer().collectedPile]
+      };
+      state.scoreHistory.push({ ...summary, timestamp: Date.now() });
+      state.scoreHistory.sort((a, b) => b.finalScore - a.finalScore);
+      state.scoreHistory = state.scoreHistory.slice(0, 5);
+    }
+
     function getMoveOptions() {
-      if (!state.activeRun || state.pendingCollect) return [];
+      if (!state.activeRun) return [];
       const { currentSlotId } = state.activeRun;
       const { row } = rowIdxFromSlotId(currentSlotId);
       if (row === 5) return [];
@@ -741,14 +708,21 @@
           if (slot.occupiedBySkierId) {
             button.classList.add("occupied");
           }
-          if (state.pendingCollect && state.pendingCollect.slotId === id) {
-            button.classList.add("pending");
-          }
           if (state.activeRun && state.activeRun.currentSlotId === id) {
             button.classList.add("current");
           }
           button.disabled = !isHighlighted;
-          const label = card ? (slot.isFaceUp ? getCardLabel(card) : getHiddenConditionLabel(card)) : "Empty";
+          let label = "Empty";
+          if (card) {
+            label = slot.isFaceUp ? getCardLabel(card) : getHiddenConditionLabel(card);
+            if (slot.lastResult && slot.lastResult.outcome === "missed" && slot.isFaceUp) {
+              label = `${label} <span class="result-badge">❌</span>`;
+            }
+          } else if (slot.lastResult) {
+            const lastCard = state.cards[slot.lastResult.cardId];
+            const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
+            label = `${getCardLabel(lastCard)} <span class=\"result-badge\">${resultIcon}</span>`;
+          }
           const tokenMarkup =
             state.activeRun && state.activeRun.currentSlotId === id
               ? getSkierTokenMarkup(state.activeRun.leadSkierId)
@@ -759,33 +733,7 @@
             ${slot.occupiedBySkierId ? `<div class="coords">Paused</div>` : ""}
             ${card && !slot.isFaceUp ? `<div class="unknown-badge">❔</div>` : ""}
             ${tokenMarkup}
-            <div class="collect-actions">
-              <button type="button" data-action="collect">Collect</button>
-              <button type="button" class="secondary" data-action="skip">Skip</button>
-            </div>
           `;
-          if (!(state.pendingCollect && state.pendingCollect.slotId === id)) {
-            const actions = button.querySelector(".collect-actions");
-            if (actions) {
-              actions.remove();
-            }
-          }
-          const collectButton = button.querySelector("[data-action='collect']");
-          if (collectButton) {
-            collectButton.addEventListener("click", (event) => {
-              event.stopPropagation();
-              collectCondition(true);
-              continueAfterCollect();
-            });
-          }
-          const skipButton = button.querySelector("[data-action='skip']");
-          if (skipButton) {
-            skipButton.addEventListener("click", (event) => {
-              event.stopPropagation();
-              collectCondition(false);
-              continueAfterCollect();
-            });
-          }
           button.addEventListener("click", () => handleSlotClick(id));
           rowEl.appendChild(button);
         }
@@ -819,6 +767,7 @@
       const queueEl = document.getElementById("skierQueue");
       const collectedEl = document.getElementById("collectedPile");
       const scoreEl = document.getElementById("score");
+      const scoreHistoryEl = document.getElementById("scoreHistory");
       const deckStatusEl = document.getElementById("deckStatus");
       const legendEl = document.getElementById("legend");
 
@@ -872,6 +821,18 @@
         Multiplier: <strong>${mult}×</strong><br />
         Final score: <strong>${finalScore}</strong><br />
         <span class="footer-note">Ranks collected: ${histogram || "None"}</span>`;
+
+      const lastRun = state.lastRunScore;
+      const topScores = state.scoreHistory;
+      const lastRunText = lastRun
+        ? `Last run — base ${lastRun.baseTotal}, mult ${lastRun.mult}×, final ${lastRun.finalScore}`
+        : "Last run — none yet";
+      const topList = topScores.length
+        ? `<ol>${topScores
+            .map((entry) => `<li>${entry.finalScore} (base ${entry.baseTotal}, ${entry.mult}×)</li>`)
+            .join("")}</ol>`
+        : "<p>No top scores yet.</p>";
+      scoreHistoryEl.innerHTML = `${lastRunText}${topList}`;
 
       deckStatusEl.innerHTML = `Crowd deck remaining: ${state.crowdDeck.length}<br />
         Cloud deck remaining: ${state.cloudDeck.length}`;
