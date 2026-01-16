@@ -78,9 +78,40 @@
       border-color: #27ae60;
       box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.2);
     }
+    .slot.pending {
+      border-color: #6f42c1;
+      box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.2);
+    }
     .slot .coords {
       font-size: 11px;
       opacity: 0.6;
+    }
+    .card-label {
+      color: #111827;
+      font-weight: 600;
+    }
+    .collect-actions {
+      position: absolute;
+      inset-inline: 8px;
+      bottom: 6px;
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      opacity: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .slot.pending:hover .collect-actions,
+    .slot.pending:focus-within .collect-actions {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .collect-actions button {
+      padding: 6px 8px;
+      font-size: 12px;
+      border-radius: 6px;
     }
     .tag {
       display: inline-flex;
@@ -181,8 +212,8 @@
     const SYMBOLS = [
       { key: "GREEN", label: "Green Circle", icon: "🟢", difficultyRank: 1, suit: "CLUBS" },
       { key: "BLUE", label: "Blue Square", icon: "🟦", difficultyRank: 2, suit: "SPADES" },
-      { key: "BLACK", label: "Black Diamond", icon: "⬛", difficultyRank: 3, suit: "HEARTS" },
-      { key: "DOUBLE_BLACK", label: "Double Black", icon: "💎", difficultyRank: 4, suit: "DIAMONDS" }
+      { key: "BLACK", label: "Black Diamond", icon: "◆", difficultyRank: 3, suit: "HEARTS" },
+      { key: "DOUBLE_BLACK", label: "Double Black", icon: "◆◆", difficultyRank: 4, suit: "DIAMONDS" }
     ];
     const SKIER_RANKS = ["A", "J", "Q", "K"];
     const CONDITION_RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -609,15 +640,45 @@
           if (slot.occupiedBySkierId) {
             button.classList.add("occupied");
           }
+          if (state.pendingCollect && state.pendingCollect.slotId === id) {
+            button.classList.add("pending");
+          }
           if (state.activeRun && state.activeRun.currentSlotId === id) {
             button.classList.add("current");
           }
           button.disabled = !isHighlighted;
+          const label = card ? (slot.isFaceUp ? getCardLabel(card) : "❓") : "Empty";
           button.innerHTML = `
-            <div>${card ? (slot.isFaceUp ? getCardLabel(card) : "❓") : "Empty"}</div>
+            <div class="card-label">${label}</div>
             <div class="coords">(${slot.row}, ${slot.idx})</div>
             ${slot.occupiedBySkierId ? `<div class="coords">Paused</div>` : ""}
+            <div class="collect-actions">
+              <button type="button" data-action="collect">Collect</button>
+              <button type="button" class="secondary" data-action="skip">Skip</button>
+            </div>
           `;
+          if (!(state.pendingCollect && state.pendingCollect.slotId === id)) {
+            const actions = button.querySelector(".collect-actions");
+            if (actions) {
+              actions.remove();
+            }
+          }
+          const collectButton = button.querySelector("[data-action='collect']");
+          if (collectButton) {
+            collectButton.addEventListener("click", (event) => {
+              event.stopPropagation();
+              collectCondition(true);
+              continueAfterCollect();
+            });
+          }
+          const skipButton = button.querySelector("[data-action='skip']");
+          if (skipButton) {
+            skipButton.addEventListener("click", (event) => {
+              event.stopPropagation();
+              collectCondition(false);
+              continueAfterCollect();
+            });
+          }
           button.addEventListener("click", () => handleSlotClick(id));
           rowEl.appendChild(button);
         }
@@ -656,23 +717,7 @@
 
       statusEl.textContent = state.message;
       actionsEl.innerHTML = "";
-      if (state.pendingCollect) {
-        const collectBtn = document.createElement("button");
-        collectBtn.textContent = "Collect Condition";
-        collectBtn.addEventListener("click", () => {
-          collectCondition(true);
-          continueAfterCollect();
-        });
-        const skipBtn = document.createElement("button");
-        skipBtn.className = "secondary";
-        skipBtn.textContent = "Skip";
-        skipBtn.addEventListener("click", () => {
-          collectCondition(false);
-          continueAfterCollect();
-        });
-        actionsEl.appendChild(collectBtn);
-        actionsEl.appendChild(skipBtn);
-      } else if (state.activeRun) {
+      if (state.activeRun) {
         const waitBtn = document.createElement("button");
         waitBtn.textContent = "Wait for the Group";
         waitBtn.className = "secondary";
