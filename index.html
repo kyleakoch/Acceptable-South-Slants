@@ -120,6 +120,13 @@
       border-color: #6f42c1;
       box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.2);
     }
+    .slot .unknown-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      font-size: 12px;
+      opacity: 0.7;
+    }
     .slot .token {
       position: absolute;
       top: -12px;
@@ -156,26 +163,33 @@
     }
     .collect-actions {
       position: absolute;
-      inset-inline: 8px;
-      bottom: 6px;
+      inset: 0;
       display: flex;
-      gap: 6px;
-      justify-content: center;
       opacity: 0;
-      transform: translateY(6px);
+      transform: scale(0.98);
       pointer-events: none;
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
     .slot.pending:hover .collect-actions,
     .slot.pending:focus-within .collect-actions {
       opacity: 1;
-      transform: translateY(0);
+      transform: scale(1);
       pointer-events: auto;
     }
     .collect-actions button {
-      padding: 6px 8px;
+      flex: 1;
+      border-radius: 0;
       font-size: 12px;
-      border-radius: 6px;
+      font-weight: 700;
+      opacity: 0.95;
+      padding: 0;
+      height: 100%;
+    }
+    .collect-actions button:first-child {
+      border-radius: 10px 0 0 10px;
+    }
+    .collect-actions button:last-child {
+      border-radius: 0 10px 10px 0;
     }
     .tag {
       display: inline-flex;
@@ -312,12 +326,14 @@
         for (const symbol of SYMBOLS) {
           for (const rank of [...SKIER_RANKS, ...CONDITION_RANKS]) {
             const type = SKIER_RANKS.includes(rank) ? "SKIER" : "CONDITION";
+            const riderType = type === "SKIER" ? (deck === 0 ? "SKIER" : "SNOWBOARDER") : null;
             const card = {
               id: `C${idCounter}`,
               type,
               rank,
               symbol: symbol.key,
-              difficultyRank: symbol.difficultyRank
+              difficultyRank: symbol.difficultyRank,
+              riderType
             };
             cards.push(card);
             idCounter += 1;
@@ -428,7 +444,16 @@
 
     function getCardLabel(card) {
       const symbol = getSymbol(card);
+      if (card.type === "SKIER") {
+        const riderIcon = card.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
+        return `${riderIcon} ${card.rank} ${symbol.icon}`;
+      }
       return `${symbol.icon} ${card.rank}`;
+    }
+
+    function getHiddenConditionLabel(card) {
+      const treeCount = Math.max(1, Math.min(4, card.difficultyRank));
+      return "🌲".repeat(treeCount);
     }
 
     function getSkierTokenMarkup(skierId) {
@@ -436,9 +461,10 @@
       const skierState = state.cards[skierId];
       const card = state.cards[skierState.cardId];
       const symbol = getSymbol(card);
+      const riderIcon = card.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
       return `<div class="token" aria-hidden="true">
         <div class="token-rank">${card.rank}</div>
-        <div class="token-suit">${symbol.icon}</div>
+        <div class="token-suit">${riderIcon} ${symbol.icon}</div>
       </div>`;
     }
 
@@ -722,7 +748,7 @@
             button.classList.add("current");
           }
           button.disabled = !isHighlighted;
-          const label = card ? (slot.isFaceUp ? getCardLabel(card) : "❓") : "Empty";
+          const label = card ? (slot.isFaceUp ? getCardLabel(card) : getHiddenConditionLabel(card)) : "Empty";
           const tokenMarkup =
             state.activeRun && state.activeRun.currentSlotId === id
               ? getSkierTokenMarkup(state.activeRun.leadSkierId)
@@ -731,6 +757,7 @@
             <div class="card-label">${label}</div>
             <div class="coords">(${slot.row}, ${slot.idx})</div>
             ${slot.occupiedBySkierId ? `<div class="coords">Paused</div>` : ""}
+            ${card && !slot.isFaceUp ? `<div class="unknown-badge">❔</div>` : ""}
             ${tokenMarkup}
             <div class="collect-actions">
               <button type="button" data-action="collect">Collect</button>
