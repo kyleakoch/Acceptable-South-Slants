@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Powder Crown Downhill Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      margin: 0;
+      background: #f4f6fb;
+      color: #1e2430;
+    }
+    header {
+      padding: 16px 24px;
+      background: #0d3b66;
+      color: white;
+    }
+    .mode-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(13, 59, 102, 0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      padding: 24px;
+    }
+    .mode-card {
+      max-width: 720px;
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      display: grid;
+      gap: 16px;
+    }
+    .mode-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    .mode-option {
+      border: 2px solid #dfe6f2;
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+      background: #f7f9fd;
+      text-align: left;
+    }
+    .mode-option.disabled {
+      opacity: 0.5;
+      filter: grayscale(0.4);
+    }
+    .mode-option button {
+      width: 100%;
+    }
+    .closed-sign {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #f3d9a4;
+      color: #7b4f00;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    main {
+      padding: 24px;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(280px, 1fr) minmax(320px, 360px);
+    }
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+    .mountain-panel {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(224, 239, 255, 0.45), rgba(255, 255, 255, 0.95));
+    }
+    .mountain-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(86, 155, 220, 0.45), transparent 38%),
+        radial-gradient(circle at 92% 6%, rgba(90, 164, 228, 0.4), transparent 36%),
+        linear-gradient(140deg, rgba(235, 245, 255, 0.8), rgba(255, 255, 255, 0.1) 55%),
+        linear-gradient(220deg, rgba(220, 235, 250, 0.55), rgba(255, 255, 255, 0.1) 50%);
+      opacity: 0.65;
+      pointer-events: none;
+    }
+    .mountain-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 45% 52%, rgba(90, 140, 60, 0.45), transparent 28%),
+        radial-gradient(circle at 50% 56%, rgba(100, 150, 70, 0.35), transparent 30%),
+        radial-gradient(circle at 35% 66%, rgba(100, 150, 70, 0.35), transparent 30%),
+        radial-gradient(circle at 65% 68%, rgba(100, 150, 70, 0.35), transparent 30%),
+        radial-gradient(circle at 25% 78%, rgba(100, 150, 70, 0.4), transparent 30%),
+        radial-gradient(circle at 75% 78%, rgba(100, 150, 70, 0.4), transparent 30%),
+        radial-gradient(circle at 20% 88%, rgba(100, 150, 70, 0.45), transparent 28%),
+        radial-gradient(circle at 80% 88%, rgba(100, 150, 70, 0.45), transparent 28%);
+      opacity: 0.5;
+      pointer-events: none;
+      mix-blend-mode: multiply;
+    }
+    .mountain-panel > * {
+      position: relative;
+      z-index: 1;
+    }
+    .mountain {
+      display: grid;
+      gap: 8px;
+    }
+    .row {
+      display: grid;
+      gap: 8px;
+      justify-content: center;
+    }
+    .slot {
+      background: #eef1f8;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 10px;
+      min-width: 70px;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-size: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.1s ease, border 0.2s ease;
+      position: relative;
+    }
+    .slot:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .slot.highlight {
+      border-color: #2f80ed;
+      box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.2);
+    }
+    .slot.occupied {
+      background: #fdebd2;
+      border-color: #f2994a;
+    }
+    .slot.current {
+      border-color: #27ae60;
+      box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.2);
+    }
+    .slot .unknown-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+    .slot .token {
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      width: 36px;
+      height: 44px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 2px solid #1e2430;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #1e2430;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+      pointer-events: none;
+    }
+    .slot .token .token-suit {
+      font-size: 14px;
+      margin-top: -2px;
+    }
+    .slot .token .token-rank {
+      font-size: 15px;
+      line-height: 1;
+    }
+    .slot .coords {
+      font-size: 11px;
+      opacity: 0.6;
+    }
+    .card-label {
+      color: #111827;
+      font-weight: 600;
+    }
+    .result-badge {
+      font-size: 13px;
+      margin-left: 4px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #eef1f8;
+    }
+    .queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .actions {
+      display: grid;
+      gap: 8px;
+    }
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #2f80ed;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background: #1c66c5;
+    }
+    button.secondary {
+      background: #f2f4f8;
+      color: #1e2430;
+    }
+    button.secondary:hover {
+      background: #e0e5ef;
+    }
+    .status {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .pile {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .card {
+      background: #f8f9fd;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .card.active {
+      border: 2px solid #27ae60;
+      box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
+    }
+    .card.used {
+      opacity: 0.4;
+    }
+    .legend {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+    }
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .footer-note {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Powder Crown Downhill Ski Resort</h1>
+    <p>Prototype v0.3 — single-player Party Mode (mouse or touch controls)</p>
+  </header>
+  <main>
+    <section class="panel mountain-panel">
+      <h2>Mountain</h2>
+      <div id="mountain" class="mountain"></div>
+      <p class="footer-note">Debug overlay shows (row, idx). Occupied slots block movement.</p>
+    </section>
+    <section class="panel">
+      <h2>Run Controls</h2>
+      <div class="status" id="status"></div>
+      <div class="actions" id="actions"></div>
+      <h3>Active Skier</h3>
+      <div id="activeSkier" class="tag"></div>
+      <div class="queue-header">
+        <h3>Skier Queue</h3>
+        <div id="crowdCounter" class="tag"></div>
+      </div>
+      <div id="bonusTracker" class="status"></div>
+      <div id="skierQueue" class="pile"></div>
+      <h3>Collected Conditions</h3>
+      <div id="collectedPile" class="pile"></div>
+      <div id="score" class="status"></div>
+      <h3>Scoreboard</h3>
+      <div id="scoreHistory" class="status"></div>
+      <h3>Decks</h3>
+      <div class="status" id="deckStatus"></div>
+      <h3>Difficulty Legend</h3>
+      <div class="legend" id="legend"></div>
+    </section>
+  </main>
+  <div id="modeOverlay" class="mode-overlay">
+    <div class="mode-card">
+      <h2>Select a Game Mode</h2>
+      <p>Choose how you want to ski today. More modes are on the way!</p>
+      <div class="mode-grid">
+        <div class="mode-option">
+          <strong>Free-Play (Single Run)</strong>
+          <span class="footer-note">One quick run with the current queue of skiers.</span>
+          <button id="startFreePlay">Start Free-Play</button>
+        </div>
+        <div class="mode-option">
+          <strong>Full Crowd (Single Player)</strong>
+          <span class="footer-note">Play through all 32 skiers and recycle memories.</span>
+          <button id="startFullCrowd">Start Full Crowd</button>
+        </div>
+        <div class="mode-option disabled">
+          <strong>Multiplayer (2-4)</strong>
+          <span class="footer-note">Take turns on the shared mountain.</span>
+          <span class="closed-sign">⛷️ Temporary Closed</span>
+          <button disabled>Temporarily Closed</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const SYMBOLS = [
+      { key: "GREEN", label: "Green Circle", icon: "🟢", difficultyRank: 1, suit: "CLUBS" },
+      { key: "BLUE", label: "Blue Square", icon: "🟦", difficultyRank: 2, suit: "SPADES" },
+      { key: "BLACK", label: "Black Diamond", icon: "◆", difficultyRank: 3, suit: "HEARTS" },
+      { key: "DOUBLE_BLACK", label: "Double Black", icon: "◆◆", difficultyRank: 4, suit: "DIAMONDS" }
+    ];
+    const SKIER_RANKS = ["A", "J", "Q", "K"];
+    const CONDITION_RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const ROW_SIZES = [1, 2, 3, 4, 5];
+
+    const state = {
+      cards: {},
+      crowdDeck: [],
+      cloudDeck: [],
+      players: [],
+      mountain: [],
+      activePlayerId: "P1",
+      activeRun: null,
+      awaitingStartChoice: false,
+      gameEnded: false,
+      message: "",
+      scoreHistory: [],
+      lastRunScore: null,
+      memoriesPile: [],
+      mode: null,
+      gameStarted: false,
+      usedCrowdCount: 0,
+      skierCounter: 0
+    };
+
+    const BONUS_EMOJIS = {
+      1: "🌭",
+      2: "🍔",
+      3: "🍺",
+      4: "🍦"
+    };
+
+    const BONUS_TARGETS = {
+      "🌭": 4,
+      "🍔": 3,
+      "🍺": 2,
+      "🍦": 1
+    };
+
+    const TOTAL_CROWD = 32;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function buildDecks() {
+      let idCounter = 1;
+      const cards = [];
+      for (let deck = 0; deck < 2; deck += 1) {
+        for (const symbol of SYMBOLS) {
+          for (const rank of [...SKIER_RANKS, ...CONDITION_RANKS]) {
+            const type = SKIER_RANKS.includes(rank) ? "SKIER" : "CONDITION";
+            const riderType = type === "SKIER" ? (deck === 0 ? "SKIER" : "SNOWBOARDER") : null;
+            const card = {
+              id: `C${idCounter}`,
+              type,
+              rank,
+              symbol: symbol.key,
+              difficultyRank: symbol.difficultyRank,
+              riderType
+            };
+            cards.push(card);
+            idCounter += 1;
+          }
+        }
+      }
+      return cards;
+    }
+
+    function splitCrowdCloud(cards) {
+      const crowd = [];
+      const cloud = [];
+      cards.forEach((card) => {
+        if (card.type === "SKIER") {
+          crowd.push(card);
+        } else {
+          cloud.push(card);
+        }
+      });
+      return { crowd, cloud };
+    }
+
+    function faceShuffleCloud(cloudCards) {
+      const deck = shuffle([...cloudCards]);
+      const midpoint = Math.ceil(deck.length / 2);
+      const firstHalf = deck.slice(0, midpoint);
+      const secondHalf = deck.slice(midpoint);
+      const faceUpSet = new Set(secondHalf.map((card) => card.id));
+      const combined = shuffle([...firstHalf, ...secondHalf]);
+      return combined.map((card) => ({ cardId: card.id, isFaceUp: faceUpSet.has(card.id) }));
+    }
+
+    function replenishCloudFromMemories() {
+      if (!state.memoriesPile.length) return false;
+      const memoryCards = state.memoriesPile.map((cardId) => state.cards[cardId]);
+      state.memoriesPile = [];
+      state.cloudDeck = faceShuffleCloud(memoryCards);
+      return true;
+    }
+
+    function drawCloudCard() {
+      if (!state.cloudDeck.length && state.memoriesPile.length) {
+        replenishCloudFromMemories();
+      }
+      return state.cloudDeck.pop() || null;
+    }
+
+    function slotId(row, idx) {
+      let id = 0;
+      for (let r = 1; r < row; r += 1) {
+        id += ROW_SIZES[r - 1];
+      }
+      return id + idx;
+    }
+
+    function rowIdxFromSlotId(id) {
+      let remaining = id;
+      for (let r = 1; r <= ROW_SIZES.length; r += 1) {
+        const size = ROW_SIZES[r - 1];
+        if (remaining < size) {
+          return { row: r, idx: remaining };
+        }
+        remaining -= size;
+      }
+      return { row: 5, idx: 0 };
+    }
+
+    const downNeighbors = (() => {
+      const neighbors = Array(15).fill(null).map(() => []);
+      ROW_SIZES.forEach((size, rowIndex) => {
+        const row = rowIndex + 1;
+        for (let idx = 0; idx < size; idx += 1) {
+          const current = slotId(row, idx);
+          if (row < 5) {
+            const left = slotId(row + 1, idx);
+            const right = slotId(row + 1, idx + 1);
+            neighbors[current].push(left, right);
+          }
+        }
+      });
+      return neighbors;
+    })();
+
+    function dealMountain() {
+      const mountain = [];
+      ROW_SIZES.forEach((size, rowIndex) => {
+        for (let idx = 0; idx < size; idx += 1) {
+          const draw = drawCloudCard();
+          mountain.push({
+            row: rowIndex + 1,
+            idx,
+            conditionCardId: draw?.cardId || null,
+            isFaceUp: draw?.isFaceUp || false,
+            occupiedBySkierId: null,
+            lastResult: null,
+            missCount: 0,
+            bonusEmoji: null
+          });
+        }
+      });
+      return mountain;
+    }
+
+    function dealSkiers(player, count = 4) {
+      for (let i = 0; i < count; i += 1) {
+        const card = state.crowdDeck.pop();
+        if (!card) return;
+        state.skierCounter += 1;
+        const skierId = `S${state.skierCounter}`;
+        state.cards[skierId] = {
+          id: skierId,
+          ownerId: player.id,
+          cardId: card.id,
+          status: "available",
+          pausedPos: null,
+          piggybackRole: "none",
+          linkedSkierId: null
+        };
+        player.skierQueue.push(skierId);
+      }
+    }
+
+    function getSymbol(card) {
+      return SYMBOLS.find((symbol) => symbol.key === card.symbol);
+    }
+
+    function getCardLabel(card) {
+      const symbol = getSymbol(card);
+      if (card.type === "SKIER") {
+        const riderIcon = card.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
+        return `${riderIcon} ${card.rank} ${symbol.icon}`;
+      }
+      return `${symbol.icon} ${card.rank}`;
+    }
+
+    function getHiddenConditionLabel(card) {
+      const treeCount = Math.max(1, Math.min(4, card.difficultyRank));
+      return "🌲".repeat(treeCount);
+    }
+
+    function getBonusEmoji(missCount) {
+      const capped = Math.min(4, missCount);
+      return BONUS_EMOJIS[capped] || null;
+    }
+
+    function getBonusValue(missCount) {
+      return Math.min(4, missCount);
+    }
+
+    function getSkierTokenMarkup(skierId) {
+      if (!skierId) return "";
+      const skierState = state.cards[skierId];
+      const card = state.cards[skierState.cardId];
+      const symbol = getSymbol(card);
+      const riderIcon = card.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
+      return `<div class="token" aria-hidden="true">
+        <div class="token-rank">${card.rank}</div>
+        <div class="token-suit">${riderIcon} ${symbol.icon}</div>
+      </div>`;
+    }
+
+    function formatNumber(value) {
+      if (!Number.isFinite(value)) return "∞";
+      if (Math.abs(value) >= 1e12) {
+        return value.toExponential(2);
+      }
+      return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    }
+
+    function getCollectedPileSorted() {
+      const pile = getPlayer().collectedPile;
+      return [...pile].sort((a, b) => {
+        const aRank = Number(state.cards[a.cardId].rank);
+        const bRank = Number(state.cards[b.cardId].rank);
+        return bRank - aRank;
+      });
+    }
+
+    function getCollectedPileGrouped() {
+      const grouped = new Map();
+      getPlayer().collectedPile.forEach((entry) => {
+        const key = entry.cardId;
+        if (!grouped.has(key)) {
+          grouped.set(key, { entry, count: 0 });
+        }
+        grouped.get(key).count += 1;
+      });
+      return [...grouped.values()].sort((a, b) => {
+        const aRank = Number(state.cards[a.entry.cardId].rank);
+        const bRank = Number(state.cards[b.entry.cardId].rank);
+        return bRank - aRank;
+      });
+    }
+
+    function getPlayer() {
+      return state.players.find((player) => player.id === state.activePlayerId);
+    }
+
+    function getPausedSkier() {
+      const player = getPlayer();
+      return player.skierQueue.find((skierId) => state.cards[skierId].status === "paused");
+    }
+
+    function getStartSlots(mountain = state.mountain) {
+      for (let row = 1; row <= 5; row += 1) {
+        const candidates = mountain
+          .map((slot, id) => ({ ...slot, id }))
+          .filter((slot) => slot.row === row && slot.occupiedBySkierId === null);
+        if (candidates.length) {
+          return candidates.map((slot) => slot.id);
+        }
+      }
+      return [];
+    }
+
+    function hasClearPath(tempOccupiedSlotId) {
+      const occupied = new Set(
+        state.mountain
+          .map((slot, id) => ({ slot, id }))
+          .filter(({ slot }) => slot.occupiedBySkierId)
+          .map(({ id }) => id)
+      );
+      if (tempOccupiedSlotId !== null) {
+        occupied.add(tempOccupiedSlotId);
+      }
+      const startSlots = getStartSlots(
+        state.mountain.map((slot, id) => ({
+          ...slot,
+          occupiedBySkierId: occupied.has(id) ? "blocked" : null
+        }))
+      );
+      const goals = new Set(
+        state.mountain
+          .map((slot, id) => ({ slot, id }))
+          .filter(({ slot }) => slot.row === 5 && !occupied.has(id))
+          .map(({ id }) => id)
+      );
+      const queue = [...startSlots];
+      const visited = new Set(queue);
+      while (queue.length) {
+        const current = queue.shift();
+        if (goals.has(current)) {
+          return true;
+        }
+        downNeighbors[current].forEach((neighbor) => {
+          if (!occupied.has(neighbor) && !visited.has(neighbor)) {
+            visited.add(neighbor);
+            queue.push(neighbor);
+          }
+        });
+      }
+      return false;
+    }
+
+    function beginGame() {
+      state.gameStarted = true;
+      const deck = buildDecks();
+      deck.forEach((card) => {
+        state.cards[card.id] = card;
+      });
+      const { crowd, cloud } = splitCrowdCloud(deck);
+      state.crowdDeck = shuffle([...crowd]);
+      state.cloudDeck = faceShuffleCloud(cloud);
+      state.mountain = dealMountain();
+      state.usedCrowdCount = 0;
+      state.skierCounter = 0;
+      const player = { id: "P1", skierQueue: [], collectedPile: [] };
+      state.players = [player];
+      dealSkiers(player, 4);
+      state.activeRun = null;
+      state.gameEnded = false;
+      state.message = "Game ready. Start your first run!";
+      state.scoreHistory = [];
+      state.lastRunScore = null;
+      state.memoriesPile = [];
+      updateTurn();
+    }
+
+    function updateTurn() {
+      if (state.gameEnded) {
+        render();
+        return;
+      }
+      const player = getPlayer();
+      const pausedSkierId = getPausedSkier();
+      if (pausedSkierId) {
+        const skier = state.cards[pausedSkierId];
+        if (skier.pausedPos !== null) {
+          state.mountain[skier.pausedPos].occupiedBySkierId = null;
+        }
+        skier.status = "available";
+        state.activeRun = {
+          playerId: player.id,
+          leadSkierId: pausedSkierId,
+          currentSlotId: skier.pausedPos,
+          resumed: true
+        };
+        state.message = "Resuming paused skier. Choose your next step.";
+      } else if (!state.activeRun) {
+        let nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+        if (!nextSkierId && state.mode === "FULL" && state.crowdDeck.length > 0) {
+          dealSkiers(player, 4);
+          nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+        }
+        if (!nextSkierId) {
+          state.message = "All skiers used. Game over!";
+          state.gameEnded = true;
+          render();
+          return;
+        }
+        const startSlots = getStartSlots();
+        state.awaitingStartChoice = true;
+        if (startSlots.length === 1) {
+          startRunAt(startSlots[0]);
+        } else {
+          state.message = "Pick a start slot to begin the run.";
+        }
+      }
+      render();
+    }
+
+    function startRunAt(slotIdChoice) {
+      const player = getPlayer();
+      const nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+      state.activeRun = {
+        playerId: player.id,
+        leadSkierId: nextSkierId,
+        currentSlotId: slotIdChoice,
+        resumed: false
+      };
+      state.awaitingStartChoice = false;
+      resolveSlot(slotIdChoice, nextSkierId);
+      state.message = "Run started. Continue downhill or wait for the group.";
+    }
+
+    function resolveSlot(slotId, skierId) {
+      const slot = state.mountain[slotId];
+      if (!slot.conditionCardId) {
+        return;
+      }
+      if (!slot.isFaceUp) {
+        slot.isFaceUp = true;
+      }
+      const card = state.cards[slot.conditionCardId];
+      const skierCard = state.cards[state.cards[skierId].cardId];
+      if (card.difficultyRank <= skierCard.difficultyRank) {
+        const bonusValue = getBonusValue(slot.missCount || 0);
+        slot.conditionCardId = null;
+        slot.isFaceUp = false;
+        slot.lastResult = { cardId: card.id, outcome: "collected" };
+        getPlayer().collectedPile.push({
+          cardId: card.id,
+          bonus: bonusValue,
+          bonusEmoji: slot.bonusEmoji
+        });
+        state.memoriesPile.push(card.id);
+        slot.missCount = 0;
+        slot.bonusEmoji = null;
+        state.message = bonusValue
+          ? `Condition collected with bonus +${bonusValue}!`
+          : "Condition collected!";
+      } else {
+        slot.lastResult = { cardId: card.id, outcome: "missed" };
+        state.message = "Condition too difficult. It remains on the mountain.";
+      }
+    }
+
+    function moveTo(slotId) {
+      if (!state.activeRun) return;
+      state.activeRun.currentSlotId = slotId;
+      resolveSlot(slotId, state.activeRun.leadSkierId);
+      const { row } = rowIdxFromSlotId(slotId);
+      if (row === 5) {
+        finishRun();
+        return;
+      }
+      render();
+    }
+
+    function finishRun() {
+      const run = state.activeRun;
+      const skierState = state.cards[run.leadSkierId];
+      skierState.status = "used";
+      skierState.pausedPos = null;
+      state.activeRun = null;
+      state.usedCrowdCount += 1;
+      recordScore();
+      applyMissUpgrades();
+      state.message = "Run complete! Mountain is refilling.";
+      refillMountain();
+      updateTurn();
+    }
+
+    function applyMissUpgrades() {
+      state.mountain.forEach((slot) => {
+        if (slot.lastResult?.outcome === "missed" && slot.conditionCardId) {
+          slot.missCount = (slot.missCount || 0) + 1;
+          slot.bonusEmoji = getBonusEmoji(slot.missCount);
+          slot.lastResult = null;
+        }
+      });
+    }
+
+    function refillMountain() {
+      const emptySlots = state.mountain.filter((slot) => slot.conditionCardId === null);
+      let available = state.cloudDeck.length;
+      if (available < emptySlots.length && state.memoriesPile.length) {
+        replenishCloudFromMemories();
+        available = state.cloudDeck.length;
+      }
+      if (available < emptySlots.length) {
+        state.gameEnded = true;
+        state.message = "Cloud deck depleted. Game over!";
+        render();
+        return;
+      }
+      emptySlots.forEach((slot) => {
+        const draw = drawCloudCard();
+        slot.conditionCardId = draw.cardId;
+        slot.isFaceUp = draw.isFaceUp;
+        slot.lastResult = null;
+        slot.missCount = 0;
+        slot.bonusEmoji = null;
+      });
+    }
+
+    function waitForGroup() {
+      if (!state.activeRun) return;
+      const slotId = state.activeRun.currentSlotId;
+      if (!hasClearPath(slotId)) {
+        state.message = "Wait blocked: no clear path for the next run.";
+        render();
+        return;
+      }
+      const skier = state.cards[state.activeRun.leadSkierId];
+      skier.status = "paused";
+      skier.pausedPos = slotId;
+      state.mountain[slotId].occupiedBySkierId = skier.id;
+      state.activeRun = null;
+      state.message = "Skier paused. Next skier's turn.";
+      updateTurn();
+    }
+
+    function computeScore() {
+      const pile = getPlayer().collectedPile;
+      const baseTotal = pile.reduce((sum, entry) => sum + Number(state.cards[entry.cardId].rank) + entry.bonus, 0);
+      const counts = pile.reduce((acc, entry) => {
+        const card = state.cards[entry.cardId];
+        acc[card.rank] = (acc[card.rank] || 0) + 1;
+        return acc;
+      }, {});
+      const maxCount = Math.max(0, ...Object.values(counts));
+      const mult = Math.min(8, maxCount || 1);
+      const finalScore = baseTotal * mult;
+      const bonusCounts = pile.reduce((acc, entry) => {
+        if (entry.bonusEmoji) {
+          acc[entry.bonusEmoji] = (acc[entry.bonusEmoji] || 0) + 1;
+        }
+        return acc;
+      }, {});
+      const metGoals = Object.entries(BONUS_TARGETS).filter(
+        ([emoji, target]) => (bonusCounts[emoji] || 0) >= target
+      );
+      const goalCount = metGoals.length;
+      const exponent = goalCount === 0 ? 1 : goalCount + 1;
+      let endDayScore = finalScore ** exponent;
+      if (goalCount === Object.keys(BONUS_TARGETS).length) {
+        endDayScore *= Math.PI;
+      }
+      return {
+        baseTotal,
+        mult,
+        finalScore,
+        endDayScore,
+        counts,
+        bonusCounts,
+        goalCount,
+        exponent
+      };
+    }
+
+    function recordScore() {
+      const summary = computeScore();
+      state.lastRunScore = {
+        ...summary,
+        collected: [...getPlayer().collectedPile]
+      };
+      state.scoreHistory.push({ ...summary, timestamp: Date.now() });
+      state.scoreHistory.sort((a, b) => b.endDayScore - a.endDayScore);
+      state.scoreHistory = state.scoreHistory.slice(0, 5);
+    }
+
+    function getMoveOptions() {
+      if (!state.activeRun) return [];
+      const { currentSlotId } = state.activeRun;
+      const { row } = rowIdxFromSlotId(currentSlotId);
+      if (row === 5) return [];
+      return downNeighbors[currentSlotId].filter((id) => state.mountain[id].occupiedBySkierId === null);
+    }
+
+    function getMoveOptionsOrdered() {
+      if (!state.activeRun) return [];
+      const { currentSlotId } = state.activeRun;
+      const neighbors = downNeighbors[currentSlotId];
+      return neighbors.filter((id) => state.mountain[id].occupiedBySkierId === null);
+    }
+
+    function render() {
+      renderMountain();
+      renderSidebar();
+    }
+
+    function renderMountain() {
+      const mountainEl = document.getElementById("mountain");
+      mountainEl.innerHTML = "";
+      ROW_SIZES.forEach((size, rowIndex) => {
+        const rowEl = document.createElement("div");
+        rowEl.className = "row";
+        rowEl.style.gridTemplateColumns = `repeat(${size}, minmax(70px, 1fr))`;
+        for (let idx = 0; idx < size; idx += 1) {
+          const id = slotId(rowIndex + 1, idx);
+          const slot = state.mountain[id];
+          const card = slot.conditionCardId ? state.cards[slot.conditionCardId] : null;
+          const button = document.createElement("button");
+          button.className = "slot";
+          const isHighlighted = isSelectableSlot(id);
+          if (isHighlighted) {
+            button.classList.add("highlight");
+          }
+          if (slot.occupiedBySkierId) {
+            button.classList.add("occupied");
+          }
+          if (state.activeRun && state.activeRun.currentSlotId === id) {
+            button.classList.add("current");
+          }
+          button.disabled = !isHighlighted;
+          let label = "Empty";
+          if (card) {
+            const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
+            label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
+            if (slot.lastResult && slot.lastResult.outcome === "missed" && slot.isFaceUp) {
+              label = `${label} <span class="result-badge">❌</span>`;
+            }
+          } else if (slot.lastResult) {
+            const lastCard = state.cards[slot.lastResult.cardId];
+            const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
+            label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
+          }
+          const tokenMarkup =
+            state.activeRun && state.activeRun.currentSlotId === id
+              ? getSkierTokenMarkup(state.activeRun.leadSkierId)
+              : "";
+          button.innerHTML = `
+            <div class="card-label">${label}</div>
+            <div class="coords">(${slot.row}, ${slot.idx})</div>
+            ${slot.occupiedBySkierId ? `<div class="coords">Paused</div>` : ""}
+            ${card && !slot.isFaceUp ? `<div class="unknown-badge">❔</div>` : ""}
+            ${tokenMarkup}
+          `;
+          button.addEventListener("click", () => handleSlotClick(id));
+          rowEl.appendChild(button);
+        }
+        mountainEl.appendChild(rowEl);
+      });
+    }
+
+    function isSelectableSlot(id) {
+      if (state.gameEnded) return false;
+      if (state.awaitingStartChoice) {
+        return getStartSlots().includes(id);
+      }
+      const moveOptions = getMoveOptions();
+      return moveOptions.includes(id);
+    }
+
+    function handleSlotClick(id) {
+      if (state.awaitingStartChoice) {
+        startRunAt(id);
+        return;
+      }
+      if (getMoveOptions().includes(id)) {
+        moveTo(id);
+      }
+    }
+
+    function handleKeyMove(event) {
+      if (!state.gameStarted || state.gameEnded) return;
+      if (state.awaitingStartChoice) {
+        const startSlots = getStartSlots();
+        if (!startSlots.length) return;
+        if (event.key === "ArrowLeft") {
+          startRunAt(startSlots[0]);
+        } else if (event.key === "ArrowRight") {
+          startRunAt(startSlots[startSlots.length - 1]);
+        }
+        return;
+      }
+      if (!state.activeRun) return;
+      const options = getMoveOptionsOrdered();
+      if (!options.length) return;
+      if (event.key === "ArrowLeft" && options[0]) {
+        moveTo(options[0]);
+      } else if (event.key === "ArrowRight") {
+        moveTo(options[options.length - 1]);
+      }
+    }
+
+    function renderSidebar() {
+      const statusEl = document.getElementById("status");
+      const actionsEl = document.getElementById("actions");
+      const activeSkierEl = document.getElementById("activeSkier");
+      const queueEl = document.getElementById("skierQueue");
+      const collectedEl = document.getElementById("collectedPile");
+      const scoreEl = document.getElementById("score");
+      const scoreHistoryEl = document.getElementById("scoreHistory");
+      const deckStatusEl = document.getElementById("deckStatus");
+      const crowdCounterEl = document.getElementById("crowdCounter");
+      const legendEl = document.getElementById("legend");
+
+      statusEl.textContent = state.message;
+      actionsEl.innerHTML = "";
+      if (state.activeRun) {
+        const waitBtn = document.createElement("button");
+        waitBtn.textContent = "Wait for the Group";
+        waitBtn.className = "secondary";
+        waitBtn.addEventListener("click", waitForGroup);
+        actionsEl.appendChild(waitBtn);
+      } else if (state.gameEnded) {
+        const resetBtn = document.createElement("button");
+        resetBtn.textContent = "Restart Prototype";
+        resetBtn.addEventListener("click", beginGame);
+        actionsEl.appendChild(resetBtn);
+      }
+
+      if (state.activeRun) {
+        const skierState = state.cards[state.activeRun.leadSkierId];
+        const card = state.cards[skierState.cardId];
+        activeSkierEl.textContent = `Lead: ${getCardLabel(card)} (${getSymbol(card).label})`;
+      } else {
+        activeSkierEl.textContent = "No active skier";
+      }
+
+      queueEl.innerHTML = "";
+      const activeSkierId = state.activeRun?.leadSkierId || null;
+      const queueSorted = [...getPlayer().skierQueue].sort((a, b) => {
+        const aUsed = state.cards[a].status === "used";
+        const bUsed = state.cards[b].status === "used";
+        if (aUsed === bUsed) return 0;
+        return aUsed ? 1 : -1;
+      });
+      queueSorted.forEach((skierId) => {
+        const skierState = state.cards[skierId];
+        const card = state.cards[skierState.cardId];
+        const div = document.createElement("div");
+        div.className = "card";
+        if (skierId === activeSkierId) {
+          div.classList.add("active");
+        }
+        if (skierState.status === "used") {
+          div.classList.add("used");
+        }
+        const statusLabel = skierId === activeSkierId ? "active" : skierState.status;
+        div.textContent = `${getCardLabel(card)} - ${statusLabel}`;
+        queueEl.appendChild(div);
+      });
+
+      collectedEl.innerHTML = "";
+      getCollectedPileGrouped().forEach(({ entry, count }) => {
+        const card = state.cards[entry.cardId];
+        const div = document.createElement("div");
+        div.className = "card";
+        const countLabel = count > 1 ? ` ×${count}` : "";
+        div.textContent = `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}${countLabel}`;
+        collectedEl.appendChild(div);
+      });
+
+      const { baseTotal, mult, finalScore, endDayScore, counts, bonusCounts, exponent, goalCount } = computeScore();
+      const histogram = Object.entries(counts)
+        .map(([rank, count]) => `${rank}: ${count}`)
+        .join(", ");
+      const bonusSummary = Object.entries(BONUS_TARGETS)
+        .map(([emoji, target]) => `${emoji} ${bonusCounts[emoji] || 0}/${target}`)
+        .join(" · ");
+      scoreEl.innerHTML = `Base total: <strong>${formatNumber(baseTotal)}</strong><br />
+        Multiplier: <strong>${mult}×</strong><br />
+        Final score: <strong>${formatNumber(finalScore)}</strong><br />
+        End of day score: <strong>${formatNumber(endDayScore)}</strong><br />
+        <span class="footer-note">Exponent: ${exponent} (goals met: ${goalCount})</span><br />
+        <span class="footer-note">Ranks collected: ${histogram || "None"}</span>`;
+      const bonusTrackerEl = document.getElementById("bonusTracker");
+      bonusTrackerEl.innerHTML = `<span class="footer-note">Bonus goals: ${bonusSummary}</span>`;
+
+      const lastRun = state.lastRunScore;
+      const topScores = state.scoreHistory;
+      const formatCollected = (entries) =>
+        entries.length
+          ? entries
+              .map((entry) => {
+                const card = state.cards[entry.cardId];
+                return `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}`;
+              })
+              .join(", ")
+          : "None";
+      const lastRunText = lastRun
+        ? `Last run — base ${formatNumber(lastRun.baseTotal)}, mult ${lastRun.mult}×, final ${formatNumber(
+            lastRun.finalScore
+          )}, end-day ${formatNumber(lastRun.endDayScore)}<br />
+        <span class="footer-note">Collected: ${formatCollected(lastRun.collected)}</span><br />`
+        : "Last run — none yet";
+      const topList = topScores.length
+        ? `<ol>${topScores
+            .map(
+              (entry) =>
+                `<li>${formatNumber(entry.endDayScore)} (final ${formatNumber(entry.finalScore)}, ${entry.exponent}x)</li>`
+            )
+            .join("")}</ol>`
+        : "<p>No top scores yet.</p>";
+      scoreHistoryEl.innerHTML = `${lastRunText}${topList}`;
+
+      deckStatusEl.innerHTML = `Crowd deck remaining: ${state.crowdDeck.length}<br />
+        Cloud deck remaining: ${state.cloudDeck.length}<br />
+        Memories pile: ${state.memoriesPile.length}`;
+
+      legendEl.innerHTML = "";
+      SYMBOLS.forEach((symbol) => {
+        const row = document.createElement("span");
+        row.textContent = `${symbol.icon} ${symbol.label} (Rank ${symbol.difficultyRank})`;
+        legendEl.appendChild(row);
+      });
+
+      const totalCrowd = TOTAL_CROWD;
+      crowdCounterEl.textContent = `${state.usedCrowdCount}/${totalCrowd}`;
+    }
+
+    function showModeOverlay(show) {
+      const overlay = document.getElementById("modeOverlay");
+      overlay.style.display = show ? "flex" : "none";
+    }
+
+    function startMode(mode) {
+      state.mode = mode;
+      showModeOverlay(false);
+      beginGame();
+    }
+
+    window.startMode = startMode;
+
+    document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
+    document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
+    document.addEventListener("keydown", handleKeyMove);
+    showModeOverlay(true);
+  </script>
+</body>
+</html>
