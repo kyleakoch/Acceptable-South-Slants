@@ -333,10 +333,10 @@
           <span class="footer-note">One quick run with the current queue of skiers.</span>
           <button id="startFreePlay">Start Free-Play</button>
         </div>
-        <div class="mode-option disabled">
+        <div class="mode-option">
           <strong>Full Crowd (Single Player)</strong>
-          <span class="footer-note">Play through the whole crowd. Coming soon.</span>
-          <button disabled>Coming Soon</button>
+          <span class="footer-note">Play through all 32 skiers and recycle memories.</span>
+          <button id="startFullCrowd">Start Full Crowd</button>
         </div>
         <div class="mode-option disabled">
           <strong>Multiplayer (2-4)</strong>
@@ -373,7 +373,9 @@
       lastRunScore: null,
       memoriesPile: [],
       mode: null,
-      gameStarted: false
+      gameStarted: false,
+      usedCrowdCount: 0,
+      skierCounter: 0
     };
 
     const BONUS_EMOJIS = {
@@ -518,11 +520,12 @@
       return mountain;
     }
 
-    function dealSkiers() {
-      const player = { id: "P1", skierQueue: [], collectedPile: [] };
-      for (let i = 0; i < 4; i += 1) {
+    function dealSkiers(player, count = 4) {
+      for (let i = 0; i < count; i += 1) {
         const card = state.crowdDeck.pop();
-        const skierId = `S${player.skierQueue.length + 1}`;
+        if (!card) return;
+        state.skierCounter += 1;
+        const skierId = `S${state.skierCounter}`;
         state.cards[skierId] = {
           id: skierId,
           ownerId: player.id,
@@ -534,7 +537,6 @@
         };
         player.skierQueue.push(skierId);
       }
-      return player;
     }
 
     function getSymbol(card) {
@@ -646,7 +648,11 @@
       state.crowdDeck = shuffle([...crowd]);
       state.cloudDeck = faceShuffleCloud(cloud);
       state.mountain = dealMountain();
-      state.players = [dealSkiers()];
+      state.usedCrowdCount = 0;
+      state.skierCounter = 0;
+      const player = { id: "P1", skierQueue: [], collectedPile: [] };
+      state.players = [player];
+      dealSkiers(player, 4);
       state.activeRun = null;
       state.gameEnded = false;
       state.message = "Game ready. Start your first run!";
@@ -677,7 +683,11 @@
         };
         state.message = "Resuming paused skier. Choose your next step.";
       } else if (!state.activeRun) {
-        const nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+        let nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+        if (!nextSkierId && state.mode === "FULL" && state.crowdDeck.length > 0) {
+          dealSkiers(player, 4);
+          nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+        }
         if (!nextSkierId) {
           state.message = "All skiers used. Game over!";
           state.gameEnded = true;
@@ -759,6 +769,7 @@
       skierState.status = "used";
       skierState.pausedPos = null;
       state.activeRun = null;
+      state.usedCrowdCount += 1;
       recordScore();
       applyMissUpgrades();
       state.message = "Run complete! Mountain is refilling.";
@@ -873,6 +884,13 @@
       return downNeighbors[currentSlotId].filter((id) => state.mountain[id].occupiedBySkierId === null);
     }
 
+    function getMoveOptionsOrdered() {
+      if (!state.activeRun) return [];
+      const { currentSlotId } = state.activeRun;
+      const neighbors = downNeighbors[currentSlotId];
+      return neighbors.filter((id) => state.mountain[id].occupiedBySkierId === null);
+    }
+
     function render() {
       renderMountain();
       renderSidebar();
@@ -948,6 +966,28 @@
       }
       if (getMoveOptions().includes(id)) {
         moveTo(id);
+      }
+    }
+
+    function handleKeyMove(event) {
+      if (!state.gameStarted || state.gameEnded) return;
+      if (state.awaitingStartChoice) {
+        const startSlots = getStartSlots();
+        if (!startSlots.length) return;
+        if (event.key === "ArrowLeft") {
+          startRunAt(startSlots[0]);
+        } else if (event.key === "ArrowRight") {
+          startRunAt(startSlots[startSlots.length - 1]);
+        }
+        return;
+      }
+      if (!state.activeRun) return;
+      const options = getMoveOptionsOrdered();
+      if (!options.length) return;
+      if (event.key === "ArrowLeft" && options[0]) {
+        moveTo(options[0]);
+      } else if (event.key === "ArrowRight") {
+        moveTo(options[options.length - 1]);
       }
     }
 
@@ -1062,10 +1102,7 @@
       });
 
       const totalCrowd = TOTAL_CROWD;
-      const usedCount = getPlayer().skierQueue.filter(
-        (skierId) => state.cards[skierId].status === "used"
-      ).length;
-      crowdCounterEl.textContent = `Crowd skied: ${usedCount}/${totalCrowd}`;
+      crowdCounterEl.textContent = `Crowd skied: ${state.usedCrowdCount}/${totalCrowd}`;
     }
 
     function showModeOverlay(show) {
@@ -1082,6 +1119,8 @@
     window.startMode = startMode;
 
     document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
+    document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
+    document.addEventListener("keydown", handleKeyMove);
     showModeOverlay(true);
   </script>
 </body>
