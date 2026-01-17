@@ -14,10 +14,29 @@
       background: #f4f6fb;
       color: #1e2430;
     }
-    header {
-      padding: 16px 24px;
-      background: #0d3b66;
-      color: white;
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      opacity: 1;
+      transition: opacity 1s ease;
+    }
+    .loading-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-emoji {
+      font-size: clamp(48px, 9vw, 96px);
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      letter-spacing: 8px;
+    }
+    .loading-emoji.visible {
+      opacity: 1;
     }
     .mode-overlay {
       position: fixed;
@@ -212,6 +231,13 @@
       box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
       pointer-events: none;
     }
+    .slot .token.fork {
+      top: auto;
+      right: auto;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
     .slot .token .token-suit {
       font-size: 14px;
       margin-top: -2px;
@@ -310,16 +336,21 @@
       opacity: 0.7;
       margin-top: 8px;
     }
+    footer {
+      padding: 12px 24px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #4a5568;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Powder Crown Downhill Ski Resort</h1>
-    <p>Prototype v0.3 — single-player Party Mode (mouse or touch controls)</p>
-  </header>
+  <div id="loadingScreen" class="loading-screen" aria-live="polite">
+    <div id="loadingEmoji" class="loading-emoji">❄️</div>
+  </div>
   <main>
     <section class="panel mountain-panel">
-      <h2>Mountain</h2>
+      <h2>Powder Crown Downhill Ski Resort</h2>
       <div id="mountain" class="mountain"></div>
       <p class="footer-note">Debug overlay shows (row, idx). Occupied slots block movement.</p>
     </section>
@@ -350,6 +381,7 @@
       <div class="legend" id="legend"></div>
     </section>
   </main>
+  <footer>Prototype v0.3 — single-player Party Mode (mouse or touch controls)</footer>
   <div id="modeOverlay" class="mode-overlay">
     <div class="mode-card">
       <h2>Select a Game Mode</h2>
@@ -602,13 +634,14 @@
       return Math.min(4, missCount);
     }
 
-    function getSkierTokenMarkup(skierId) {
+    function getSkierTokenMarkup(skierId, variant = "") {
       if (!skierId) return "";
       const skierState = state.cards[skierId];
       const card = state.cards[skierState.cardId];
       const symbol = getSymbol(card);
       const riderIcon = card.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
-      return `<div class="token" aria-hidden="true">
+      const variantClass = variant ? ` ${variant}` : "";
+      return `<div class="token${variantClass}" aria-hidden="true">
         <div class="token-rank">${card.rank}</div>
         <div class="token-suit">${riderIcon} ${symbol.icon}</div>
       </div>`;
@@ -1144,7 +1177,7 @@
           }
           const tokenMarkup =
             state.activeRun && state.activeRun.currentSlotId === id
-              ? getSkierTokenMarkup(state.activeRun.leadSkierId)
+              ? getSkierTokenMarkup(state.activeRun.leadSkierId, slot.row < 5 ? "fork" : "")
               : "";
           button.innerHTML = `
             <div class="card-label">${label}</div>
@@ -1341,6 +1374,34 @@
       overlay.style.display = show ? "flex" : "none";
     }
 
+    function startLoadingSequence() {
+      const loadingScreen = document.getElementById("loadingScreen");
+      const loadingEmoji = document.getElementById("loadingEmoji");
+      const sequence = ["❄️", "👑", "🏔️", "⛷️", "❄️👑🏔️⛷️"];
+      let step = 0;
+      showModeOverlay(false);
+
+      const showStep = () => {
+        if (step >= sequence.length) {
+          loadingScreen.classList.add("fade-out");
+          setTimeout(() => {
+            loadingScreen.style.display = "none";
+            showModeOverlay(true);
+          }, 1000);
+          return;
+        }
+        loadingEmoji.textContent = sequence[step];
+        loadingEmoji.classList.add("visible");
+        setTimeout(() => {
+          loadingEmoji.classList.remove("visible");
+          step += 1;
+          setTimeout(showStep, 300);
+        }, step === sequence.length - 1 ? 1200 : 700);
+      };
+
+      showStep();
+    }
+
     function startMode(mode) {
       state.mode = mode;
       showModeOverlay(false);
@@ -1352,7 +1413,7 @@
     document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
     document.addEventListener("keydown", handleKeyMove);
-    showModeOverlay(true);
+    startLoadingSequence();
   </script>
 </body>
 </html>
