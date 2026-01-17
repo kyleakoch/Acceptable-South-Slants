@@ -19,6 +19,58 @@
       background: #0d3b66;
       color: white;
     }
+    .mode-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(13, 59, 102, 0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      padding: 24px;
+    }
+    .mode-card {
+      max-width: 720px;
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      display: grid;
+      gap: 16px;
+    }
+    .mode-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    .mode-option {
+      border: 2px solid #dfe6f2;
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+      background: #f7f9fd;
+      text-align: left;
+    }
+    .mode-option.disabled {
+      opacity: 0.5;
+      filter: grayscale(0.4);
+    }
+    .mode-option button {
+      width: 100%;
+    }
+    .closed-sign {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #f3d9a4;
+      color: #7b4f00;
+      font-size: 12px;
+      font-weight: 700;
+    }
     main {
       padding: 24px;
       display: grid;
@@ -233,6 +285,9 @@
       opacity: 0.7;
       margin-top: 8px;
     }
+    footer {
+      padding: 0 24px 24px;
+    }
   </style>
 </head>
 <body>
@@ -265,6 +320,33 @@
       <div class="legend" id="legend"></div>
     </section>
   </main>
+  <footer>
+    <div class="status" id="crowdCounter"></div>
+  </footer>
+  <div id="modeOverlay" class="mode-overlay">
+    <div class="mode-card">
+      <h2>Select a Game Mode</h2>
+      <p>Choose how you want to ski today. More modes are on the way!</p>
+      <div class="mode-grid">
+        <div class="mode-option">
+          <strong>Free-Play (Single Run)</strong>
+          <span class="footer-note">One quick run with the current queue of skiers.</span>
+          <button id="startFreePlay">Start Free-Play</button>
+        </div>
+        <div class="mode-option disabled">
+          <strong>Full Crowd (Single Player)</strong>
+          <span class="footer-note">Play through the whole crowd. Coming soon.</span>
+          <button disabled>Coming Soon</button>
+        </div>
+        <div class="mode-option disabled">
+          <strong>Multiplayer (2-4)</strong>
+          <span class="footer-note">Take turns on the shared mountain.</span>
+          <span class="closed-sign">⛷️ Temporary Closed</span>
+          <button disabled>Temporarily Closed</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <script>
     const SYMBOLS = [
       { key: "GREEN", label: "Green Circle", icon: "🟢", difficultyRank: 1, suit: "CLUBS" },
@@ -288,7 +370,10 @@
       gameEnded: false,
       message: "",
       scoreHistory: [],
-      lastRunScore: null
+      lastRunScore: null,
+      memoriesPile: [],
+      mode: null,
+      gameStarted: false
     };
 
     const BONUS_EMOJIS = {
@@ -304,6 +389,8 @@
       "🍺": 2,
       "🍦": 1
     };
+
+    const TOTAL_CROWD = 32;
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i -= 1) {
@@ -360,6 +447,21 @@
       return combined.map((card) => ({ cardId: card.id, isFaceUp: faceUpSet.has(card.id) }));
     }
 
+    function replenishCloudFromMemories() {
+      if (!state.memoriesPile.length) return false;
+      const memoryCards = state.memoriesPile.map((cardId) => state.cards[cardId]);
+      state.memoriesPile = [];
+      state.cloudDeck = faceShuffleCloud(memoryCards);
+      return true;
+    }
+
+    function drawCloudCard() {
+      if (!state.cloudDeck.length && state.memoriesPile.length) {
+        replenishCloudFromMemories();
+      }
+      return state.cloudDeck.pop() || null;
+    }
+
     function slotId(row, idx) {
       let id = 0;
       for (let r = 1; r < row; r += 1) {
@@ -400,7 +502,7 @@
       const mountain = [];
       ROW_SIZES.forEach((size, rowIndex) => {
         for (let idx = 0; idx < size; idx += 1) {
-          const draw = state.cloudDeck.pop();
+          const draw = drawCloudCard();
           mountain.push({
             row: rowIndex + 1,
             idx,
@@ -535,6 +637,7 @@
     }
 
     function beginGame() {
+      state.gameStarted = true;
       const deck = buildDecks();
       deck.forEach((card) => {
         state.cards[card.id] = card;
@@ -549,6 +652,7 @@
       state.message = "Game ready. Start your first run!";
       state.scoreHistory = [];
       state.lastRunScore = null;
+      state.memoriesPile = [];
       updateTurn();
     }
 
@@ -625,6 +729,7 @@
           bonus: bonusValue,
           bonusEmoji: slot.bonusEmoji
         });
+        state.memoriesPile.push(card.id);
         slot.missCount = 0;
         slot.bonusEmoji = null;
         state.message = bonusValue
@@ -673,14 +778,19 @@
 
     function refillMountain() {
       const emptySlots = state.mountain.filter((slot) => slot.conditionCardId === null);
-      if (state.cloudDeck.length < emptySlots.length) {
+      let available = state.cloudDeck.length;
+      if (available < emptySlots.length && state.memoriesPile.length) {
+        replenishCloudFromMemories();
+        available = state.cloudDeck.length;
+      }
+      if (available < emptySlots.length) {
         state.gameEnded = true;
         state.message = "Cloud deck depleted. Game over!";
         render();
         return;
       }
       emptySlots.forEach((slot) => {
-        const draw = state.cloudDeck.pop();
+        const draw = drawCloudCard();
         slot.conditionCardId = draw.cardId;
         slot.isFaceUp = draw.isFaceUp;
         slot.lastResult = null;
@@ -850,6 +960,7 @@
       const scoreEl = document.getElementById("score");
       const scoreHistoryEl = document.getElementById("scoreHistory");
       const deckStatusEl = document.getElementById("deckStatus");
+      const crowdCounterEl = document.getElementById("crowdCounter");
       const legendEl = document.getElementById("legend");
 
       statusEl.textContent = state.message;
@@ -940,7 +1051,8 @@
       scoreHistoryEl.innerHTML = `${lastRunText}${topList}`;
 
       deckStatusEl.innerHTML = `Crowd deck remaining: ${state.crowdDeck.length}<br />
-        Cloud deck remaining: ${state.cloudDeck.length}`;
+        Cloud deck remaining: ${state.cloudDeck.length}<br />
+        Memories pile: ${state.memoriesPile.length}`;
 
       legendEl.innerHTML = "";
       SYMBOLS.forEach((symbol) => {
@@ -948,9 +1060,29 @@
         row.textContent = `${symbol.icon} ${symbol.label} (Rank ${symbol.difficultyRank})`;
         legendEl.appendChild(row);
       });
+
+      const totalCrowd = TOTAL_CROWD;
+      const usedCount = getPlayer().skierQueue.filter(
+        (skierId) => state.cards[skierId].status === "used"
+      ).length;
+      crowdCounterEl.textContent = `Crowd skied: ${usedCount}/${totalCrowd}`;
     }
 
-    beginGame();
+    function showModeOverlay(show) {
+      const overlay = document.getElementById("modeOverlay");
+      overlay.style.display = show ? "flex" : "none";
+    }
+
+    function startMode(mode) {
+      state.mode = mode;
+      showModeOverlay(false);
+      beginGame();
+    }
+
+    window.startMode = startMode;
+
+    document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
+    showModeOverlay(true);
   </script>
 </body>
 </html>
