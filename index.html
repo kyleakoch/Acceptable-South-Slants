@@ -222,6 +222,12 @@
       font-size: 12px;
       background: #eef1f8;
     }
+    .queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
     .actions {
       display: grid;
       gap: 8px;
@@ -285,9 +291,6 @@
       opacity: 0.7;
       margin-top: 8px;
     }
-    footer {
-      padding: 0 24px 24px;
-    }
   </style>
 </head>
 <body>
@@ -307,7 +310,10 @@
       <div class="actions" id="actions"></div>
       <h3>Active Skier</h3>
       <div id="activeSkier" class="tag"></div>
-      <h3>Skier Queue</h3>
+      <div class="queue-header">
+        <h3>Skier Queue</h3>
+        <div id="crowdCounter" class="tag"></div>
+      </div>
       <div id="skierQueue" class="pile"></div>
       <h3>Collected Conditions</h3>
       <div id="collectedPile" class="pile"></div>
@@ -320,9 +326,6 @@
       <div class="legend" id="legend"></div>
     </section>
   </main>
-  <footer>
-    <div class="status" id="crowdCounter"></div>
-  </footer>
   <div id="modeOverlay" class="mode-overlay">
     <div class="mode-card">
       <h2>Select a Game Mode</h2>
@@ -576,6 +579,23 @@
         <div class="token-rank">${card.rank}</div>
         <div class="token-suit">${riderIcon} ${symbol.icon}</div>
       </div>`;
+    }
+
+    function formatNumber(value) {
+      if (!Number.isFinite(value)) return "∞";
+      if (Math.abs(value) >= 1e12) {
+        return value.toExponential(2);
+      }
+      return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    }
+
+    function getCollectedPileSorted() {
+      const pile = getPlayer().collectedPile;
+      return [...pile].sort((a, b) => {
+        const aRank = Number(state.cards[a.cardId].rank);
+        const bRank = Number(state.cards[b.cardId].rank);
+        return bRank - aRank;
+      });
     }
 
     function getPlayer() {
@@ -1045,7 +1065,7 @@
       });
 
       collectedEl.innerHTML = "";
-      getPlayer().collectedPile.forEach((entry) => {
+      getCollectedPileSorted().forEach((entry) => {
         const card = state.cards[entry.cardId];
         const div = document.createElement("div");
         div.className = "card";
@@ -1060,10 +1080,10 @@
       const bonusSummary = Object.entries(BONUS_TARGETS)
         .map(([emoji, target]) => `${emoji} ${bonusCounts[emoji] || 0}/${target}`)
         .join(" · ");
-      scoreEl.innerHTML = `Base total: <strong>${baseTotal}</strong><br />
+      scoreEl.innerHTML = `Base total: <strong>${formatNumber(baseTotal)}</strong><br />
         Multiplier: <strong>${mult}×</strong><br />
-        Final score: <strong>${finalScore}</strong><br />
-        End of day score: <strong>${endDayScore.toFixed(2)}</strong><br />
+        Final score: <strong>${formatNumber(finalScore)}</strong><br />
+        End of day score: <strong>${formatNumber(endDayScore)}</strong><br />
         <span class="footer-note">Exponent: ${exponent} (goals met: ${goalCount})</span><br />
         <span class="footer-note">Bonus goals: ${bonusSummary}</span><br />
         <span class="footer-note">Ranks collected: ${histogram || "None"}</span>`;
@@ -1080,12 +1100,17 @@
               .join(", ")
           : "None";
       const lastRunText = lastRun
-        ? `Last run — base ${lastRun.baseTotal}, mult ${lastRun.mult}×, final ${lastRun.finalScore}, end-day ${lastRun.endDayScore.toFixed(2)}<br />
+        ? `Last run — base ${formatNumber(lastRun.baseTotal)}, mult ${lastRun.mult}×, final ${formatNumber(
+            lastRun.finalScore
+          )}, end-day ${formatNumber(lastRun.endDayScore)}<br />
         <span class="footer-note">Collected: ${formatCollected(lastRun.collected)}</span><br />`
         : "Last run — none yet";
       const topList = topScores.length
         ? `<ol>${topScores
-            .map((entry) => `<li>${entry.endDayScore.toFixed(2)} (final ${entry.finalScore}, ${entry.exponent}x)</li>`)
+            .map(
+              (entry) =>
+                `<li>${formatNumber(entry.endDayScore)} (final ${formatNumber(entry.finalScore)}, ${entry.exponent}x)</li>`
+            )
             .join("")}</ol>`
         : "<p>No top scores yet.</p>";
       scoreHistoryEl.innerHTML = `${lastRunText}${topList}`;
@@ -1102,7 +1127,7 @@
       });
 
       const totalCrowd = TOTAL_CROWD;
-      crowdCounterEl.textContent = `Crowd skied: ${state.usedCrowdCount}/${totalCrowd}`;
+      crowdCounterEl.textContent = `${state.usedCrowdCount}/${totalCrowd}`;
     }
 
     function showModeOverlay(show) {
