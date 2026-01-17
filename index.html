@@ -211,6 +211,13 @@
       text-align: center;
       font-size: 13px;
     }
+    .card.active {
+      border: 2px solid #27ae60;
+      box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
+    }
+    .card.used {
+      opacity: 0.4;
+    }
     .legend {
       display: grid;
       gap: 6px;
@@ -289,6 +296,13 @@
       2: "🍔",
       3: "🍺",
       4: "🍦"
+    };
+
+    const BONUS_TARGETS = {
+      "🌭": 4,
+      "🍔": 3,
+      "🍺": 2,
+      "🍦": 1
     };
 
     function shuffle(array) {
@@ -702,7 +716,32 @@
       }, {});
       const maxCount = Math.max(0, ...Object.values(counts));
       const mult = Math.min(8, maxCount || 1);
-      return { baseTotal, mult, finalScore: baseTotal * mult, counts };
+      const finalScore = baseTotal * mult;
+      const bonusCounts = pile.reduce((acc, entry) => {
+        if (entry.bonusEmoji) {
+          acc[entry.bonusEmoji] = (acc[entry.bonusEmoji] || 0) + 1;
+        }
+        return acc;
+      }, {});
+      const metGoals = Object.entries(BONUS_TARGETS).filter(
+        ([emoji, target]) => (bonusCounts[emoji] || 0) >= target
+      );
+      const goalCount = metGoals.length;
+      const exponent = goalCount === 0 ? 1 : goalCount + 1;
+      let endDayScore = finalScore ** exponent;
+      if (goalCount === Object.keys(BONUS_TARGETS).length) {
+        endDayScore *= Math.PI;
+      }
+      return {
+        baseTotal,
+        mult,
+        finalScore,
+        endDayScore,
+        counts,
+        bonusCounts,
+        goalCount,
+        exponent
+      };
     }
 
     function recordScore() {
@@ -712,7 +751,7 @@
         collected: [...getPlayer().collectedPile]
       };
       state.scoreHistory.push({ ...summary, timestamp: Date.now() });
-      state.scoreHistory.sort((a, b) => b.finalScore - a.finalScore);
+      state.scoreHistory.sort((a, b) => b.endDayScore - a.endDayScore);
       state.scoreHistory = state.scoreHistory.slice(0, 5);
     }
 
@@ -837,12 +876,20 @@
       }
 
       queueEl.innerHTML = "";
+      const activeSkierId = state.activeRun?.leadSkierId || null;
       getPlayer().skierQueue.forEach((skierId) => {
         const skierState = state.cards[skierId];
         const card = state.cards[skierState.cardId];
         const div = document.createElement("div");
         div.className = "card";
-        div.textContent = `${getCardLabel(card)} - ${skierState.status}`;
+        if (skierId === activeSkierId) {
+          div.classList.add("active");
+        }
+        if (skierState.status === "used") {
+          div.classList.add("used");
+        }
+        const statusLabel = skierId === activeSkierId ? "active" : skierState.status;
+        div.textContent = `${getCardLabel(card)} - ${statusLabel}`;
         queueEl.appendChild(div);
       });
 
@@ -855,13 +902,19 @@
         collectedEl.appendChild(div);
       });
 
-      const { baseTotal, mult, finalScore, counts } = computeScore();
+      const { baseTotal, mult, finalScore, endDayScore, counts, bonusCounts, exponent, goalCount } = computeScore();
       const histogram = Object.entries(counts)
         .map(([rank, count]) => `${rank}: ${count}`)
         .join(", ");
+      const bonusSummary = Object.entries(BONUS_TARGETS)
+        .map(([emoji, target]) => `${emoji} ${bonusCounts[emoji] || 0}/${target}`)
+        .join(" · ");
       scoreEl.innerHTML = `Base total: <strong>${baseTotal}</strong><br />
         Multiplier: <strong>${mult}×</strong><br />
         Final score: <strong>${finalScore}</strong><br />
+        End of day score: <strong>${endDayScore.toFixed(2)}</strong><br />
+        <span class="footer-note">Exponent: ${exponent} (goals met: ${goalCount})</span><br />
+        <span class="footer-note">Bonus goals: ${bonusSummary}</span><br />
         <span class="footer-note">Ranks collected: ${histogram || "None"}</span>`;
 
       const lastRun = state.lastRunScore;
@@ -876,12 +929,12 @@
               .join(", ")
           : "None";
       const lastRunText = lastRun
-        ? `Last run — base ${lastRun.baseTotal}, mult ${lastRun.mult}×, final ${lastRun.finalScore}<br />
+        ? `Last run — base ${lastRun.baseTotal}, mult ${lastRun.mult}×, final ${lastRun.finalScore}, end-day ${lastRun.endDayScore.toFixed(2)}<br />
         <span class="footer-note">Collected: ${formatCollected(lastRun.collected)}</span><br />`
         : "Last run — none yet";
       const topList = topScores.length
         ? `<ol>${topScores
-            .map((entry) => `<li>${entry.finalScore} (base ${entry.baseTotal}, ${entry.mult}×)</li>`)
+            .map((entry) => `<li>${entry.endDayScore.toFixed(2)} (final ${entry.finalScore}, ${entry.exponent}x)</li>`)
             .join("")}</ol>`
         : "<p>No top scores yet.</p>";
       scoreHistoryEl.innerHTML = `${lastRunText}${topList}`;
