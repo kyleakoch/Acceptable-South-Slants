@@ -284,6 +284,13 @@
       lastRunScore: null
     };
 
+    const BONUS_EMOJIS = {
+      1: "🌭",
+      2: "🍔",
+      3: "🍺",
+      4: "🍦"
+    };
+
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -386,7 +393,9 @@
             conditionCardId: draw?.cardId || null,
             isFaceUp: draw?.isFaceUp || false,
             occupiedBySkierId: null,
-            lastResult: null
+            lastResult: null,
+            missCount: 0,
+            bonusEmoji: null
           });
         }
       });
@@ -428,6 +437,15 @@
     function getHiddenConditionLabel(card) {
       const treeCount = Math.max(1, Math.min(4, card.difficultyRank));
       return "🌲".repeat(treeCount);
+    }
+
+    function getBonusEmoji(missCount) {
+      const capped = Math.min(4, missCount);
+      return BONUS_EMOJIS[capped] || null;
+    }
+
+    function getBonusValue(missCount) {
+      return Math.min(4, missCount);
     }
 
     function getSkierTokenMarkup(skierId) {
@@ -584,11 +602,20 @@
       const card = state.cards[slot.conditionCardId];
       const skierCard = state.cards[state.cards[skierId].cardId];
       if (card.difficultyRank <= skierCard.difficultyRank) {
+        const bonusValue = getBonusValue(slot.missCount || 0);
         slot.conditionCardId = null;
         slot.isFaceUp = false;
         slot.lastResult = { cardId: card.id, outcome: "collected" };
-        getPlayer().collectedPile.push(card.id);
-        state.message = "Condition collected!";
+        getPlayer().collectedPile.push({
+          cardId: card.id,
+          bonus: bonusValue,
+          bonusEmoji: slot.bonusEmoji
+        });
+        slot.missCount = 0;
+        slot.bonusEmoji = null;
+        state.message = bonusValue
+          ? `Condition collected with bonus +${bonusValue}!`
+          : "Condition collected!";
       } else {
         slot.lastResult = { cardId: card.id, outcome: "missed" };
         state.message = "Condition too difficult. It remains on the mountain.";
@@ -614,9 +641,20 @@
       skierState.pausedPos = null;
       state.activeRun = null;
       recordScore();
+      applyMissUpgrades();
       state.message = "Run complete! Mountain is refilling.";
       refillMountain();
       updateTurn();
+    }
+
+    function applyMissUpgrades() {
+      state.mountain.forEach((slot) => {
+        if (slot.lastResult?.outcome === "missed" && slot.conditionCardId) {
+          slot.missCount = (slot.missCount || 0) + 1;
+          slot.bonusEmoji = getBonusEmoji(slot.missCount);
+          slot.lastResult = null;
+        }
+      });
     }
 
     function refillMountain() {
@@ -632,6 +670,8 @@
         slot.conditionCardId = draw.cardId;
         slot.isFaceUp = draw.isFaceUp;
         slot.lastResult = null;
+        slot.missCount = 0;
+        slot.bonusEmoji = null;
       });
     }
 
@@ -653,9 +693,10 @@
     }
 
     function computeScore() {
-      const pile = getPlayer().collectedPile.map((cardId) => state.cards[cardId]);
-      const baseTotal = pile.reduce((sum, card) => sum + Number(card.rank), 0);
-      const counts = pile.reduce((acc, card) => {
+      const pile = getPlayer().collectedPile;
+      const baseTotal = pile.reduce((sum, entry) => sum + Number(state.cards[entry.cardId].rank) + entry.bonus, 0);
+      const counts = pile.reduce((acc, entry) => {
+        const card = state.cards[entry.cardId];
         acc[card.rank] = (acc[card.rank] || 0) + 1;
         return acc;
       }, {});
@@ -714,14 +755,15 @@
           button.disabled = !isHighlighted;
           let label = "Empty";
           if (card) {
-            label = slot.isFaceUp ? getCardLabel(card) : getHiddenConditionLabel(card);
+            const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
+            label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
             if (slot.lastResult && slot.lastResult.outcome === "missed" && slot.isFaceUp) {
               label = `${label} <span class="result-badge">❌</span>`;
             }
           } else if (slot.lastResult) {
             const lastCard = state.cards[slot.lastResult.cardId];
             const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
-            label = `${getCardLabel(lastCard)} <span class=\"result-badge\">${resultIcon}</span>`;
+            label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
           }
           const tokenMarkup =
             state.activeRun && state.activeRun.currentSlotId === id
@@ -805,11 +847,11 @@
       });
 
       collectedEl.innerHTML = "";
-      getPlayer().collectedPile.forEach((cardId) => {
-        const card = state.cards[cardId];
+      getPlayer().collectedPile.forEach((entry) => {
+        const card = state.cards[entry.cardId];
         const div = document.createElement("div");
         div.className = "card";
-        div.textContent = getCardLabel(card);
+        div.textContent = `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}`;
         collectedEl.appendChild(div);
       });
 
@@ -824,8 +866,18 @@
 
       const lastRun = state.lastRunScore;
       const topScores = state.scoreHistory;
+      const formatCollected = (entries) =>
+        entries.length
+          ? entries
+              .map((entry) => {
+                const card = state.cards[entry.cardId];
+                return `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}`;
+              })
+              .join(", ")
+          : "None";
       const lastRunText = lastRun
-        ? `Last run — base ${lastRun.baseTotal}, mult ${lastRun.mult}×, final ${lastRun.finalScore}`
+        ? `Last run — base ${lastRun.baseTotal}, mult ${lastRun.mult}×, final ${lastRun.finalScore}<br />
+        <span class="footer-note">Collected: ${formatCollected(lastRun.collected)}</span><br />`
         : "Last run — none yet";
       const topList = topScores.length
         ? `<ol>${topScores
