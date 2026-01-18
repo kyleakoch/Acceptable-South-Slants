@@ -50,6 +50,16 @@
       background: #111827;
       color: #e5e7eb;
     }
+    body.night-skiing .score-modal .modal-card {
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    body.night-skiing .score-modal .status,
+    body.night-skiing .score-modal .score-hero,
+    body.night-skiing .score-modal .best-run,
+    body.night-skiing .score-modal .bonus-counts {
+      color: #e5e7eb;
+    }
     body.night-skiing .legend span {
       color: #e5e7eb;
     }
@@ -418,11 +428,15 @@
       border: 2px solid #38bdf8;
     }
     .sky-toggle {
+      position: absolute;
+      top: 16px;
+      right: 16px;
       background: transparent;
       border: none;
       padding: 0;
       font-size: clamp(22px, 3vw, 30px);
       cursor: pointer;
+      z-index: 2;
     }
     .sky-toggle:hover {
       background: transparent;
@@ -618,10 +632,10 @@
         <div class="mountain-actions">
           <button id="modeButton" class="mode-button">Mode</button>
           <button id="playAgainButton" class="secondary">Play again</button>
-          <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
           <button id="fullAutoButton" class="secondary">Full auto</button>
         </div>
       </div>
+      <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
       <div id="mountain" class="mountain"></div>
       <div class="auto-modes" id="autoModes">
         <div class="footer-note">Auto modes</div>
