@@ -71,6 +71,25 @@
       font-size: 12px;
       font-weight: 700;
     }
+    .auto-modes {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .auto-modes .auto-grid {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    }
+    .auto-modes button {
+      border-radius: 10px;
+      font-size: 12px;
+      padding: 6px 8px;
+    }
+    .auto-modes button.active {
+      border-color: #1f8f4d;
+      box-shadow: 0 0 0 2px rgba(31, 143, 77, 0.2);
+    }
     main {
       padding: 24px;
       display: grid;
@@ -310,6 +329,10 @@
       <div class="actions" id="actions"></div>
       <h3>Active Skier</h3>
       <div id="activeSkier" class="tag"></div>
+      <div class="auto-modes" id="autoModes">
+        <div class="footer-note">Auto modes</div>
+        <div class="auto-grid"></div>
+      </div>
       <div class="queue-header">
         <h3>Skier Queue</h3>
         <div id="crowdCounter" class="tag"></div>
@@ -378,6 +401,7 @@
       memoriesPile: [],
       mode: null,
       gameStarted: false,
+      autoMode: null,
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -395,6 +419,14 @@
       "🍺": 2,
       "🍦": 1
     };
+    const AUTO_MODES = [
+      { key: "MATCH", label: "Match Mode" },
+      { key: "DISCOVER", label: "Discover Mode" },
+      { key: "EASY", label: "Easy Mode" },
+      { key: "HUNGRY", label: "Hungry Mode" },
+      { key: "THIRSTY", label: "Thirsty Mode" },
+      { key: "BREW", label: "Beer Brew Mode" }
+    ];
 
     const TOTAL_CROWD = 32;
 
@@ -753,7 +785,148 @@
       };
       state.awaitingStartChoice = false;
       resolveSlot(slotIdChoice, nextSkierId);
-      state.message = "Run started. Continue downhill or wait for the group.";
+      state.message = "Run started. Continue downhill.";
+    }
+
+    function getNextAvailableSkierId() {
+      return getPlayer().skierQueue.find((skierId) => state.cards[skierId].status === "available") || null;
+    }
+
+    function getSkierCard(skierId) {
+      if (!skierId) return null;
+      const skierState = state.cards[skierId];
+      return state.cards[skierState.cardId];
+    }
+
+    function getCollectedCounts() {
+      return getPlayer().collectedPile.reduce((acc, entry) => {
+        const card = state.cards[entry.cardId];
+        acc[card.rank] = (acc[card.rank] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function getSlotData(slotId) {
+      const slot = state.mountain[slotId];
+      const card = slot.conditionCardId ? state.cards[slot.conditionCardId] : null;
+      return { slot, card };
+    }
+
+    function getBonusCounts() {
+      return getPlayer().collectedPile.reduce((acc, entry) => {
+        if (entry.bonusEmoji) {
+          acc[entry.bonusEmoji] = (acc[entry.bonusEmoji] || 0) + 1;
+        }
+        return acc;
+      }, {});
+    }
+
+    function scoreMatchMode(card, skierCard, rankCounts) {
+      if (!card || !skierCard) return 0;
+      const eligible = card.difficultyRank <= skierCard.difficultyRank;
+      const matches = rankCounts[card.rank] || 0;
+      const suitMatch = card.symbol === skierCard.symbol ? 1 : 0;
+      const rankValue = Number(card.rank) || 0;
+      const base = eligible ? 1000 : 0;
+      const difficultyWeight = eligible ? 100 : 12;
+      return base + card.difficultyRank * difficultyWeight + suitMatch * 40 + matches * 15 + rankValue;
+    }
+
+    function scoreDiscoverMode(card, slot) {
+      if (!card) return 0;
+      const hiddenBonus = slot.isFaceUp ? 0 : 500;
+      return hiddenBonus + card.difficultyRank * 20 + Number(card.rank || 0);
+    }
+
+    function scoreEasyMode(card) {
+      if (!card) return 0;
+      const difficultyScore = (5 - card.difficultyRank) * 20;
+      const rankScore = 11 - Number(card.rank || 0);
+      return difficultyScore + rankScore;
+    }
+
+    function scoreHungryMode(card, slot, bonusCounts, skierCard) {
+      if (!card || !slot.bonusEmoji) return 0;
+      const emoji = slot.bonusEmoji;
+      const targets = BONUS_TARGETS[emoji] || 0;
+      const current = bonusCounts[emoji] || 0;
+      const needs = Math.max(0, targets - current);
+      const isQueen = skierCard?.rank === "Q";
+      let priority = 0;
+      if (emoji === "🌭" && needs > 0) priority = 300;
+      if (emoji === "🍔" && needs > 0) priority = Math.max(priority, 280);
+      if (emoji === "🍺") priority = Math.max(priority, isQueen ? 220 : 260);
+      if (emoji === "🍦") priority = Math.max(priority, isQueen ? 340 : 220);
+      return priority + card.difficultyRank * 10;
+    }
+
+    function scoreThirstyMode(card, slot) {
+      if (!card) return 0;
+      const beerBonus = slot.bonusEmoji === "🍺" ? 300 : 0;
+      return beerBonus + card.difficultyRank * 10 + Number(card.rank || 0);
+    }
+
+    function scoreBrewMode(card, slot, skierCard) {
+      if (!card || !skierCard) return 0;
+      const eligible = card.difficultyRank <= skierCard.difficultyRank;
+      const uncollectable = eligible ? 0 : 240;
+      const burgerBonus = !eligible && slot.bonusEmoji === "🍔" ? 60 : 0;
+      return uncollectable + burgerBonus + card.difficultyRank * 10;
+    }
+
+    function chooseAutoSlot(mode, slotIds, skierCard) {
+      const rankCounts = getCollectedCounts();
+      const bonusCounts = getBonusCounts();
+      let best = slotIds[0];
+      let bestScore = -Infinity;
+      slotIds.forEach((slotId) => {
+        const { slot, card } = getSlotData(slotId);
+        let score = 0;
+        if (mode === "MATCH") {
+          score = scoreMatchMode(card, skierCard, rankCounts);
+        } else if (mode === "DISCOVER") {
+          score = scoreDiscoverMode(card, slot);
+        } else if (mode === "EASY") {
+          score = scoreEasyMode(card);
+        } else if (mode === "HUNGRY") {
+          score = scoreHungryMode(card, slot, bonusCounts, skierCard);
+        } else if (mode === "THIRSTY") {
+          score = scoreThirstyMode(card, slot);
+        } else if (mode === "BREW") {
+          score = scoreBrewMode(card, slot, skierCard);
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          best = slotId;
+        }
+      });
+      return best;
+    }
+
+    function runAutoMode(mode) {
+      if (state.gameEnded || !state.gameStarted) return;
+      state.autoMode = mode;
+      let safety = 0;
+      while (safety < 50) {
+        if (state.gameEnded) break;
+        if (state.awaitingStartChoice) {
+          const startSlots = getStartSlots();
+          if (!startSlots.length) break;
+          const skierCard = getSkierCard(getNextAvailableSkierId());
+          const choice = chooseAutoSlot(mode, startSlots, skierCard);
+          startRunAt(choice);
+          safety += 1;
+          continue;
+        }
+        if (!state.activeRun) break;
+        const options = getMoveOptionsOrdered();
+        if (!options.length) break;
+        const skierCard = getSkierCard(state.activeRun.leadSkierId);
+        const choice = chooseAutoSlot(mode, options, skierCard);
+        moveTo(choice);
+        safety += 1;
+      }
+      render();
     }
 
     function resolveSlot(slotId, skierId) {
@@ -1032,6 +1205,7 @@
       const statusEl = document.getElementById("status");
       const actionsEl = document.getElementById("actions");
       const activeSkierEl = document.getElementById("activeSkier");
+      const autoModesEl = document.getElementById("autoModes");
       const queueEl = document.getElementById("skierQueue");
       const collectedEl = document.getElementById("collectedPile");
       const scoreEl = document.getElementById("score");
@@ -1042,13 +1216,7 @@
 
       statusEl.textContent = state.message;
       actionsEl.innerHTML = "";
-      if (state.activeRun) {
-        const waitBtn = document.createElement("button");
-        waitBtn.textContent = "Wait for the Group";
-        waitBtn.className = "secondary";
-        waitBtn.addEventListener("click", waitForGroup);
-        actionsEl.appendChild(waitBtn);
-      } else if (state.gameEnded) {
+      if (state.gameEnded) {
         const resetBtn = document.createElement("button");
         resetBtn.textContent = "Restart Prototype";
         resetBtn.addEventListener("click", beginGame);
@@ -1062,6 +1230,19 @@
       } else {
         activeSkierEl.textContent = "No active skier";
       }
+
+      const autoGrid = autoModesEl.querySelector(".auto-grid");
+      autoGrid.innerHTML = "";
+      AUTO_MODES.forEach((mode) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = mode.label;
+        if (state.autoMode === mode.key) {
+          button.classList.add("active");
+        }
+        button.addEventListener("click", () => runAutoMode(mode.key));
+        autoGrid.appendChild(button);
+      });
 
       queueEl.innerHTML = "";
       const activeSkierId = state.activeRun?.leadSkierId || null;
