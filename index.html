@@ -314,6 +314,7 @@
         <h3>Skier Queue</h3>
         <div id="crowdCounter" class="tag"></div>
       </div>
+      <div id="bonusTracker" class="status"></div>
       <div id="skierQueue" class="pile"></div>
       <h3>Collected Conditions</h3>
       <div id="collectedPile" class="pile"></div>
@@ -594,6 +595,22 @@
       return [...pile].sort((a, b) => {
         const aRank = Number(state.cards[a.cardId].rank);
         const bRank = Number(state.cards[b.cardId].rank);
+        return bRank - aRank;
+      });
+    }
+
+    function getCollectedPileGrouped() {
+      const grouped = new Map();
+      getPlayer().collectedPile.forEach((entry) => {
+        const key = entry.cardId;
+        if (!grouped.has(key)) {
+          grouped.set(key, { entry, count: 0 });
+        }
+        grouped.get(key).count += 1;
+      });
+      return [...grouped.values()].sort((a, b) => {
+        const aRank = Number(state.cards[a.entry.cardId].rank);
+        const bRank = Number(state.cards[b.entry.cardId].rank);
         return bRank - aRank;
       });
     }
@@ -1048,7 +1065,13 @@
 
       queueEl.innerHTML = "";
       const activeSkierId = state.activeRun?.leadSkierId || null;
-      getPlayer().skierQueue.forEach((skierId) => {
+      const queueSorted = [...getPlayer().skierQueue].sort((a, b) => {
+        const aUsed = state.cards[a].status === "used";
+        const bUsed = state.cards[b].status === "used";
+        if (aUsed === bUsed) return 0;
+        return aUsed ? 1 : -1;
+      });
+      queueSorted.forEach((skierId) => {
         const skierState = state.cards[skierId];
         const card = state.cards[skierState.cardId];
         const div = document.createElement("div");
@@ -1065,11 +1088,12 @@
       });
 
       collectedEl.innerHTML = "";
-      getCollectedPileSorted().forEach((entry) => {
+      getCollectedPileGrouped().forEach(({ entry, count }) => {
         const card = state.cards[entry.cardId];
         const div = document.createElement("div");
         div.className = "card";
-        div.textContent = `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}`;
+        const countLabel = count > 1 ? ` ×${count}` : "";
+        div.textContent = `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}${countLabel}`;
         collectedEl.appendChild(div);
       });
 
@@ -1085,8 +1109,9 @@
         Final score: <strong>${formatNumber(finalScore)}</strong><br />
         End of day score: <strong>${formatNumber(endDayScore)}</strong><br />
         <span class="footer-note">Exponent: ${exponent} (goals met: ${goalCount})</span><br />
-        <span class="footer-note">Bonus goals: ${bonusSummary}</span><br />
         <span class="footer-note">Ranks collected: ${histogram || "None"}</span>`;
+      const bonusTrackerEl = document.getElementById("bonusTracker");
+      bonusTrackerEl.innerHTML = `<span class="footer-note">Bonus goals: ${bonusSummary}</span>`;
 
       const lastRun = state.lastRunScore;
       const topScores = state.scoreHistory;
