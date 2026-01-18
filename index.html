@@ -399,6 +399,10 @@
       gap: 12px;
       flex-wrap: wrap;
     }
+    .title-emoji {
+      font-size: clamp(24px, 3vw, 32px);
+      letter-spacing: 6px;
+    }
     .mountain-actions {
       display: flex;
       gap: 8px;
@@ -412,6 +416,28 @@
     }
     .mountain-actions .active {
       border: 2px solid #38bdf8;
+    }
+    .sky-toggle {
+      background: transparent;
+      border: none;
+      padding: 0;
+      font-size: clamp(22px, 3vw, 30px);
+      cursor: pointer;
+    }
+    .sky-toggle:hover {
+      background: transparent;
+    }
+    .ambient-snow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 12;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    .ambient-snow.active {
+      opacity: 0.6;
     }
     .actions {
       display: grid;
@@ -584,14 +610,15 @@
     </div>
   </div>
   <div id="emojiRain" class="emoji-rain" aria-hidden="true"></div>
+  <div id="ambientSnow" class="ambient-snow snowstorm" aria-hidden="true"></div>
   <main>
     <section class="panel mountain-panel">
       <div class="mountain-header">
-        <h2>Powder Crown Downhill Ski Resort</h2>
+        <h2 class="title-emoji">❄️👑🏔️⛷️</h2>
         <div class="mountain-actions">
           <button id="modeButton" class="mode-button">Mode</button>
           <button id="playAgainButton" class="secondary">Play again</button>
-          <button id="nightSkiingButton" class="secondary">Night skiing</button>
+          <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
           <button id="fullAutoButton" class="secondary">Full auto</button>
         </div>
       </div>
@@ -695,6 +722,8 @@
       todayHighScore: 0,
       allTimeHighScore: 0,
       nightSkiing: false,
+      nightPhaseIndex: 0,
+      dayIcon: "☀️",
       fullAuto: false,
       fullAutoLoopRunning: false,
       fullAutoGames: 0,
@@ -730,6 +759,8 @@
       { key: "HALF_X", label: "0.5x", delay: 1000 },
       { key: "INSTANT", label: "Instant", delay: 0 }
     ];
+    const NIGHT_PHASES = ["🌕", "🌖", "🌗", "🌘", "🌑", "🌒", "🌓", "🌔"];
+    const DAY_ICONS = ["☀️", "🌤️", "⛅️", "🌥️", "☁️", "🌨️"];
 
     const TOTAL_CROWD = 32;
 
@@ -1045,9 +1076,11 @@
       state.autoSpeed = "ONE_X";
       state.autoRunning = false;
       state.bestRun = null;
+      state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
       if (!state.allTimeHighScore) {
         state.allTimeHighScore = loadAllTimeHighScore();
       }
+      updateSkyIndicator();
       updateTurn();
     }
 
@@ -1350,6 +1383,10 @@
       }
       state.activeRun = null;
       state.usedCrowdCount += 1;
+      if (!state.nightSkiing && state.usedCrowdCount % 16 === 0) {
+        state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
+        updateSkyIndicator();
+      }
       recordScore();
       applyMissUpgrades();
       state.message = "Run complete! Mountain is refilling.";
@@ -1748,9 +1785,35 @@
     function setNightSkiing(enabled) {
       state.nightSkiing = enabled;
       document.body.classList.toggle("night-skiing", enabled);
-      const nightButton = document.getElementById("nightSkiingButton");
-      if (nightButton) {
-        nightButton.textContent = enabled ? "Day skiing" : "Night skiing";
+      if (enabled) {
+        state.nightPhaseIndex = (state.nightPhaseIndex + 1) % NIGHT_PHASES.length;
+      } else {
+        state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
+      }
+      updateSkyIndicator();
+    }
+
+    function updateSkyIndicator() {
+      const toggle = document.getElementById("skyToggle");
+      if (!toggle) return;
+      if (state.nightSkiing) {
+        toggle.textContent = NIGHT_PHASES[state.nightPhaseIndex];
+      } else {
+        toggle.textContent = state.dayIcon;
+      }
+      updateAmbientSnow();
+    }
+
+    function updateAmbientSnow() {
+      const ambient = document.getElementById("ambientSnow");
+      if (!ambient) return;
+      const snowActive = !state.nightSkiing && state.dayIcon === "🌨️";
+      if (snowActive) {
+        createSnowstorm(ambient, 80);
+        ambient.classList.add("active");
+      } else {
+        ambient.classList.remove("active");
+        ambient.innerHTML = "";
       }
     }
 
@@ -1988,8 +2051,11 @@
     });
     startLoadingSequence();
     state.allTimeHighScore = loadAllTimeHighScore();
-    const nightSkiingButton = document.getElementById("nightSkiingButton");
-    nightSkiingButton.addEventListener("click", () => setNightSkiing(!state.nightSkiing));
+    const skyToggle = document.getElementById("skyToggle");
+    updateSkyIndicator();
+    if (skyToggle) {
+      skyToggle.addEventListener("click", () => setNightSkiing(!state.nightSkiing));
+    }
   </script>
 </body>
 </html>
