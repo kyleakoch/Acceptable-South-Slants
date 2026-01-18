@@ -194,6 +194,11 @@
       gap: 6px;
       grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
     }
+    .strategy-grid {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
     main {
       padding: 24px;
       display: grid;
@@ -400,7 +405,7 @@
       flex-wrap: wrap;
     }
     .title-emoji {
-      font-size: clamp(26px, 3.2vw, 34px);
+      font-size: clamp(52px, 6.4vw, 68px);
       letter-spacing: 6px;
     }
     .mountain-actions {
@@ -412,7 +417,7 @@
       background: transparent;
       border: none;
       padding: 0;
-      font-size: clamp(22px, 3vw, 30px);
+      font-size: clamp(44px, 6vw, 60px);
       cursor: pointer;
     }
     .mode-button:hover {
@@ -425,7 +430,7 @@
       background: transparent;
       border: none;
       padding: 0;
-      font-size: clamp(22px, 3vw, 30px);
+      font-size: clamp(44px, 6vw, 60px);
       cursor: pointer;
     }
     .sky-toggle:hover {
@@ -576,6 +581,41 @@
     .score-modal .snowstorm {
       opacity: 0.5;
     }
+    .schedule-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 26;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .schedule-modal.active {
+      display: flex;
+    }
+    .schedule-modal .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(620px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      display: grid;
+      gap: 12px;
+    }
+    .schedule-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .schedule-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    .schedule-item {
+      display: grid;
+      gap: 6px;
+    }
     .emoji-rain {
       position: fixed;
       inset: 0;
@@ -615,6 +655,20 @@
   </div>
   <div id="emojiRain" class="emoji-rain" aria-hidden="true"></div>
   <div id="ambientSnow" class="ambient-snow snowstorm" aria-hidden="true"></div>
+  <div id="scheduleModal" class="schedule-modal" aria-live="polite">
+    <div class="modal-card">
+      <h2>Schedule Auto</h2>
+      <div class="schedule-tabs">
+        <button id="scheduleTypeTab" class="secondary">Type</button>
+        <button id="scheduleRankTab" class="secondary">Rank</button>
+      </div>
+      <div id="scheduleContent" class="schedule-grid"></div>
+      <div class="modal-actions">
+        <button id="scheduleStart">Start scheduled auto</button>
+        <button id="scheduleClose" class="secondary">Close</button>
+      </div>
+    </div>
+  </div>
   <main>
     <section class="panel mountain-panel">
       <div class="mountain-header">
@@ -629,7 +683,7 @@
         <div class="footer-note">Auto modes</div>
         <div class="auto-grid"></div>
         <div id="autoModeStatus" class="footer-note"></div>
-        <button id="fullAutoButton" class="secondary" aria-label="Full auto">♾️</button>
+        <div class="strategy-grid"></div>
         <div class="auto-speed">
           <div class="footer-note">Auto speed</div>
           <div class="speed-grid"></div>
@@ -732,6 +786,13 @@
       fullAutoGames: 0,
       fullAutoTimeoutId: null,
       loadingDismissed: false,
+      autoStrategy: "MANUAL",
+      autoCancelled: false,
+      scheduleMode: "TYPE",
+      scheduleConfig: {
+        type: { SKIER: "MATCH", SNOWBOARDER: "MATCH" },
+        rank: { A: "MATCH", J: "MATCH", Q: "MATCH", K: "MATCH" }
+      },
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -761,6 +822,11 @@
       { key: "ONE_X", label: "1x", delay: 250 },
       { key: "HALF_X", label: "0.5x", delay: 1000 },
       { key: "INSTANT", label: "Instant", delay: 0 }
+    ];
+    const AUTO_STRATEGIES = [
+      { key: "RANDOM", label: "🎲 x ♾️" },
+      { key: "MANUAL", label: "🎮 x ♾️" },
+      { key: "SCHEDULED", label: "🗓️ x ♾️" }
     ];
     const NIGHT_PHASES = ["🌕", "🌖", "🌗", "🌘", "🌑", "🌒", "🌓", "🌔"];
     const DAY_ICONS = ["☀️", "🌤️", "⛅️", "🌥️", "☁️", "🌨️"];
@@ -1080,6 +1146,7 @@
       state.autoRunning = false;
       state.bestRun = null;
       state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
+      state.autoCancelled = false;
       if (!state.allTimeHighScore) {
         state.allTimeHighScore = loadAllTimeHighScore();
       }
@@ -1288,9 +1355,11 @@
       if (state.gameEnded || !state.gameStarted) return;
       if (state.autoRunning) return;
       state.autoRunning = true;
+      state.autoCancelled = false;
       state.autoMode = mode;
       let safety = 0;
       while (safety < 50) {
+        if (state.autoCancelled) break;
         if (state.gameEnded) break;
         if (state.awaitingStartChoice) {
           const startSlots = getStartSlots();
@@ -1662,7 +1731,32 @@
       const autoModeStatus = document.getElementById("autoModeStatus");
       if (autoModeStatus) {
         const activeLabel = AUTO_MODES.find((mode) => mode.key === state.autoMode)?.label || "None";
-        autoModeStatus.textContent = `Active auto mode: ${activeLabel}`;
+        const strategyLabel =
+          AUTO_STRATEGIES.find((entry) => entry.key === state.autoStrategy)?.label || "🎮 x ♾️";
+        autoModeStatus.textContent = `${strategyLabel} · Active mode: ${activeLabel}`;
+      }
+      const strategyGrid = autoModesEl.querySelector(".strategy-grid");
+      if (strategyGrid) {
+        strategyGrid.innerHTML = "";
+        AUTO_STRATEGIES.forEach((strategy) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = strategy.label;
+          if (state.autoStrategy === strategy.key) {
+            button.classList.add("active");
+          }
+          button.addEventListener("click", () => {
+            if (strategy.key === "SCHEDULED") {
+              openScheduleModal();
+              return;
+            }
+            state.autoStrategy = strategy.key;
+            state.fullAuto = true;
+            runFullAutoLoop();
+            render();
+          });
+          strategyGrid.appendChild(button);
+        });
       }
       const speedGrid = autoModesEl.querySelector(".speed-grid");
       speedGrid.innerHTML = "";
@@ -1824,6 +1918,28 @@
       return AUTO_MODES[Math.floor(Math.random() * AUTO_MODES.length)].key;
     }
 
+    function getScheduledModeForSkier(skierCard) {
+      if (!skierCard) return "MATCH";
+      if (state.scheduleMode === "TYPE") {
+        const typeKey = skierCard.riderType === "SNOWBOARDER" ? "SNOWBOARDER" : "SKIER";
+        return state.scheduleConfig.type[typeKey] || "MATCH";
+      }
+      return state.scheduleConfig.rank[skierCard.rank] || "MATCH";
+    }
+
+    function getActiveAutoMode() {
+      if (state.autoStrategy === "MANUAL") {
+        return state.autoMode || "MATCH";
+      }
+      if (state.autoStrategy === "SCHEDULED") {
+        const skierCard = state.activeRun
+          ? getSkierCard(state.activeRun.leadSkierId)
+          : getSkierCard(getNextAvailableSkierId());
+        return getScheduledModeForSkier(skierCard);
+      }
+      return getRandomAutoMode();
+    }
+
     async function runFullAutoLoop() {
       if (state.fullAutoLoopRunning) return;
       state.fullAutoLoopRunning = true;
@@ -1837,7 +1953,7 @@
           continue;
         }
         if (state.awaitingStartChoice || state.activeRun) {
-          await runAutoMode(getRandomAutoMode());
+          await runAutoMode(getActiveAutoMode());
         } else {
           await wait(100);
         }
@@ -1850,12 +1966,14 @@
       state.autoSpeed = "ONE_X";
       state.fullAutoGames = 0;
       state.mode = "FULL";
+      state.autoStrategy = state.autoStrategy || "RANDOM";
       beginGame();
       runFullAutoLoop();
     }
 
     function stopFullAuto() {
       state.fullAuto = false;
+      state.autoCancelled = true;
       if (state.fullAutoTimeoutId) {
         clearTimeout(state.fullAutoTimeoutId);
         state.fullAutoTimeoutId = null;
@@ -1901,6 +2019,67 @@
     function hideScoreModal() {
       const modal = document.getElementById("scoreModal");
       modal.classList.remove("active");
+    }
+
+    function openScheduleModal() {
+      const modal = document.getElementById("scheduleModal");
+      modal.classList.add("active");
+      renderScheduleModal();
+    }
+
+    function closeScheduleModal() {
+      const modal = document.getElementById("scheduleModal");
+      modal.classList.remove("active");
+    }
+
+    function renderScheduleModal() {
+      const content = document.getElementById("scheduleContent");
+      content.innerHTML = "";
+      if (state.scheduleMode === "TYPE") {
+        ["SKIER", "SNOWBOARDER"].forEach((type) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "schedule-item";
+          const label = document.createElement("div");
+          label.textContent = type === "SKIER" ? "Skiers" : "Snowboarders";
+          const button = document.createElement("button");
+          button.className = "secondary";
+          const current = state.scheduleConfig.type[type];
+          button.textContent = AUTO_MODES.find((mode) => mode.key === current)?.label || current;
+          button.addEventListener("click", () => {
+            const nextIndex =
+              (AUTO_MODES.findIndex((mode) => mode.key === state.scheduleConfig.type[type]) + 1) %
+              AUTO_MODES.length;
+            state.scheduleConfig.type[type] = AUTO_MODES[nextIndex].key;
+            renderScheduleModal();
+          });
+          wrapper.append(label, button);
+          content.appendChild(wrapper);
+        });
+      } else {
+        ["A", "J", "Q", "K"].forEach((rank) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "schedule-item";
+          const label = document.createElement("div");
+          label.textContent = rank;
+          const button = document.createElement("button");
+          button.className = "secondary";
+          const current = state.scheduleConfig.rank[rank];
+          button.textContent = AUTO_MODES.find((mode) => mode.key === current)?.label || current;
+          button.addEventListener("click", () => {
+            const nextIndex =
+              (AUTO_MODES.findIndex((mode) => mode.key === state.scheduleConfig.rank[rank]) + 1) %
+              AUTO_MODES.length;
+            state.scheduleConfig.rank[rank] = AUTO_MODES[nextIndex].key;
+            renderScheduleModal();
+          });
+          wrapper.append(label, button);
+          content.appendChild(wrapper);
+        });
+      }
+      const typeTab = document.getElementById("scheduleTypeTab");
+      const rankTab = document.getElementById("scheduleRankTab");
+      typeTab.classList.toggle("active", state.scheduleMode === "TYPE");
+      rankTab.classList.toggle("active", state.scheduleMode === "RANK");
     }
 
     function spawnEmojiRain(emoji, count = 6) {
@@ -2004,14 +2183,6 @@
     document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
     document.getElementById("modeButton").addEventListener("click", () => showModeOverlay(true));
-    document.getElementById("fullAutoButton").addEventListener("click", () => {
-      if (state.fullAuto) {
-        stopFullAuto();
-      } else {
-        startFullAuto();
-      }
-      render();
-    });
     document.getElementById("modalPlayAgain").addEventListener("click", () => {
       hideScoreModal();
       beginGame();
@@ -2037,6 +2208,7 @@
         finalizeLoading();
         setNightSkiing(false);
         state.fullAutoGames = 0;
+        state.autoStrategy = "RANDOM";
         startFullAuto();
         return;
       }
@@ -2058,6 +2230,22 @@
     if (skyToggle) {
       skyToggle.addEventListener("click", () => setNightSkiing(!state.nightSkiing));
     }
+    document.getElementById("scheduleTypeTab").addEventListener("click", () => {
+      state.scheduleMode = "TYPE";
+      renderScheduleModal();
+    });
+    document.getElementById("scheduleRankTab").addEventListener("click", () => {
+      state.scheduleMode = "RANK";
+      renderScheduleModal();
+    });
+    document.getElementById("scheduleClose").addEventListener("click", closeScheduleModal);
+    document.getElementById("scheduleStart").addEventListener("click", () => {
+      closeScheduleModal();
+      state.autoStrategy = "SCHEDULED";
+      state.fullAuto = true;
+      runFullAutoLoop();
+      render();
+    });
   </script>
 </body>
 </html>
