@@ -17,7 +17,7 @@
     .loading-screen {
       position: fixed;
       inset: 0;
-      background: #ffffff;
+      background: #000000;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -37,6 +37,32 @@
     }
     .loading-emoji.visible {
       opacity: 1;
+    }
+    .snowstorm {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    .snowstorm.active {
+      opacity: 1;
+    }
+    .snowflake {
+      position: absolute;
+      top: -10vh;
+      font-size: 20px;
+      animation: snow-fall linear infinite;
+      opacity: 0.85;
+    }
+    @keyframes snow-fall {
+      0% {
+        transform: translateY(-10vh);
+      }
+      100% {
+        transform: translateY(110vh);
+      }
     }
     .mode-overlay {
       position: fixed;
@@ -238,6 +264,27 @@
       left: 50%;
       transform: translateX(-50%);
     }
+    .slot .token.fork-2 {
+      top: auto;
+      right: auto;
+      bottom: -26px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .slot .token.fork-3 {
+      top: auto;
+      right: auto;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .slot .token.fork-4 {
+      top: auto;
+      right: auto;
+      bottom: -34px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
     .slot .token .token-suit {
       font-size: 14px;
       margin-top: -2px;
@@ -249,6 +296,9 @@
     .slot .coords {
       font-size: 11px;
       opacity: 0.6;
+    }
+    .hide-coords .coords {
+      display: none;
     }
     .card-label {
       color: #111827;
@@ -347,12 +397,16 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
+    <div id="snowstorm" class="snowstorm"></div>
   </div>
   <main>
     <section class="panel mountain-panel">
       <h2>Powder Crown Downhill Ski Resort</h2>
       <div id="mountain" class="mountain"></div>
-      <p class="footer-note">Debug overlay shows (row, idx). Occupied slots block movement.</p>
+      <div class="footer-note">
+        Debug overlay shows (row, idx). Occupied slots block movement.
+        <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
+      </div>
     </section>
     <section class="panel">
       <h2>Run Controls</h2>
@@ -645,6 +699,14 @@
         <div class="token-rank">${card.rank}</div>
         <div class="token-suit">${riderIcon} ${symbol.icon}</div>
       </div>`;
+    }
+
+    function getTokenVariantForRow(row) {
+      if (row === 1) return "fork";
+      if (row === 2) return "fork-2";
+      if (row === 3) return "fork-3";
+      if (row === 4) return "fork-4";
+      return "";
     }
 
     function formatNumber(value) {
@@ -1177,7 +1239,7 @@
           }
           const tokenMarkup =
             state.activeRun && state.activeRun.currentSlotId === id
-              ? getSkierTokenMarkup(state.activeRun.leadSkierId, slot.row < 5 ? "fork" : "")
+              ? getSkierTokenMarkup(state.activeRun.leadSkierId, getTokenVariantForRow(slot.row))
               : "";
           button.innerHTML = `
             <div class="card-label">${label}</div>
@@ -1374,20 +1436,50 @@
       overlay.style.display = show ? "flex" : "none";
     }
 
+    function createSnowstorm() {
+      const snowstorm = document.getElementById("snowstorm");
+      snowstorm.innerHTML = "";
+      const symbols = ["❅", "❆", "❅"];
+      const colors = ["#ffffff", "#d7ecff", "#c1dbf7"];
+      const flakes = 60;
+      for (let i = 0; i < flakes; i += 1) {
+        const flake = document.createElement("span");
+        flake.className = "snowflake";
+        flake.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        flake.style.left = `${Math.random() * 100}%`;
+        flake.style.color = colors[Math.floor(Math.random() * colors.length)];
+        flake.style.animationDuration = `${2 + Math.random() * 3}s`;
+        flake.style.animationDelay = `${Math.random() * 1.5}s`;
+        flake.style.fontSize = `${14 + Math.random() * 18}px`;
+        snowstorm.appendChild(flake);
+      }
+    }
+
     function startLoadingSequence() {
       const loadingScreen = document.getElementById("loadingScreen");
       const loadingEmoji = document.getElementById("loadingEmoji");
-      const sequence = ["❄️", "👑", "🏔️", "⛷️", "❄️👑🏔️⛷️"];
+      const snowstorm = document.getElementById("snowstorm");
+      const sequence = ["❄️", "👑", "🏔️", "⛷️"];
       let step = 0;
       showModeOverlay(false);
 
-      const showStep = () => {
-        if (step >= sequence.length) {
+      const showFinal = () => {
+        loadingEmoji.textContent = "❄️👑🏔️⛷️";
+        loadingEmoji.classList.add("visible");
+        setTimeout(() => {
           loadingScreen.classList.add("fade-out");
           setTimeout(() => {
             loadingScreen.style.display = "none";
             showModeOverlay(true);
           }, 1000);
+        }, 1200);
+      };
+
+      const showStep = () => {
+        if (step >= sequence.length) {
+          createSnowstorm();
+          snowstorm.classList.add("active");
+          setTimeout(showFinal, 1600);
           return;
         }
         loadingEmoji.textContent = sequence[step];
@@ -1396,7 +1488,7 @@
           loadingEmoji.classList.remove("visible");
           step += 1;
           setTimeout(showStep, 300);
-        }, step === sequence.length - 1 ? 1200 : 700);
+        }, 700);
       };
 
       showStep();
@@ -1412,6 +1504,13 @@
 
     document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
+    const toggleDebugButton = document.getElementById("toggleDebug");
+    toggleDebugButton.addEventListener("click", () => {
+      document.body.classList.toggle("hide-coords");
+      toggleDebugButton.textContent = document.body.classList.contains("hide-coords")
+        ? "Show debug"
+        : "Hide debug";
+    });
     document.addEventListener("keydown", handleKeyMove);
     startLoadingSequence();
   </script>
