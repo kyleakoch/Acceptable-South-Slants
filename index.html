@@ -8,6 +8,8 @@
     :root {
       color-scheme: light;
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      --slot-min: 70px;
+      --slot-gap: 8px;
     }
     body {
       margin: 0;
@@ -146,6 +148,15 @@
         grid-template-columns: 1fr;
       }
     }
+    @media (max-width: 600px) {
+      :root {
+        --slot-min: 58px;
+        --slot-gap: 6px;
+      }
+      main {
+        padding: 16px;
+      }
+    }
     .panel {
       background: white;
       border-radius: 12px;
@@ -192,11 +203,12 @@
     }
     .mountain {
       display: grid;
-      gap: 8px;
+      gap: var(--slot-gap);
+      width: 100%;
     }
     .row {
       display: grid;
-      gap: 8px;
+      gap: var(--slot-gap);
       justify-content: center;
     }
     .slot {
@@ -403,8 +415,12 @@
     <section class="panel mountain-panel">
       <h2>Powder Crown Downhill Ski Resort</h2>
       <div id="mountain" class="mountain"></div>
+      <div class="auto-modes" id="autoModes">
+        <div class="footer-note">Auto modes</div>
+        <div class="auto-grid"></div>
+      </div>
       <div class="footer-note">
-        Debug overlay shows (row, idx). Occupied slots block movement.
+        Debug overlay shows (row, idx).
         <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
       </div>
     </section>
@@ -414,10 +430,6 @@
       <div class="actions" id="actions"></div>
       <h3>Active Skier</h3>
       <div id="activeSkier" class="tag"></div>
-      <div class="auto-modes" id="autoModes">
-        <div class="footer-note">Auto modes</div>
-        <div class="auto-grid"></div>
-      </div>
       <div class="queue-header">
         <h3>Skier Queue</h3>
         <div id="crowdCounter" class="tag"></div>
@@ -1207,7 +1219,7 @@
       ROW_SIZES.forEach((size, rowIndex) => {
         const rowEl = document.createElement("div");
         rowEl.className = "row";
-        rowEl.style.gridTemplateColumns = `repeat(${size}, minmax(70px, 1fr))`;
+        rowEl.style.gridTemplateColumns = `repeat(${size}, minmax(var(--slot-min), 1fr))`;
         for (let idx = 0; idx < size; idx += 1) {
           const id = slotId(rowIndex + 1, idx);
           const slot = state.mountain[id];
