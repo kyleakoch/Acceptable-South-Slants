@@ -335,6 +335,24 @@
       justify-content: space-between;
       gap: 8px;
     }
+    .mountain-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .mountain-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .mode-button {
+      background: #111827;
+    }
+    .mode-button:hover {
+      background: #1f2937;
+    }
     .actions {
       display: grid;
       gap: 8px;
@@ -404,6 +422,47 @@
       font-size: 13px;
       color: #4a5568;
     }
+    .debug-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #5b677a;
+    }
+    .score-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .score-modal.active {
+      display: flex;
+    }
+    .score-modal .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(520px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 12px;
+    }
+    .score-modal .modal-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .score-modal .snowstorm {
+      opacity: 0.5;
+    }
   </style>
 </head>
 <body>
@@ -411,17 +470,30 @@
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
+  <div id="scoreModal" class="score-modal" aria-live="polite">
+    <div class="snowstorm" aria-hidden="true"></div>
+    <div class="modal-card">
+      <h2>Run Summary</h2>
+      <div id="scoreSummary"></div>
+      <div class="modal-actions">
+        <button id="modalPlayAgain">Play again</button>
+        <button id="modalMode" class="secondary">Mode</button>
+      </div>
+    </div>
+  </div>
   <main>
     <section class="panel mountain-panel">
-      <h2>Powder Crown Downhill Ski Resort</h2>
+      <div class="mountain-header">
+        <h2>Powder Crown Downhill Ski Resort</h2>
+        <div class="mountain-actions">
+          <button id="modeButton" class="mode-button">Mode</button>
+          <button id="playAgainButton" class="secondary">Play again</button>
+        </div>
+      </div>
       <div id="mountain" class="mountain"></div>
       <div class="auto-modes" id="autoModes">
         <div class="footer-note">Auto modes</div>
         <div class="auto-grid"></div>
-      </div>
-      <div class="footer-note">
-        Debug overlay shows (row, idx).
-        <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
       </div>
     </section>
     <section class="panel">
@@ -447,7 +519,13 @@
       <div class="legend" id="legend"></div>
     </section>
   </main>
-  <footer>Prototype v0.3 — single-player Party Mode (mouse or touch controls)</footer>
+  <footer>
+    Prototype v0.3 — single-player Party Mode (mouse or touch controls)
+    <div class="debug-footer">
+      <span>Debug overlay shows (row, idx).</span>
+      <button id="toggleDebug" type="button" class="secondary">Show debug</button>
+    </div>
+  </footer>
   <div id="modeOverlay" class="mode-overlay">
     <div class="mode-card">
       <h2>Select a Game Mode</h2>
@@ -470,6 +548,7 @@
           <button disabled>Temporarily Closed</button>
         </div>
       </div>
+      <button id="returnToGame" class="secondary" style="display: none;">Return to current game</button>
     </div>
   </div>
   <script>
@@ -500,6 +579,7 @@
       mode: null,
       gameStarted: false,
       autoMode: null,
+      bestRun: null,
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -816,6 +896,7 @@
 
     function beginGame() {
       state.gameStarted = true;
+      hideScoreModal();
       const deck = buildDecks();
       deck.forEach((card) => {
         state.cards[card.id] = card;
@@ -835,6 +916,8 @@
       state.scoreHistory = [];
       state.lastRunScore = null;
       state.memoriesPile = [];
+      state.autoMode = null;
+      state.bestRun = null;
       updateTurn();
     }
 
@@ -855,7 +938,8 @@
           playerId: player.id,
           leadSkierId: pausedSkierId,
           currentSlotId: skier.pausedPos,
-          resumed: true
+          resumed: true,
+          collectedScore: 0
         };
         state.message = "Resuming paused skier. Choose your next step.";
       } else if (!state.activeRun) {
@@ -864,12 +948,13 @@
           dealSkiers(player, 4);
           nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
         }
-        if (!nextSkierId) {
-          state.message = "All skiers used. Game over!";
-          state.gameEnded = true;
-          render();
-          return;
-        }
+      if (!nextSkierId) {
+        state.message = "All skiers used. Game over!";
+        state.gameEnded = true;
+        showScoreModal();
+        render();
+        return;
+      }
         const startSlots = getStartSlots();
         state.awaitingStartChoice = true;
         if (startSlots.length === 1) {
@@ -888,7 +973,8 @@
         playerId: player.id,
         leadSkierId: nextSkierId,
         currentSlotId: slotIdChoice,
-        resumed: false
+        resumed: false,
+        collectedScore: 0
       };
       state.awaitingStartChoice = false;
       resolveSlot(slotIdChoice, nextSkierId);
@@ -1059,6 +1145,10 @@
         state.memoriesPile.push(card.id);
         slot.missCount = 0;
         slot.bonusEmoji = null;
+        const run = state.activeRun;
+        if (run) {
+          run.collectedScore = (run.collectedScore || 0) + Number(card.rank) + bonusValue;
+        }
         state.message = bonusValue
           ? `Condition collected with bonus +${bonusValue}!`
           : "Condition collected!";
@@ -1085,6 +1175,14 @@
       const skierState = state.cards[run.leadSkierId];
       skierState.status = "used";
       skierState.pausedPos = null;
+      if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
+        const skierCardId = state.cards[run.leadSkierId].cardId;
+        state.bestRun = {
+          skierId: run.leadSkierId,
+          skierCardId,
+          finalScore: run.collectedScore || 0
+        };
+      }
       state.activeRun = null;
       state.usedCrowdCount += 1;
       recordScore();
@@ -1323,13 +1421,6 @@
 
       statusEl.textContent = state.message;
       actionsEl.innerHTML = "";
-      if (state.gameEnded) {
-        const resetBtn = document.createElement("button");
-        resetBtn.textContent = "Restart Prototype";
-        resetBtn.addEventListener("click", beginGame);
-        actionsEl.appendChild(resetBtn);
-      }
-
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
         const card = state.cards[skierState.cardId];
@@ -1445,11 +1536,44 @@
 
     function showModeOverlay(show) {
       const overlay = document.getElementById("modeOverlay");
+      const returnButton = document.getElementById("returnToGame");
+      if (returnButton) {
+        returnButton.style.display = show && state.gameStarted ? "inline-flex" : "none";
+      }
       overlay.style.display = show ? "flex" : "none";
     }
 
-    function createSnowstorm() {
-      const snowstorm = document.getElementById("snowstorm");
+    function showScoreModal() {
+      const modal = document.getElementById("scoreModal");
+      const summaryEl = document.getElementById("scoreSummary");
+      const summary = computeScore();
+      const bestRun = state.bestRun;
+      const bestRunLabel = bestRun
+        ? `${getCardLabel(state.cards[bestRun.skierCardId])} — ${formatNumber(bestRun.finalScore)}`
+        : "None yet";
+      summaryEl.innerHTML = `
+        <div class="status">Base total: <strong>${formatNumber(summary.baseTotal)}</strong></div>
+        <div class="status">Multiplier: <strong>${summary.mult}×</strong></div>
+        <div class="status">Final score: <strong>${formatNumber(summary.finalScore)}</strong></div>
+        <div class="status">End of day score: <strong>${formatNumber(summary.endDayScore)}</strong></div>
+        <div class="status">Exponent: <strong>${summary.exponent}</strong></div>
+        <div class="status">Best run: <strong>${bestRunLabel}</strong></div>
+      `;
+      const snowstorm = modal.querySelector(".snowstorm");
+      if (snowstorm) {
+        createSnowstorm(snowstorm);
+        snowstorm.classList.add("active");
+      }
+      modal.classList.add("active");
+    }
+
+    function hideScoreModal() {
+      const modal = document.getElementById("scoreModal");
+      modal.classList.remove("active");
+    }
+
+    function createSnowstorm(target = document.getElementById("snowstorm")) {
+      const snowstorm = target;
       snowstorm.innerHTML = "";
       const symbols = ["❅", "❆", "❅"];
       const colors = ["#ffffff", "#d7ecff", "#c1dbf7"];
@@ -1516,7 +1640,19 @@
 
     document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
+    document.getElementById("modeButton").addEventListener("click", () => showModeOverlay(true));
+    document.getElementById("playAgainButton").addEventListener("click", () => beginGame());
+    document.getElementById("modalPlayAgain").addEventListener("click", () => {
+      hideScoreModal();
+      beginGame();
+    });
+    document.getElementById("modalMode").addEventListener("click", () => {
+      hideScoreModal();
+      showModeOverlay(true);
+    });
+    document.getElementById("returnToGame").addEventListener("click", () => showModeOverlay(false));
     const toggleDebugButton = document.getElementById("toggleDebug");
+    document.body.classList.add("hide-coords");
     toggleDebugButton.addEventListener("click", () => {
       document.body.classList.toggle("hide-coords");
       toggleDebugButton.textContent = document.body.classList.contains("hide-coords")
