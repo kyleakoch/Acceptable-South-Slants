@@ -515,6 +515,29 @@
       display: grid;
       gap: 12px;
     }
+    .score-modal .score-hero {
+      font-size: clamp(28px, 5vw, 40px);
+      font-weight: 700;
+      text-align: center;
+    }
+    .score-modal .best-run {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .score-modal .best-run .best-icon {
+      font-size: 32px;
+    }
+    .bonus-counts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 6px;
+      text-align: center;
+      font-size: 14px;
+    }
     .score-modal .modal-actions {
       display: flex;
       gap: 10px;
@@ -522,6 +545,20 @@
     }
     .score-modal .snowstorm {
       opacity: 0.5;
+    }
+    .emoji-rain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 15;
+    }
+    .emoji-drop {
+      position: absolute;
+      top: -10vh;
+      font-size: 22px;
+      animation: snow-fall linear infinite;
+      opacity: 0.9;
     }
   </style>
 </head>
@@ -534,7 +571,10 @@
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
       <h2>Run Summary</h2>
+      <div id="currentScoreHero" class="score-hero"></div>
+      <div id="bestRunHero" class="best-run"></div>
       <div id="scoreSummary"></div>
+      <div id="bonusCounts" class="bonus-counts"></div>
       <div id="todayHighScore" class="status"></div>
       <div id="allTimeHighScore" class="status"></div>
       <div class="modal-actions">
@@ -543,6 +583,7 @@
       </div>
     </div>
   </div>
+  <div id="emojiRain" class="emoji-rain" aria-hidden="true"></div>
   <main>
     <section class="panel mountain-panel">
       <div class="mountain-header">
@@ -558,6 +599,7 @@
       <div class="auto-modes" id="autoModes">
         <div class="footer-note">Auto modes</div>
         <div class="auto-grid"></div>
+        <div id="autoModeStatus" class="footer-note"></div>
         <div class="auto-speed">
           <div class="footer-note">Auto speed</div>
           <div class="speed-grid"></div>
@@ -1253,6 +1295,7 @@
       const skierCard = state.cards[state.cards[skierId].cardId];
       if (card.difficultyRank <= skierCard.difficultyRank) {
         const bonusValue = getBonusValue(slot.missCount || 0);
+        const bonusEmoji = slot.bonusEmoji;
         slot.conditionCardId = null;
         slot.isFaceUp = false;
         slot.lastResult = { cardId: card.id, outcome: "collected" };
@@ -1267,6 +1310,9 @@
         const run = state.activeRun;
         if (run) {
           run.collectedScore = (run.collectedScore || 0) + Number(card.rank) + bonusValue;
+        }
+        if (bonusEmoji) {
+          spawnEmojiRain(bonusEmoji, 8);
         }
         state.message = bonusValue
           ? `Condition collected with bonus +${bonusValue}!`
@@ -1573,6 +1619,11 @@
         button.addEventListener("click", () => runAutoMode(mode.key));
         autoGrid.appendChild(button);
       });
+      const autoModeStatus = document.getElementById("autoModeStatus");
+      if (autoModeStatus) {
+        const activeLabel = AUTO_MODES.find((mode) => mode.key === state.autoMode)?.label || "None";
+        autoModeStatus.textContent = `Active auto mode: ${activeLabel}`;
+      }
       const speedGrid = autoModesEl.querySelector(".speed-grid");
       speedGrid.innerHTML = "";
       AUTO_SPEEDS.forEach((speed) => {
@@ -1748,21 +1799,29 @@
     function showScoreModal() {
       const modal = document.getElementById("scoreModal");
       const summaryEl = document.getElementById("scoreSummary");
+      const heroEl = document.getElementById("currentScoreHero");
+      const bestRunEl = document.getElementById("bestRunHero");
+      const bonusCountsEl = document.getElementById("bonusCounts");
       const todayEl = document.getElementById("todayHighScore");
       const allTimeEl = document.getElementById("allTimeHighScore");
       const summary = computeScore();
       const bestRun = state.bestRun;
-      const bestRunLabel = bestRun
-        ? `${getCardLabel(state.cards[bestRun.skierCardId])} — ${formatNumber(bestRun.finalScore)}`
-        : "None yet";
+      const bestRunLabel = bestRun ? getCardLabel(state.cards[bestRun.skierCardId]) : "None yet";
       summaryEl.innerHTML = `
         <div class="status">Base total: <strong>${formatNumber(summary.baseTotal)}</strong></div>
         <div class="status">Multiplier: <strong>${summary.mult}×</strong></div>
         <div class="status">Final score: <strong>${formatNumber(summary.finalScore)}</strong></div>
         <div class="status">End of day score: <strong>${formatNumber(summary.endDayScore)}</strong></div>
         <div class="status">Exponent: <strong>${summary.exponent}</strong></div>
-        <div class="status">Best run: <strong>${bestRunLabel}</strong></div>
       `;
+      heroEl.textContent = `Current score: ${formatNumber(summary.endDayScore)}`;
+      bestRunEl.innerHTML = bestRun
+        ? `<div class="best-icon">${bestRunLabel}</div><div>Best run: ${formatNumber(bestRun.finalScore)}</div>`
+        : `<div class="best-icon">—</div><div>Best run: None yet</div>`;
+      const bonusCounts = summary.bonusCounts || {};
+      bonusCountsEl.innerHTML = Object.entries(BONUS_TARGETS)
+        .map(([emoji, target]) => `${emoji} ${bonusCounts[emoji] || 0}/${target}`)
+        .join(" ");
       todayEl.innerHTML = `Today’s High Score: <strong>${formatNumber(state.todayHighScore)}</strong>`;
       allTimeEl.innerHTML = `All-time High Score (local): <strong>${formatNumber(state.allTimeHighScore)}</strong>`;
       const snowstorm = modal.querySelector(".snowstorm");
@@ -1776,6 +1835,22 @@
     function hideScoreModal() {
       const modal = document.getElementById("scoreModal");
       modal.classList.remove("active");
+    }
+
+    function spawnEmojiRain(emoji, count = 6) {
+      const rain = document.getElementById("emojiRain");
+      for (let i = 0; i < count; i += 1) {
+        const drop = document.createElement("span");
+        drop.className = "emoji-drop";
+        drop.textContent = emoji;
+        drop.style.left = `${Math.random() * 100}%`;
+        drop.style.animationDuration = `${1.6 + Math.random() * 1.8}s`;
+        drop.style.fontSize = `${18 + Math.random() * 18}px`;
+        rain.appendChild(drop);
+        setTimeout(() => {
+          drop.remove();
+        }, 3000);
+      }
     }
 
     function loadAllTimeHighScore() {
