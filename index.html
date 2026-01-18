@@ -137,6 +137,15 @@
       border-color: #1f8f4d;
       box-shadow: 0 0 0 2px rgba(31, 143, 77, 0.2);
     }
+    .auto-speed {
+      display: grid;
+      gap: 6px;
+    }
+    .auto-speed .speed-grid {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    }
     main {
       padding: 24px;
       display: grid;
@@ -494,6 +503,10 @@
       <div class="auto-modes" id="autoModes">
         <div class="footer-note">Auto modes</div>
         <div class="auto-grid"></div>
+        <div class="auto-speed">
+          <div class="footer-note">Auto speed</div>
+          <div class="speed-grid"></div>
+        </div>
       </div>
     </section>
     <section class="panel">
@@ -579,6 +592,8 @@
       mode: null,
       gameStarted: false,
       autoMode: null,
+      autoSpeed: "INSTANT",
+      autoRunning: false,
       bestRun: null,
       usedCrowdCount: 0,
       skierCounter: 0
@@ -604,6 +619,11 @@
       { key: "HUNGRY", label: "Hungry Mode" },
       { key: "THIRSTY", label: "Thirsty Mode" },
       { key: "BREW", label: "Beer Brew Mode" }
+    ];
+    const AUTO_SPEEDS = [
+      { key: "INSTANT", label: "Instant", delay: 0 },
+      { key: "ONE_X", label: "1x", delay: 250 },
+      { key: "HALF_X", label: "0.5x", delay: 1000 }
     ];
 
     const TOTAL_CROWD = 32;
@@ -917,6 +937,8 @@
       state.lastRunScore = null;
       state.memoriesPile = [];
       state.autoMode = null;
+      state.autoSpeed = "INSTANT";
+      state.autoRunning = false;
       state.bestRun = null;
       updateTurn();
     }
@@ -1096,8 +1118,19 @@
       return best;
     }
 
-    function runAutoMode(mode) {
+    function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function getAutoDelay() {
+      const speed = AUTO_SPEEDS.find((entry) => entry.key === state.autoSpeed) || AUTO_SPEEDS[0];
+      return speed.delay;
+    }
+
+    async function runAutoMode(mode) {
       if (state.gameEnded || !state.gameStarted) return;
+      if (state.autoRunning) return;
+      state.autoRunning = true;
       state.autoMode = mode;
       let safety = 0;
       while (safety < 50) {
@@ -1108,6 +1141,9 @@
           const skierCard = getSkierCard(getNextAvailableSkierId());
           const choice = chooseAutoSlot(mode, startSlots, skierCard);
           startRunAt(choice);
+          if (getAutoDelay() > 0) {
+            await wait(getAutoDelay());
+          }
           safety += 1;
           continue;
         }
@@ -1117,8 +1153,12 @@
         const skierCard = getSkierCard(state.activeRun.leadSkierId);
         const choice = chooseAutoSlot(mode, options, skierCard);
         moveTo(choice);
+        if (getAutoDelay() > 0) {
+          await wait(getAutoDelay());
+        }
         safety += 1;
       }
+      state.autoRunning = false;
       render();
     }
 
@@ -1440,6 +1480,21 @@
         }
         button.addEventListener("click", () => runAutoMode(mode.key));
         autoGrid.appendChild(button);
+      });
+      const speedGrid = autoModesEl.querySelector(".speed-grid");
+      speedGrid.innerHTML = "";
+      AUTO_SPEEDS.forEach((speed) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = speed.label;
+        if (state.autoSpeed === speed.key) {
+          button.classList.add("active");
+        }
+        button.addEventListener("click", () => {
+          state.autoSpeed = speed.key;
+          render();
+        });
+        speedGrid.appendChild(button);
       });
 
       queueEl.innerHTML = "";
