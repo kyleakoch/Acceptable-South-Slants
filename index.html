@@ -11,6 +11,48 @@
       --slot-min: 70px;
       --slot-gap: 8px;
     }
+    body.night-skiing {
+      background: #0b1220;
+      color: #e5e7eb;
+    }
+    body.night-skiing .panel {
+      background: #111827;
+      color: #e5e7eb;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    }
+    body.night-skiing .card {
+      background: #1f2937;
+      color: #e5e7eb;
+    }
+    body.night-skiing .tag {
+      background: #1f2937;
+      color: #e5e7eb;
+    }
+    body.night-skiing .slot {
+      background: #1f2937;
+    }
+    body.night-skiing .slot.occupied {
+      background: #3b2b1c;
+      border-color: #f2994a;
+    }
+    body.night-skiing .slot .token {
+      background: #111827;
+      border-color: #e5e7eb;
+      color: #e5e7eb;
+    }
+    body.night-skiing .mode-overlay {
+      background: rgba(10, 15, 30, 0.92);
+    }
+    body.night-skiing .mode-card {
+      background: #111827;
+      color: #e5e7eb;
+    }
+    body.night-skiing .legend span {
+      color: #e5e7eb;
+    }
+    body.night-skiing .footer-note {
+      color: #94a3b8;
+    }
     body {
       margin: 0;
       background: #f4f6fb;
@@ -484,6 +526,8 @@
     <div class="modal-card">
       <h2>Run Summary</h2>
       <div id="scoreSummary"></div>
+      <div id="todayHighScore" class="status"></div>
+      <div id="allTimeHighScore" class="status"></div>
       <div class="modal-actions">
         <button id="modalPlayAgain">Play again</button>
         <button id="modalMode" class="secondary">Mode</button>
@@ -497,6 +541,7 @@
         <div class="mountain-actions">
           <button id="modeButton" class="mode-button">Mode</button>
           <button id="playAgainButton" class="secondary">Play again</button>
+          <button id="nightSkiingButton" class="secondary">Night skiing</button>
         </div>
       </div>
       <div id="mountain" class="mountain"></div>
@@ -595,6 +640,9 @@
       autoSpeed: "INSTANT",
       autoRunning: false,
       bestRun: null,
+      todayHighScore: 0,
+      allTimeHighScore: 0,
+      nightSkiing: false,
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -940,6 +988,10 @@
       state.autoSpeed = "INSTANT";
       state.autoRunning = false;
       state.bestRun = null;
+      state.todayHighScore = 0;
+      if (!state.allTimeHighScore) {
+        state.allTimeHighScore = loadAllTimeHighScore();
+      }
       updateTurn();
     }
 
@@ -1329,6 +1381,14 @@
       state.scoreHistory.push({ ...summary, timestamp: Date.now() });
       state.scoreHistory.sort((a, b) => b.endDayScore - a.endDayScore);
       state.scoreHistory = state.scoreHistory.slice(0, 5);
+      state.todayHighScore = Math.max(state.todayHighScore || 0, summary.endDayScore || 0);
+      const allTime = loadAllTimeHighScore();
+      if (summary.endDayScore > allTime) {
+        saveAllTimeHighScore(summary.endDayScore);
+        state.allTimeHighScore = summary.endDayScore;
+      } else {
+        state.allTimeHighScore = allTime;
+      }
     }
 
     function getMoveOptions() {
@@ -1574,6 +1634,10 @@
         : "<p>No top scores yet.</p>";
       scoreHistoryEl.innerHTML = `${lastRunText}${topList}`;
 
+      const todayLine = `Today’s High Score: <strong>${formatNumber(state.todayHighScore)}</strong>`;
+      const allTimeLine = `All-time High Score (local): <strong>${formatNumber(state.allTimeHighScore)}</strong>`;
+      scoreHistoryEl.innerHTML += `<p>${todayLine}<br />${allTimeLine}</p>`;
+
       deckStatusEl.innerHTML = `Crowd deck remaining: ${state.crowdDeck.length}<br />
         Cloud deck remaining: ${state.cloudDeck.length}<br />
         Memories pile: ${state.memoriesPile.length}`;
@@ -1601,6 +1665,8 @@
     function showScoreModal() {
       const modal = document.getElementById("scoreModal");
       const summaryEl = document.getElementById("scoreSummary");
+      const todayEl = document.getElementById("todayHighScore");
+      const allTimeEl = document.getElementById("allTimeHighScore");
       const summary = computeScore();
       const bestRun = state.bestRun;
       const bestRunLabel = bestRun
@@ -1614,6 +1680,8 @@
         <div class="status">Exponent: <strong>${summary.exponent}</strong></div>
         <div class="status">Best run: <strong>${bestRunLabel}</strong></div>
       `;
+      todayEl.innerHTML = `Today’s High Score: <strong>${formatNumber(state.todayHighScore)}</strong>`;
+      allTimeEl.innerHTML = `All-time High Score (local): <strong>${formatNumber(state.allTimeHighScore)}</strong>`;
       const snowstorm = modal.querySelector(".snowstorm");
       if (snowstorm) {
         createSnowstorm(snowstorm);
@@ -1625,6 +1693,16 @@
     function hideScoreModal() {
       const modal = document.getElementById("scoreModal");
       modal.classList.remove("active");
+    }
+
+    function loadAllTimeHighScore() {
+      const stored = localStorage.getItem("powderCrownHighScore");
+      const value = stored ? Number(stored) : 0;
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function saveAllTimeHighScore(value) {
+      localStorage.setItem("powderCrownHighScore", String(value));
     }
 
     function createSnowstorm(target = document.getElementById("snowstorm")) {
@@ -1716,6 +1794,13 @@
     });
     document.addEventListener("keydown", handleKeyMove);
     startLoadingSequence();
+    state.allTimeHighScore = loadAllTimeHighScore();
+    const nightSkiingButton = document.getElementById("nightSkiingButton");
+    nightSkiingButton.addEventListener("click", () => {
+      state.nightSkiing = !state.nightSkiing;
+      document.body.classList.toggle("night-skiing", state.nightSkiing);
+      nightSkiingButton.textContent = state.nightSkiing ? "Day skiing" : "Night skiing";
+    });
   </script>
 </body>
 </html>
