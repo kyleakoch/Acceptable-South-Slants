@@ -403,6 +403,10 @@
       justify-content: space-between;
       gap: 12px;
       flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .mountain-header h2 {
+      margin: 0;
     }
     .title-emoji {
       font-size: clamp(52px, 6.4vw, 68px);
@@ -412,6 +416,7 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      align-items: center;
     }
     .mode-button {
       background: transparent;
@@ -580,6 +585,15 @@
     }
     .score-modal .snowstorm {
       opacity: 0.5;
+    }
+    body.night-skiing .score-modal .modal-card,
+    body.night-skiing .schedule-modal .modal-card {
+      background: #111827;
+      color: #e5e7eb;
+    }
+    body.night-skiing .score-modal .status,
+    body.night-skiing .schedule-modal .schedule-item {
+      color: #e5e7eb;
     }
     .schedule-modal {
       position: fixed;
@@ -1725,12 +1739,19 @@
         if (state.autoMode === mode.key) {
           button.classList.add("active");
         }
-        button.addEventListener("click", () => runAutoMode(mode.key));
+        button.addEventListener("click", () => {
+          state.autoStrategy = "MANUAL";
+          state.autoMode = mode.key;
+          state.fullAuto = true;
+          runFullAutoLoop();
+          render();
+        });
         autoGrid.appendChild(button);
       });
       const autoModeStatus = document.getElementById("autoModeStatus");
       if (autoModeStatus) {
-        const activeLabel = AUTO_MODES.find((mode) => mode.key === state.autoMode)?.label || "None";
+        const activeMode = getActiveAutoMode();
+        const activeLabel = AUTO_MODES.find((mode) => mode.key === activeMode)?.label || "None";
         const strategyLabel =
           AUTO_STRATEGIES.find((entry) => entry.key === state.autoStrategy)?.label || "🎮 x ♾️";
         autoModeStatus.textContent = `${strategyLabel} · Active mode: ${activeLabel}`;
@@ -2173,6 +2194,9 @@
     }
 
     function startMode(mode) {
+      stopFullAuto();
+      state.autoStrategy = "MANUAL";
+      state.autoMode = null;
       state.mode = mode;
       showModeOverlay(false);
       beginGame();
