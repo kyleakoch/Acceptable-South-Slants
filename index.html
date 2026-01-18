@@ -70,11 +70,14 @@
       justify-content: center;
       z-index: 20;
       opacity: 1;
-      transition: opacity 1s ease;
+      transition: opacity 1s ease, background-color 0.8s ease;
     }
     .loading-screen.fade-out {
       opacity: 0;
       pointer-events: none;
+    }
+    .loading-screen.white-out {
+      background: #ffffff;
     }
     .loading-emoji {
       font-size: clamp(48px, 9vw, 96px);
@@ -644,7 +647,7 @@
       mode: null,
       gameStarted: false,
       autoMode: null,
-      autoSpeed: "INSTANT",
+      autoSpeed: "ONE_X",
       autoRunning: false,
       bestRun: null,
       todayHighScore: 0,
@@ -681,9 +684,9 @@
       { key: "BREW", label: "Beer Brew Mode" }
     ];
     const AUTO_SPEEDS = [
-      { key: "INSTANT", label: "Instant", delay: 0 },
       { key: "ONE_X", label: "1x", delay: 250 },
-      { key: "HALF_X", label: "0.5x", delay: 1000 }
+      { key: "HALF_X", label: "0.5x", delay: 1000 },
+      { key: "INSTANT", label: "Instant", delay: 0 }
     ];
 
     const TOTAL_CROWD = 32;
@@ -997,7 +1000,7 @@
       state.lastRunScore = null;
       state.memoriesPile = [];
       state.autoMode = null;
-      state.autoSpeed = "INSTANT";
+      state.autoSpeed = "ONE_X";
       state.autoRunning = false;
       state.bestRun = null;
       if (!state.allTimeHighScore) {
@@ -1727,7 +1730,7 @@
 
     function startFullAuto() {
       state.fullAuto = true;
-      state.autoSpeed = "INSTANT";
+      state.autoSpeed = "ONE_X";
       state.fullAutoGames = 0;
       state.mode = "FULL";
       beginGame();
@@ -1785,13 +1788,12 @@
       localStorage.setItem("powderCrownHighScore", String(value));
     }
 
-    function createSnowstorm(target = document.getElementById("snowstorm")) {
+    function createSnowstorm(target = document.getElementById("snowstorm"), count = 60) {
       const snowstorm = target;
       snowstorm.innerHTML = "";
       const symbols = ["❅", "❆", "❅"];
       const colors = ["#ffffff", "#d7ecff", "#c1dbf7"];
-      const flakes = 60;
-      for (let i = 0; i < flakes; i += 1) {
+      for (let i = 0; i < count; i += 1) {
         const flake = document.createElement("span");
         flake.className = "snowflake";
         flake.textContent = symbols[Math.floor(Math.random() * symbols.length)];
@@ -1822,27 +1824,20 @@
       let step = 0;
       showModeOverlay(false);
 
-      const showFinal = () => {
-        if (state.loadingDismissed) return;
-        loadingEmoji.textContent = "❄️👑🏔️⛷️";
-        loadingEmoji.classList.add("visible");
-        setTimeout(() => {
-          if (state.loadingDismissed) return;
-          loadingScreen.classList.add("fade-out");
-          setTimeout(() => {
-            if (state.loadingDismissed) return;
-            loadingScreen.style.display = "none";
-            showModeOverlay(true);
-          }, 1000);
-        }, 1200);
-      };
-
       const showStep = () => {
         if (state.loadingDismissed) return;
         if (step >= sequence.length) {
-          createSnowstorm();
+          createSnowstorm(snowstorm, 140);
           snowstorm.classList.add("active");
-          setTimeout(showFinal, 1600);
+          setTimeout(() => {
+            if (state.loadingDismissed) return;
+            loadingScreen.classList.add("white-out");
+            setTimeout(() => {
+              if (state.loadingDismissed) return;
+              loadingScreen.style.display = "none";
+              showModeOverlay(true);
+            }, 700);
+          }, 600);
           return;
         }
         loadingEmoji.textContent = sequence[step];
