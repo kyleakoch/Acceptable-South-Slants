@@ -1754,7 +1754,7 @@
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
         const card = state.cards[skierState.cardId];
-        activeSkierEl.textContent = `Lead: ${getCardLabel(card)} (${getSymbol(card).label})`;
+        activeSkierEl.innerHTML = `Lead: ${getCardLabel(card)} (${getSymbol(card).label})`;
       } else {
         activeSkierEl.textContent = "No active skier";
       }
@@ -1849,7 +1849,7 @@
           div.classList.add("used");
         }
         const statusLabel = skierId === activeSkierId ? "active" : skierState.status;
-        div.textContent = `${getCardLabel(card)} - ${statusLabel}`;
+        div.innerHTML = `${getCardLabel(card)} - ${statusLabel}`;
         queueEl.appendChild(div);
       });
 
@@ -1859,7 +1859,7 @@
         const div = document.createElement("div");
         div.className = "card";
         const countLabel = count > 1 ? ` ×${count}` : "";
-        div.textContent = `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}${countLabel}`;
+        div.innerHTML = `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}${countLabel}`;
         collectedEl.appendChild(div);
       });
 
