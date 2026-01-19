@@ -403,6 +403,16 @@
       letter-spacing: 6px;
       line-height: 1;
     }
+    .title-button {
+      border: none;
+      background: transparent;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+    }
     .mountain-actions {
       display: flex;
       gap: 8px;
@@ -677,7 +687,13 @@
   <main>
     <section class="panel mountain-panel">
       <div class="mountain-header">
-        <h2 class="title-emoji">❄️👑🏔️<span class="flip">⛷️</span> <span id="peakLabel">🏔️¹</span></h2>
+        <h2 class="title-emoji">
+          ❄️👑
+          <button id="peakButton" class="title-button" type="button" aria-label="Select peak">
+            <span id="peakIcon">🏔️¹</span>
+          </button>
+          <span class="flip">⛷️</span>
+        </h2>
         <div class="mountain-actions">
           <button id="modeButton" class="mode-button" aria-label="Game mode">⚙️</button>
           <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
@@ -770,7 +786,7 @@
     const CONDITION_RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
     const PEAKS = {
       PEAK_1: { label: "🏔️¹", rows: [1, 2, 3, 4, 5] },
-      PEAK_2: { label: "🏔️²", rows: [1, 2, 3, 4, 5, 3, 2] },
+      PEAK_2: { label: "🏔️²", rows: [1, 2, 3, 4, 5, 4, 3, 2, 2] },
       PEAK_3: { label: "🏔️³", rows: [2, 3, 4, 5, 4] }
     };
 
@@ -978,7 +994,8 @@
       const mountain = [];
       state.rowSizes.forEach((size, rowIndex) => {
         for (let idx = 0; idx < size; idx += 1) {
-          const draw = drawCloudCard();
+          const isLiftZone = rowIndex === 0 && idx === 0;
+          const draw = isLiftZone ? null : drawCloudCard();
           mountain.push({
             row: rowIndex + 1,
             idx,
@@ -987,7 +1004,8 @@
             occupiedBySkierId: null,
             lastResult: null,
             missCount: 0,
-            bonusEmoji: null
+            bonusEmoji: null,
+            isLiftZone
           });
         }
       });
@@ -1666,7 +1684,9 @@
           }
           button.disabled = !isHighlighted;
           let label = "Empty";
-          if (card) {
+          if (slot.isLiftZone) {
+            label = "🚡 Lift Zone";
+          } else if (card) {
             const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
             label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
             if (slot.lastResult && slot.lastResult.outcome === "missed" && slot.isFaceUp) {
@@ -2245,9 +2265,9 @@
       state.peak = peakKey;
       state.rowSizes = [...peak.rows];
       state.downNeighbors = buildDownNeighbors();
-      const peakLabel = document.getElementById("peakLabel");
-      if (peakLabel) {
-        peakLabel.textContent = peak.label;
+      const peakIcon = document.getElementById("peakIcon");
+      if (peakIcon) {
+        peakIcon.textContent = peak.label;
       }
     }
 
@@ -2259,6 +2279,7 @@
     document.getElementById("peak2").addEventListener("click", () => setPeak("PEAK_2"));
     document.getElementById("peak3").addEventListener("click", () => setPeak("PEAK_3"));
     document.getElementById("modeButton").addEventListener("click", () => showModeOverlay(true));
+    document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("modalPlayAgain").addEventListener("click", () => {
       hideScoreModal();
       beginGame();
