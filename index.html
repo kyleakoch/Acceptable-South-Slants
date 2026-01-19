@@ -333,6 +333,10 @@
       pointer-events: none;
       z-index: 2;
     }
+    .flip {
+      transform: scaleX(-1);
+      display: inline-block;
+    }
     .slot .token.fork {
       top: -14px;
     }
@@ -673,7 +677,7 @@
   <main>
     <section class="panel mountain-panel">
       <div class="mountain-header">
-        <h2 class="title-emoji">❄️👑🏔️⛷️ <span id="peakLabel">🏔️¹</span></h2>
+        <h2 class="title-emoji">❄️👑🏔️<span class="flip">⛷️</span> <span id="peakLabel">🏔️¹</span></h2>
         <div class="mountain-actions">
           <button id="modeButton" class="mode-button" aria-label="Game mode">⚙️</button>
           <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
@@ -698,7 +702,7 @@
       <h3>Active Skier</h3>
       <div id="activeSkier" class="tag"></div>
       <div class="queue-header">
-        <h3>Skier Queue</h3>
+        <h3>Lift Zone</h3>
         <div id="crowdCounter" class="tag"></div>
       </div>
       <div id="bonusTracker" class="status"></div>
@@ -1016,7 +1020,8 @@
     function getCardLabel(card) {
       const symbol = getSymbol(card);
       if (card.type === "SKIER") {
-        const riderIcon = card.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
+        const riderIcon =
+          card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
         return `${riderIcon} ${card.rank} ${symbol.icon}`;
       }
       return `${symbol.icon} ${card.rank}`;
@@ -1041,7 +1046,8 @@
       const skierState = state.cards[skierId];
       const card = state.cards[skierState.cardId];
       const symbol = getSymbol(card);
-      const riderIcon = card.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
+      const riderIcon =
+        card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
       const variantClass = variant ? ` ${variant}` : "";
       return `<div class="token${variantClass}" aria-hidden="true">
         <div class="token-rank">${card.rank}</div>
