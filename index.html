@@ -1445,6 +1445,7 @@
           if (!startSlots.length) break;
           const skierCard = getSkierCard(getNextAvailableSkierId());
           const choice = chooseAutoSlot(mode, startSlots, skierCard);
+          consumeLastRunToken();
           startRunAt(choice);
           if (getAutoDelay() > 0) {
             await wait(getAutoDelay());
@@ -1457,6 +1458,7 @@
         if (!options.length) break;
         const skierCard = getSkierCard(state.activeRun.leadSkierId);
         const choice = chooseAutoSlot(mode, options, skierCard);
+        consumeLastRunToken();
         moveTo(choice);
         if (getAutoDelay() > 0) {
           await wait(getAutoDelay());
@@ -1524,13 +1526,11 @@
       const skierState = state.cards[run.leadSkierId];
       skierState.status = "used";
       skierState.pausedPos = null;
-      if (!state.autoRunning) {
-        state.lastRunToken = {
-          slotId: run.currentSlotId,
-          skierId: run.leadSkierId,
-          clicksRemaining: 2
-        };
-      }
+      state.lastRunToken = {
+        slotId: run.currentSlotId,
+        skierId: run.leadSkierId,
+        clicksRemaining: 2
+      };
       if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
         const skierCardId = state.cards[run.leadSkierId].cardId;
         state.bestRun = {
