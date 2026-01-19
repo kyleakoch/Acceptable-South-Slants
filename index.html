@@ -605,12 +605,14 @@
       opacity: 0.5;
     }
     body.night-skiing .score-modal .modal-card,
-    body.night-skiing .schedule-modal .modal-card {
+    body.night-skiing .schedule-modal .modal-card,
+    body.night-skiing .powder-modal .modal-card {
       background: #111827;
       color: #e5e7eb;
     }
     body.night-skiing .score-modal .status,
-    body.night-skiing .schedule-modal .schedule-item {
+    body.night-skiing .schedule-modal .schedule-item,
+    body.night-skiing .powder-modal .powder-item {
       color: #e5e7eb;
     }
     .schedule-modal {
@@ -633,6 +635,40 @@
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
       display: grid;
       gap: 12px;
+    }
+    .powder-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 26;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .powder-modal.active {
+      display: flex;
+    }
+    .powder-modal .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(520px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      display: grid;
+      gap: 12px;
+    }
+    .powder-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .powder-item {
+      display: grid;
+      gap: 6px;
+    }
+    .powder-options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
     .schedule-tabs {
       display: flex;
@@ -701,18 +737,39 @@
       </div>
     </div>
   </div>
+  <div id="powderModal" class="powder-modal" aria-live="polite">
+    <div class="modal-card">
+      <h2>Powder Settings</h2>
+      <div class="powder-grid">
+        <div class="powder-item">
+          <strong>Emoji overlay snowflakes</strong>
+          <button id="powderOverlayToggle" class="secondary" type="button">On</button>
+        </div>
+        <div class="powder-item">
+          <strong>Emoji fall mode</strong>
+          <div class="powder-options">
+            <button type="button" class="secondary" data-powder-mode="GAME">Game mode</button>
+            <button type="button" class="secondary" data-powder-mode="REAL">Real rep</button>
+            <button type="button" class="secondary" data-powder-mode="DK">DK mode</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="powderClose" class="secondary">Close</button>
+      </div>
+    </div>
+  </div>
   <main>
     <section class="panel mountain-panel">
       <div class="mountain-header">
         <h2 class="title-emoji">
-          ❄️👑
-          <button id="peakButton" class="title-button" type="button" aria-label="Select peak">
-            <span id="peakIcon">🏔️¹</span>
-          </button>
-          <span class="flip">⛷️</span>
+          <button id="powderButton" class="title-button" type="button" aria-label="Powder settings">❄️</button>
+          👑
         </h2>
         <div class="mountain-actions">
-          <button id="modeButton" class="mode-button" aria-label="Game mode">⚙️</button>
+          <button id="peakButton" class="mode-button" type="button" aria-label="Select peak">
+            <span id="peakIcon">🏔️¹</span>
+          </button>
           <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
         </div>
       </div>
@@ -839,6 +896,8 @@
       loadingDismissed: false,
       autoStrategy: "MANUAL",
       autoCancelled: false,
+      emojiOverlayEnabled: true,
+      emojiRainMode: "GAME",
       scheduleMode: "TYPE",
       scheduleConfig: {
         type: { SKIER: "MATCH", SNOWBOARDER: "MATCH" },
@@ -879,9 +938,9 @@
       { key: "INSTANT", label: "Instant", delay: 0 }
     ];
     const AUTO_STRATEGIES = [
-      { key: "RANDOM", label: "🎲 x ♾️" },
-      { key: "MANUAL", label: "🎮 x ♾️" },
-      { key: "SCHEDULED", label: "🗓️ x ♾️" }
+      { key: "RANDOM", label: "🎲 x ∞" },
+      { key: "MANUAL", label: "🎮 x ∞" },
+      { key: "SCHEDULED", label: "🗓️ x ∞" }
     ];
     const NIGHT_PHASES = ["🌕", "🌖", "🌗", "🌘", "🌑", "🌒", "🌓", "🌔"];
     const DAY_ICONS = ["☀️", "🌤️", "⛅️", "🌥️", "☁️", "🌨️"];
@@ -1998,6 +2057,27 @@
       overlay.style.display = show ? "flex" : "none";
     }
 
+    function showPowderModal(show) {
+      const modal = document.getElementById("powderModal");
+      if (!modal) return;
+      modal.classList.toggle("active", show);
+      if (show) {
+        renderPowderModal();
+      }
+    }
+
+    function renderPowderModal() {
+      const overlayToggle = document.getElementById("powderOverlayToggle");
+      if (overlayToggle) {
+        overlayToggle.textContent = state.emojiOverlayEnabled ? "On" : "Off";
+      }
+      const modeButtons = document.querySelectorAll("[data-powder-mode]");
+      modeButtons.forEach((button) => {
+        const mode = button.dataset.powderMode;
+        button.classList.toggle("active", mode === state.emojiRainMode);
+      });
+    }
+
     function setNightSkiing(enabled) {
       state.nightSkiing = enabled;
       document.body.classList.toggle("night-skiing", enabled);
@@ -2206,14 +2286,19 @@
     }
 
     function spawnEmojiRain(emoji, count = 6) {
+      if (!state.emojiOverlayEnabled) return;
       const rain = document.getElementById("emojiRain");
-      for (let i = 0; i < count; i += 1) {
+      const mode = state.emojiRainMode || "GAME";
+      const dropCount = mode === "REAL" ? 1 : count;
+      const sizeMultiplier = mode === "DK" ? 3 : 1;
+      for (let i = 0; i < dropCount; i += 1) {
         const drop = document.createElement("span");
         drop.className = "emoji-drop";
         drop.textContent = emoji;
         drop.style.left = `${Math.random() * 100}%`;
         drop.style.animationDuration = `${1.6 + Math.random() * 1.8}s`;
-        drop.style.fontSize = `${18 + Math.random() * 18}px`;
+        const baseSize = 18 + Math.random() * 18;
+        drop.style.fontSize = `${baseSize * sizeMultiplier}px`;
         rain.appendChild(drop);
         setTimeout(() => {
           drop.remove();
@@ -2322,8 +2407,19 @@
     document.getElementById("peak1").addEventListener("click", () => setPeak("PEAK_1"));
     document.getElementById("peak2").addEventListener("click", () => setPeak("PEAK_2"));
     document.getElementById("peak3").addEventListener("click", () => setPeak("PEAK_3"));
-    document.getElementById("modeButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
+    document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
+    document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
+    document.getElementById("powderOverlayToggle").addEventListener("click", () => {
+      state.emojiOverlayEnabled = !state.emojiOverlayEnabled;
+      renderPowderModal();
+    });
+    document.querySelectorAll("[data-powder-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.emojiRainMode = button.dataset.powderMode;
+        renderPowderModal();
+      });
+    });
     document.getElementById("modalPlayAgain").addEventListener("click", () => {
       hideScoreModal();
       beginGame();
