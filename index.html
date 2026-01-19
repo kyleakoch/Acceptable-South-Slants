@@ -292,7 +292,6 @@
     }
     .slot:disabled {
       cursor: not-allowed;
-      opacity: 0.6;
     }
     .slot.highlight {
       border-color: #2f80ed;
@@ -329,9 +328,27 @@
       justify-content: center;
       font-weight: 700;
       color: #1e2430;
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+      box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.12),
+        0 0 6px rgba(56, 189, 248, 0.2);
       pointer-events: none;
       z-index: 2;
+      animation: token-glow 2.4s ease-in-out infinite;
+    }
+    @keyframes token-glow {
+      0%,
+      100% {
+        box-shadow:
+          0 6px 12px rgba(0, 0, 0, 0.12),
+          0 0 6px rgba(56, 189, 248, 0.18),
+          0 0 12px rgba(56, 189, 248, 0.12);
+      }
+      50% {
+        box-shadow:
+          0 6px 12px rgba(0, 0, 0, 0.12),
+          0 0 12px rgba(56, 189, 248, 0.5),
+          0 0 20px rgba(56, 189, 248, 0.3);
+      }
     }
     .flip {
       transform: scaleX(-1);
@@ -830,6 +847,7 @@
       peak: "PEAK_1",
       rowSizes: [...PEAKS.PEAK_1.rows],
       currentAutoModeForRun: null,
+      lastRunToken: null,
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -1205,6 +1223,7 @@
       state.bestRun = null;
       state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
       state.autoCancelled = false;
+      state.lastRunToken = null;
       if (!state.allTimeHighScore) {
         state.allTimeHighScore = loadAllTimeHighScore();
       }
@@ -1505,6 +1524,13 @@
       const skierState = state.cards[run.leadSkierId];
       skierState.status = "used";
       skierState.pausedPos = null;
+      if (!state.autoRunning) {
+        state.lastRunToken = {
+          slotId: run.currentSlotId,
+          skierId: run.leadSkierId,
+          clicksRemaining: 2
+        };
+      }
       if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
         const skierCardId = state.cards[run.leadSkierId].cardId;
         state.bestRun = {
@@ -1697,10 +1723,14 @@
             const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
             label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
           }
-          const tokenMarkup =
-            state.activeRun && state.activeRun.currentSlotId === id
-              ? getSkierTokenMarkup(state.activeRun.leadSkierId, getTokenVariantForRow(slot.row))
-              : "";
+          let tokenMarkup = "";
+          if (state.activeRun && state.activeRun.currentSlotId === id) {
+            tokenMarkup = getSkierTokenMarkup(state.activeRun.leadSkierId, getTokenVariantForRow(slot.row));
+          } else if (state.lastRunToken && state.lastRunToken.clicksRemaining > 0) {
+            if (state.lastRunToken.slotId === id) {
+              tokenMarkup = getSkierTokenMarkup(state.lastRunToken.skierId, getTokenVariantForRow(slot.row));
+            }
+          }
           button.innerHTML = `
             <div class="card-label">${label}</div>
             <div class="coords">(${slot.row}, ${slot.idx})</div>
@@ -1724,12 +1754,22 @@
       return moveOptions.includes(id);
     }
 
+    function consumeLastRunToken() {
+      if (!state.lastRunToken) return;
+      state.lastRunToken.clicksRemaining -= 1;
+      if (state.lastRunToken.clicksRemaining <= 0) {
+        state.lastRunToken = null;
+      }
+    }
+
     function handleSlotClick(id) {
       if (state.awaitingStartChoice) {
+        consumeLastRunToken();
         startRunAt(id);
         return;
       }
       if (getMoveOptions().includes(id)) {
+        consumeLastRunToken();
         moveTo(id);
       }
     }
@@ -1740,8 +1780,10 @@
         const startSlots = getStartSlots();
         if (!startSlots.length) return;
         if (event.key === "ArrowLeft") {
+          consumeLastRunToken();
           startRunAt(startSlots[0]);
         } else if (event.key === "ArrowRight") {
+          consumeLastRunToken();
           startRunAt(startSlots[startSlots.length - 1]);
         }
         return;
@@ -1750,8 +1792,10 @@
       const options = getMoveOptionsOrdered();
       if (!options.length) return;
       if (event.key === "ArrowLeft" && options[0]) {
+        consumeLastRunToken();
         moveTo(options[0]);
       } else if (event.key === "ArrowRight") {
+        consumeLastRunToken();
         moveTo(options[options.length - 1]);
       }
     }
