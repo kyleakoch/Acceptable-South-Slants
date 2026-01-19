@@ -315,8 +315,9 @@
     }
     .slot .token {
       position: absolute;
-      top: -12px;
-      right: -12px;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%) scale(1.5);
       width: 36px;
       height: 44px;
       border-radius: 12px;
@@ -330,34 +331,19 @@
       color: #1e2430;
       box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
       pointer-events: none;
+      z-index: 2;
     }
     .slot .token.fork {
-      top: auto;
-      right: auto;
-      bottom: -20px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: -12px;
     }
     .slot .token.fork-2 {
-      top: auto;
-      right: auto;
-      bottom: -26px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: -16px;
     }
     .slot .token.fork-3 {
-      top: auto;
-      right: auto;
-      bottom: -30px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: -20px;
     }
     .slot .token.fork-4 {
-      top: auto;
-      right: auto;
-      bottom: -34px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: -24px;
     }
     .slot .token .token-suit {
       font-size: 14px;
