@@ -334,7 +334,7 @@
       border: 2px solid transparent;
     }
     .tram-controls button:hover {
-      border-color: #2f80ed;
+      border-color: #8b5cf6;
     }
     .collected-bubble {
       display: grid;
@@ -405,6 +405,7 @@
       border-radius: 8px;
       padding: 6px 8px;
       font-size: 12px;
+      color: #111827;
     }
     .first-person-next .next-outcome {
       font-size: 14px;
@@ -460,6 +461,10 @@
     .slot.highlight {
       border-color: #2f80ed;
       box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.2);
+    }
+    .slot.lift-zone-slot.highlight {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
     }
     .slot.occupied {
       background: #fdebd2;
@@ -2933,7 +2938,10 @@
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
         const card = state.cards[skierState.cardId];
-        activeSkierEl.innerHTML = `Lead: ${getCardLabel(card)} (${getSymbol(card).label})`;
+        const symbol = getSymbol(card);
+        const riderIcon =
+          card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
+        activeSkierEl.innerHTML = `Lead: ${card.rank}${symbol.icon} ${riderIcon}`;
       } else {
         activeSkierEl.textContent = "No active skier";
       }
