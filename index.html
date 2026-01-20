@@ -268,6 +268,28 @@
       gap: var(--slot-gap);
       width: 100%;
     }
+    .mountain-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    .collected-bubble {
+      display: grid;
+      gap: 6px;
+      align-items: center;
+    }
+    .collected-bubble-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .collected-bubble .pile {
+      grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+      justify-items: end;
+    }
     .mountain.first-person {
       display: block;
     }
@@ -960,6 +982,12 @@
         </div>
       </div>
       <div id="mountain" class="mountain"></div>
+      <div class="mountain-footer">
+        <div class="collected-bubble">
+          <div class="collected-bubble-header">🛖 Captured Memories</div>
+          <div id="collectedPile" class="pile"></div>
+        </div>
+      </div>
       <div class="auto-modes" id="autoModes">
         <div class="footer-note">Auto modes</div>
         <div class="auto-grid"></div>
@@ -983,8 +1011,6 @@
       </div>
       <div id="bonusTracker" class="status"></div>
       <div id="skierQueue" class="pile"></div>
-      <h3>Collected Conditions</h3>
-      <div id="collectedPile" class="pile"></div>
       <div id="score" class="status"></div>
       <h3>Scoreboard</h3>
       <div id="scoreHistory" class="status"></div>
@@ -1334,7 +1360,8 @@
       state.rowSizes.forEach((size, rowIndex) => {
         for (let idx = 0; idx < size; idx += 1) {
           const isLiftZone = rowIndex === 0 && idx === 0;
-          const draw = isLiftZone ? null : drawCloudCard();
+          const isStartRow = rowIndex === 0;
+          const draw = isLiftZone || isStartRow ? null : drawCloudCard();
           mountain.push({
             row: rowIndex + 1,
             idx,
