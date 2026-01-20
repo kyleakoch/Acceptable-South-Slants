@@ -129,6 +129,14 @@
         transform: translateY(110vh);
       }
     }
+    @keyframes emoji-fall {
+      0% {
+        transform: translate3d(0, -10vh, 0);
+      }
+      100% {
+        transform: translate3d(0, 110vh, 0);
+      }
+    }
     .mode-overlay {
       position: fixed;
       inset: 0;
@@ -508,7 +516,7 @@
     .lift-zone {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: space-between;
       gap: 12px;
       width: 100%;
     }
@@ -517,6 +525,8 @@
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-left: auto;
     }
     .lift-zone-token .token {
       position: static;
@@ -968,7 +978,7 @@
       position: absolute;
       top: -10vh;
       font-size: 22px;
-      animation: snow-fall linear infinite;
+      animation: emoji-fall linear forwards;
       opacity: 0.9;
     }
   </style>
@@ -1246,9 +1256,10 @@
       { key: "BREW", label: "Beer Brew Mode" }
     ];
     const AUTO_SPEEDS = [
-      { key: "TWO_X", label: "2x", delay: 250 },
-      { key: "ONE_X", label: "1x", delay: 1000 },
+      { key: "STOP", label: "🛑", delay: null },
       { key: "HALF_X", label: "0.5x", delay: 2000 },
+      { key: "ONE_X", label: "1x", delay: 1000 },
+      { key: "TWO_X", label: "2X", delay: 250 },
       { key: "INSTANT", label: "Instant", delay: 0 }
     ];
     const AUTO_STRATEGIES = [
@@ -1955,6 +1966,10 @@
     }
 
     async function runAutoMode(mode) {
+      if (state.autoSpeed === "STOP") {
+        state.autoRunning = false;
+        return;
+      }
       if (state.gameEnded || !state.gameStarted) return;
       if (state.autoRunning) return;
       state.autoRunning = true;
@@ -2344,8 +2359,8 @@
               .join("");
             label = `
               <div class="lift-zone">
-                <div class="lift-zone-tokens">${liftTokens}</div>
                 <div class="lift-zone-tram">🚡</div>
+                <div class="lift-zone-tokens">${liftTokens}</div>
               </div>
             `;
           } else if (card) {
@@ -2361,7 +2376,10 @@
           }
           let tokenMarkup = "";
           if (state.activeRun && state.activeRun.currentSlotId === id) {
-            tokenMarkup = getSkierTokenMarkup(state.activeRun.leadSkierId, getTokenVariantForRow(slot.row));
+            const tokenVariant = getTokenVariantForRow(slot.row);
+            const isBottomRow = slot.row === state.rowSizes.length;
+            const tokenClass = isBottomRow ? `${tokenVariant} completed-under`.trim() : tokenVariant;
+            tokenMarkup = getSkierTokenMarkup(state.activeRun.leadSkierId, tokenClass);
           } else if (state.lastRunToken && state.lastRunToken.clicksRemaining > 0) {
             if (state.lastRunToken.slotId === id) {
               tokenMarkup = getCollectedTokenMarkup(
@@ -2631,6 +2649,12 @@
           button.classList.add("active");
         }
         button.addEventListener("click", () => {
+          if (speed.key === "STOP") {
+            stopFullAuto();
+            state.autoSpeed = speed.key;
+            render();
+            return;
+          }
           state.autoSpeed = speed.key;
           render();
         });
