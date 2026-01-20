@@ -406,6 +406,10 @@
       padding: 6px 8px;
       font-size: 12px;
     }
+    .first-person-next .next-outcome {
+      font-size: 14px;
+      margin-top: 4px;
+    }
     .first-person-indicator {
       margin-top: 10px;
       font-size: 13px;
@@ -1849,6 +1853,16 @@
       return direction === "RIGHT" ? option.right : option.left;
     }
 
+    function getVisibilityDepth(skierCard) {
+      if (!skierCard) return 1;
+      return Math.max(1, Math.min(4, skierCard.difficultyRank));
+    }
+
+    function getDecisionOutcomeEmoji(card, skierCard) {
+      if (!card || !skierCard || card.type === "SPECIAL") return "";
+      return card.difficultyRank <= skierCard.difficultyRank ? "✅" : "❌";
+    }
+
     function formatNumber(value) {
       if (!Number.isFinite(value)) return "∞";
       if (Math.abs(value) >= 1e12) {
@@ -2187,27 +2201,51 @@
       return uncollectable + burgerBonus + card.difficultyRank * 10;
     }
 
+    function scoreSlot(mode, slotId, skierCard, rankCounts, bonusCounts) {
+      const { slot, card } = getSlotData(slotId);
+      if (mode === "MATCH") {
+        return scoreMatchMode(card, skierCard, rankCounts);
+      }
+      if (mode === "DISCOVER") {
+        return scoreDiscoverMode(card, slot);
+      }
+      if (mode === "EASY") {
+        return scoreEasyMode(card);
+      }
+      if (mode === "HUNGRY") {
+        return scoreHungryMode(card, slot, bonusCounts, skierCard);
+      }
+      if (mode === "THIRSTY") {
+        return scoreThirstyMode(card, slot);
+      }
+      if (mode === "BREW") {
+        return scoreBrewMode(card, slot, skierCard);
+      }
+      return 0;
+    }
+
+    function scoreSlotWithLookahead(mode, slotId, skierCard, depth, rankCounts, bonusCounts) {
+      const baseScore = scoreSlot(mode, slotId, skierCard, rankCounts, bonusCounts);
+      if (depth <= 1) return baseScore;
+      const nextOptions = state.downNeighbors[slotId]?.filter(
+        (nextId) => state.mountain[nextId].occupiedBySkierId === null
+      ) || [];
+      if (!nextOptions.length) return baseScore;
+      const nextScores = nextOptions.map((nextId) =>
+        scoreSlotWithLookahead(mode, nextId, skierCard, depth - 1, rankCounts, bonusCounts)
+      );
+      const bestNext = Math.max(...nextScores);
+      return baseScore + bestNext * 0.4;
+    }
+
     function chooseAutoSlot(mode, slotIds, skierCard) {
       const rankCounts = getCollectedCounts();
       const bonusCounts = getBonusCounts();
+      const depth = getVisibilityDepth(skierCard);
       let best = slotIds[0];
       let bestScore = -Infinity;
       slotIds.forEach((slotId) => {
-        const { slot, card } = getSlotData(slotId);
-        let score = 0;
-        if (mode === "MATCH") {
-          score = scoreMatchMode(card, skierCard, rankCounts);
-        } else if (mode === "DISCOVER") {
-          score = scoreDiscoverMode(card, slot);
-        } else if (mode === "EASY") {
-          score = scoreEasyMode(card);
-        } else if (mode === "HUNGRY") {
-          score = scoreHungryMode(card, slot, bonusCounts, skierCard);
-        } else if (mode === "THIRSTY") {
-          score = scoreThirstyMode(card, slot);
-        } else if (mode === "BREW") {
-          score = scoreBrewMode(card, slot, skierCard);
-        }
+        const score = scoreSlotWithLookahead(mode, slotId, skierCard, depth, rankCounts, bonusCounts);
         if (score > bestScore) {
           bestScore = score;
           best = slotId;
@@ -2681,6 +2719,8 @@
       wrapper.className = "first-person-view";
       const skierRow = document.createElement("div");
       skierRow.className = "first-person-skier";
+      const skierCard = state.activeRun ? getSkierCard(state.activeRun.leadSkierId) : null;
+      const visibilityDepth = getVisibilityDepth(skierCard);
       if (state.activeRun) {
         skierRow.innerHTML = getSkierTokenMarkup(state.activeRun.leadSkierId);
       } else {
@@ -2730,26 +2770,43 @@
           ${indicator ? `<div class="first-person-indicator">${indicator}</div>` : ""}
         `;
         button.addEventListener("click", () => handleSlotClick(slotIdValue));
-        const nextOptions = state.downNeighbors[slotIdValue]?.filter(
-          (nextId) => state.mountain[nextId].occupiedBySkierId === null
-        ) || [];
-        if (nextOptions.length) {
-          const nextRow = document.createElement("div");
-          nextRow.className = "first-person-next";
-          nextOptions.slice(0, 3).forEach((nextId) => {
-            const nextSlot = state.mountain[nextId];
-            const nextCard = nextSlot.conditionCardId ? state.cards[nextSlot.conditionCardId] : null;
-            const nextLabel = nextCard
-              ? nextSlot.isFaceUp
-                ? `${nextCard.rank}${getSymbol(nextCard).icon}`
-                : getHiddenConditionLabel(nextCard)
-              : "—";
-            const nextBadge = document.createElement("div");
-            nextBadge.className = "next-card";
-            nextBadge.textContent = nextLabel;
-            nextRow.appendChild(nextBadge);
-          });
-          button.appendChild(nextRow);
+        if (visibilityDepth > 1) {
+          let currentLevel = [slotIdValue];
+          for (let depth = 1; depth < visibilityDepth; depth += 1) {
+            const nextLevel = [];
+            currentLevel.forEach((currentId) => {
+              const neighbors = state.downNeighbors[currentId]?.filter(
+                (nextId) => state.mountain[nextId].occupiedBySkierId === null
+              ) || [];
+              neighbors.forEach((neighborId) => {
+                if (!nextLevel.includes(neighborId)) {
+                  nextLevel.push(neighborId);
+                }
+              });
+            });
+            if (!nextLevel.length) break;
+            const nextRow = document.createElement("div");
+            nextRow.className = "first-person-next";
+            nextLevel.slice(0, 4).forEach((nextId) => {
+              const nextSlot = state.mountain[nextId];
+              const nextCard = nextSlot.conditionCardId ? state.cards[nextSlot.conditionCardId] : null;
+              const nextLabel = nextCard
+                ? nextSlot.isFaceUp
+                  ? `${nextCard.rank}${getSymbol(nextCard).icon}`
+                  : getHiddenConditionLabel(nextCard)
+                : "—";
+              const nextBadge = document.createElement("div");
+              nextBadge.className = "next-card";
+              const outcomeEmoji = visibilityDepth >= 3 ? getDecisionOutcomeEmoji(nextCard, skierCard) : "";
+              nextBadge.innerHTML = `
+                <div>${nextLabel}</div>
+                ${outcomeEmoji ? `<div class="next-outcome">${outcomeEmoji}</div>` : ""}
+              `;
+              nextRow.appendChild(nextBadge);
+            });
+            button.appendChild(nextRow);
+            currentLevel = nextLevel;
+          }
         }
         optionsRow.appendChild(button);
       });
