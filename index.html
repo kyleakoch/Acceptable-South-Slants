@@ -459,6 +459,97 @@
       gap: var(--slot-gap);
       justify-content: center;
     }
+    .curling-board {
+      display: grid;
+      gap: 16px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 16px;
+      border: 2px solid rgba(15, 23, 42, 0.15);
+    }
+    body.night-skiing .curling-board {
+      background: rgba(15, 23, 42, 0.85);
+      border-color: rgba(226, 232, 240, 0.3);
+      color: #e2e8f0;
+    }
+    .curling-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-weight: 600;
+    }
+    .curling-rink {
+      position: relative;
+      height: 240px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #e0f2fe 0%, #f8fafc 60%);
+      border: 2px solid #94a3b8;
+      overflow: hidden;
+    }
+    .curling-house {
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: 3px solid #1d4ed8;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: inset 0 0 0 20px #f59e0b, inset 0 0 0 38px #ef4444;
+      background: #ffffff;
+    }
+    .curling-button {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #1d4ed8;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .curling-stone {
+      position: absolute;
+      font-size: 28px;
+      transform: translate(-50%, -50%);
+    }
+    .curling-controls {
+      display: grid;
+      gap: 12px;
+    }
+    .curling-columns {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+    .curling-column {
+      background: rgba(148, 163, 184, 0.15);
+      border-radius: 12px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+    .curling-card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .curling-card.active {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+    .curling-card.small {
+      font-size: 12px;
+    }
+    .curling-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     .slot {
       background: #eef1f8;
       border: 2px solid transparent;
@@ -1639,6 +1730,11 @@
           <span class="footer-note">Play through all 32 skiers and recycle memories.</span>
           <button id="startFullCrowd">Start Full Tram</button>
         </div>
+        <div class="mode-option">
+          <strong>Curling Session</strong>
+          <span class="footer-note">Aim, push, and sweep your way to the button.</span>
+          <button id="startCurling">Start Curling</button>
+        </div>
       </div>
       <button id="returnToGame" class="secondary" style="display: none;">Return to current game</button>
     </div>
@@ -1682,6 +1778,11 @@
         url: "https://www.dropbox.com/scl/fi/py8u1mznhn58uqprwe9cz/Ski-Bum.mp3?rlkey=b7xtbhso0nb5neainohm4yfmb&st=xat8kyds&dl=1"
       }
     ];
+    const CURLING_CARDS = {
+      AIM: [-3, -2, -1, 0, 1, 2, 3],
+      POWER: [1, 2, 3, 4, 5],
+      SWEEP: [0, 1, 2, 3]
+    };
 
     const state = {
       cards: {},
@@ -1736,6 +1837,7 @@
       endTipShown: false,
       musicIndex: 0,
       loopCurrentTrack: false,
+      curling: null,
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -2342,6 +2444,13 @@
     function beginGame() {
       state.gameStarted = true;
       hideScoreModal();
+      if (state.mode === "CURLING") {
+        initCurlingGame();
+        state.firstPersonView = false;
+        state.message = "Pick your aim, push, and sweep cards.";
+        render();
+        return;
+      }
       const deckBundle = buildDecksForPeak(state.peak);
       deckBundle.allCards.forEach((card) => {
         state.cards[card.id] = card;
@@ -2373,6 +2482,7 @@
       state.coachMode = "ON";
       state.coachTipShown = state.coachTipShown || false;
       state.endTipShown = state.endTipShown || false;
+      state.curling = null;
       if (!state.allTimeHighScore) {
         state.allTimeHighScore = loadAllTimeHighScore();
       }
@@ -2382,6 +2492,10 @@
 
     function updateTurn() {
       if (state.gameEnded) {
+        render();
+        return;
+      }
+      if (state.mode === "CURLING") {
         render();
         return;
       }
@@ -3044,6 +3158,10 @@
       const mountainEl = document.getElementById("mountain");
       mountainEl.innerHTML = "";
       mountainEl.classList.toggle("first-person", state.firstPersonView);
+      if (state.mode === "CURLING") {
+        renderCurlingGame(mountainEl);
+        return;
+      }
       if (state.firstPersonView && (state.activeRun || state.awaitingStartChoice)) {
         renderFirstPerson(mountainEl);
         return;
@@ -3232,6 +3350,185 @@
       mountainEl.appendChild(wrapper);
     }
 
+    function buildCurlingDeck() {
+      const deck = [];
+      let idCounter = 1;
+      const addCards = (type, values, copies) => {
+        values.forEach((value) => {
+          for (let i = 0; i < copies; i += 1) {
+            deck.push({
+              id: `C${idCounter += 1}`,
+              type,
+              value
+            });
+          }
+        });
+      };
+      addCards("AIM", CURLING_CARDS.AIM, 3);
+      addCards("POWER", CURLING_CARDS.POWER, 4);
+      addCards("SWEEP", CURLING_CARDS.SWEEP, 4);
+      return shuffle(deck);
+    }
+
+    function initCurlingGame() {
+      const deck = buildCurlingDeck();
+      state.curling = {
+        end: 1,
+        maxEnds: 4,
+        stonesPerEnd: 4,
+        shotsTaken: 0,
+        totalScore: 0,
+        deck,
+        discard: [],
+        hand: [],
+        selected: { AIM: null, POWER: null, SWEEP: null },
+        lastShot: null
+      };
+      drawCurlingHand();
+    }
+
+    function drawCurlingHand() {
+      const curling = state.curling;
+      if (!curling) return;
+      while (curling.hand.length < 5) {
+        if (!curling.deck.length) {
+          if (!curling.discard.length) break;
+          curling.deck = shuffle(curling.discard);
+          curling.discard = [];
+        }
+        curling.hand.push(curling.deck.shift());
+      }
+    }
+
+    function selectCurlingCard(card) {
+      const curling = state.curling;
+      if (!curling) return;
+      curling.selected[card.type] = card;
+      curling.hand = curling.hand.filter((entry) => entry !== card);
+      render();
+    }
+
+    function deliverCurlingStone() {
+      const curling = state.curling;
+      if (!curling) return;
+      const { AIM, POWER, SWEEP } = curling.selected;
+      if (!AIM || !POWER || !SWEEP) {
+        state.message = "Pick an aim, power, and sweep card first.";
+        render();
+        return;
+      }
+      const aimOffset = AIM.value;
+      const powerValue = POWER.value;
+      const sweepValue = SWEEP.value;
+      const drift = (Math.random() - 0.5) * 1.2;
+      const distance = Math.max(
+        0,
+        Math.abs(aimOffset) * 2 + Math.max(0, 3 - powerValue) * 2 - sweepValue + drift
+      );
+      let score = 0;
+      if (distance <= 2) score = 3;
+      else if (distance <= 4) score = 2;
+      else if (distance <= 6) score = 1;
+      curling.totalScore += score;
+      curling.lastShot = { distance, score, aimOffset, powerValue, sweepValue };
+      curling.discard.push(AIM, POWER, SWEEP);
+      curling.selected = { AIM: null, POWER: null, SWEEP: null };
+      curling.shotsTaken += 1;
+      if (curling.shotsTaken >= curling.stonesPerEnd) {
+        curling.end += 1;
+        curling.shotsTaken = 0;
+        state.message = curling.end > curling.maxEnds
+          ? "Curling session complete!"
+          : `End ${curling.end} begins. Pick your cards.`;
+      } else {
+        state.message = "Stone delivered! Pick your next cards.";
+      }
+      drawCurlingHand();
+      render();
+    }
+
+    function renderCurlingGame(mountainEl) {
+      const curling = state.curling;
+      if (!curling) return;
+      const remaining = curling.stonesPerEnd - curling.shotsTaken;
+      const lastShot = curling.lastShot;
+      const distance = lastShot ? Math.min(80, Math.max(0, lastShot.distance * 12)) : 0;
+      const stoneX = 50 + (lastShot ? lastShot.aimOffset * 6 : 0);
+      const stoneY = 50 + distance;
+      const handByType = { AIM: [], POWER: [], SWEEP: [] };
+      curling.hand.forEach((card) => {
+        handByType[card.type].push(card);
+      });
+      const renderCards = (type, label) =>
+        handByType[type]
+          .map(
+            (card) =>
+              `<div class="curling-card small" data-card-id="${card.id}">${label} ${card.value}</div>`
+          )
+          .join("");
+      const selected = curling.selected;
+      mountainEl.innerHTML = `
+        <div class="curling-board">
+          <div class="curling-header">
+            <div>🥌 Curling — End ${curling.end}/${curling.maxEnds}</div>
+            <div>Stones left: ${remaining} · Score: ${curling.totalScore}</div>
+          </div>
+          <div class="curling-rink">
+            <div class="curling-house"></div>
+            <div class="curling-button"></div>
+            ${lastShot ? `<div class="curling-stone" style="left:${stoneX}%; top:${stoneY}%;">🥌</div>` : ""}
+          </div>
+          <div class="curling-controls">
+            <div class="curling-columns">
+              <div class="curling-column">
+                <strong>Aim</strong>
+                <div class="curling-card ${selected.AIM ? "active" : ""}">
+                  ${selected.AIM ? `Selected: ${selected.AIM.value}` : "Pick aim"}
+                </div>
+                ${renderCards("AIM", "Aim")}
+              </div>
+              <div class="curling-column">
+                <strong>Push Strength</strong>
+                <div class="curling-card ${selected.POWER ? "active" : ""}">
+                  ${selected.POWER ? `Selected: ${selected.POWER.value}` : "Pick power"}
+                </div>
+                ${renderCards("POWER", "Power")}
+              </div>
+              <div class="curling-column">
+                <strong>Sweeping</strong>
+                <div class="curling-card ${selected.SWEEP ? "active" : ""}">
+                  ${selected.SWEEP ? `Selected: ${selected.SWEEP.value}` : "Pick sweep"}
+                </div>
+                ${renderCards("SWEEP", "Sweep")}
+                <div class="curling-card small">Sweepers: 🧹🧹</div>
+              </div>
+            </div>
+            <div class="curling-actions">
+              <button id="curlingDeliver">Deliver stone</button>
+              <button id="curlingReset" class="secondary">Restart curling</button>
+            </div>
+          </div>
+        </div>
+      `;
+      mountainEl.querySelectorAll(".curling-card[data-card-id]").forEach((el) => {
+        const cardId = el.dataset.cardId;
+        const card = curling.hand.find((entry) => entry.id === cardId);
+        if (!card) return;
+        el.addEventListener("click", () => selectCurlingCard(card));
+      });
+      const deliverButton = mountainEl.querySelector("#curlingDeliver");
+      if (deliverButton) {
+        deliverButton.addEventListener("click", deliverCurlingStone);
+      }
+      const resetButton = mountainEl.querySelector("#curlingReset");
+      if (resetButton) {
+        resetButton.addEventListener("click", () => {
+          initCurlingGame();
+          render();
+        });
+      }
+    }
+
     function showCoachTipOnce() {
       if (state.coachTipShown || !state.firstPersonView) return;
       const tip = document.getElementById("coachTip");
@@ -3364,6 +3661,21 @@
       const liftChevronEl = document.getElementById("liftChevron");
 
       updateTramControls();
+      if (state.mode === "CURLING") {
+        statusEl.textContent = state.message || "Pick your curling cards.";
+        actionsEl.innerHTML = "";
+        activeSkierEl.innerHTML = "Stone: 🥌  Sweepers: 🧹🧹";
+        if (autoModesEl) autoModesEl.style.display = "none";
+        if (queueEl) queueEl.innerHTML = "";
+        if (collectedEl) collectedEl.innerHTML = "";
+        if (scoreEl) scoreEl.textContent = "";
+        if (scoreHistoryEl) scoreHistoryEl.textContent = "";
+        if (deckStatusEl) deckStatusEl.textContent = "";
+        if (legendEl) legendEl.textContent = "";
+        if (turnCounterEl) turnCounterEl.textContent = "";
+        return;
+      }
+      if (autoModesEl) autoModesEl.style.display = "";
       if (liftDetailsEl) {
         liftDetailsEl.classList.toggle("collapsed", !state.liftDetailsOpen);
       }
@@ -4215,6 +4527,7 @@
 
     document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
+    document.getElementById("startCurling").addEventListener("click", () => startMode("CURLING"));
     document.getElementById("peak1").addEventListener("click", () => setPeak("PEAK_1"));
     document.getElementById("peak2").addEventListener("click", () => setPeak("PEAK_2"));
     document.getElementById("peak3").addEventListener("click", () => setPeak("PEAK_3"));
