@@ -750,6 +750,9 @@
       display: none;
       line-height: 1;
     }
+    .coach-button.active {
+      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
+    }
     .first-person-enabled .coach-button {
       display: inline-flex;
     }
@@ -1017,7 +1020,6 @@
     body.night-skiing .score-modal .modal-card,
     body.night-skiing .schedule-modal .modal-card,
     body.night-skiing .powder-modal .modal-card,
-    body.night-skiing .coach-modal .modal-card,
     body.night-skiing .high-score-modal .modal-card {
       background: #111827;
       color: #e5e7eb;
@@ -1183,31 +1185,6 @@
       display: grid;
       gap: 12px;
     }
-    .coach-modal {
-      position: fixed;
-      inset: 0;
-      z-index: 26;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.65);
-    }
-    .coach-modal.active {
-      display: flex;
-    }
-    .coach-modal .modal-card {
-      background: #ffffff;
-      border-radius: 16px;
-      padding: 24px;
-      width: min(460px, 92vw);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
-      display: grid;
-      gap: 12px;
-    }
-    body.night-skiing .coach-modal .modal-card {
-      background: #111827;
-      color: #e5e7eb;
-    }
     .powder-grid {
       display: grid;
       gap: 10px;
@@ -1262,6 +1239,70 @@
       animation: emoji-fall linear forwards;
       opacity: 0.9;
     }
+    .intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+      padding: 20px;
+    }
+    .intro-overlay.active {
+      display: flex;
+    }
+    .intro-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 24px;
+      width: min(560px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      display: grid;
+      gap: 12px;
+      text-align: center;
+      position: relative;
+    }
+    body.night-skiing .intro-card {
+      background: #111827;
+      color: #e5e7eb;
+    }
+    .intro-card h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .intro-card p {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .intro-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .intro-skip {
+      background: #f1f5f9;
+      color: #1e2430;
+      border: 2px solid #1e2430;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .intro-skip:hover {
+      background: #e2e8f0;
+    }
+    .intro-next {
+      background: #1d4ed8;
+      color: #ffffff;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-weight: 600;
+    }
+    .intro-next:hover {
+      background: #1e40af;
+    }
   </style>
 </head>
 <body>
@@ -1291,6 +1332,16 @@
   </div>
   <div id="emojiRain" class="emoji-rain" aria-hidden="true"></div>
   <div id="ambientSnow" class="ambient-snow snowstorm" aria-hidden="true"></div>
+  <div id="introOverlay" class="intro-overlay" aria-live="polite">
+    <div class="intro-card">
+      <h2 id="introTitle"></h2>
+      <p id="introBody"></p>
+      <div class="intro-actions">
+        <button id="introNext" class="intro-next" type="button">Next</button>
+        <button id="introSkip" class="intro-skip" type="button">🟢 🟦 ◆ ◆◆ Skip to Mode</button>
+      </div>
+    </div>
+  </div>
   <div id="scheduleModal" class="schedule-modal" aria-live="polite">
     <div class="modal-card">
       <h2>Schedule Auto</h2>
@@ -1335,16 +1386,6 @@
             <button type="button" class="secondary hand-emoji-button" data-hand-emoji="PALMS">🫲🫱</button>
           </div>
         </div>
-      </div>
-      <div class="modal-actions">
-        <button id="powderClose" class="secondary">Close</button>
-      </div>
-    </div>
-  </div>
-  <div id="coachModal" class="coach-modal" aria-live="polite">
-    <div class="modal-card">
-      <h2>Coach Settings</h2>
-      <div class="powder-grid">
         <div class="powder-item">
           <strong>Coach mode</strong>
           <div id="coachCurrent" class="powder-current"></div>
@@ -1356,7 +1397,7 @@
         </div>
       </div>
       <div class="modal-actions">
-        <button id="coachClose" class="secondary">Close</button>
+        <button id="powderClose" class="secondary">Close</button>
       </div>
     </div>
   </div>
@@ -1404,7 +1445,7 @@
           </button>
           <div class="weather-stack">
             <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
-            <button id="coachButton" class="coach-button" type="button" aria-label="Coach settings">🗣️</button>
+            <button id="coachButton" class="coach-button" type="button" aria-label="Toggle coach mode">🗣️</button>
           </div>
         </div>
       </div>
@@ -1578,6 +1619,7 @@
       lastRunToken: null,
       firstPersonView: true,
       coachMode: "ON",
+      introStep: 0,
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -2831,16 +2873,20 @@
       renderFinishZone();
       renderCoachPanel();
       renderSidebar();
+      const coachButton = document.getElementById("coachButton");
+      if (coachButton) {
+        coachButton.classList.toggle("active", state.coachMode !== "OFF");
+        coachButton.setAttribute(
+          "aria-pressed",
+          state.coachMode !== "OFF" ? "true" : "false"
+        );
+      }
       const fullAutoButton = document.getElementById("fullAutoButton");
       if (fullAutoButton) {
         fullAutoButton.classList.toggle("active", state.fullAuto);
         fullAutoButton.textContent = state.fullAuto ? "Stop auto" : "Full auto";
       }
       updateFirstPersonToggle();
-      const coachModal = document.getElementById("coachModal");
-      if (coachModal?.classList.contains("active")) {
-        renderCoachModal();
-      }
     }
 
     function renderCoachPanel() {
@@ -2854,10 +2900,11 @@
       }
       const turnText = getTurnCounterText();
       const statusText = state.message || "Pick a direction to begin.";
+      const coachLabel = state.coachMode === "CRUISE" ? "Cruising" : "Coach";
       coachPanel.innerHTML = `
         <div class="coach-card">
           <div class="coach-summary">
-            <strong>🗣️ Coach</strong>
+            <strong>🗣️ ${coachLabel}</strong>
             <div>${turnText}</div>
             <div>${statusText}</div>
           </div>
@@ -3435,15 +3482,6 @@
       }
     }
 
-    function showCoachModal(show) {
-      const modal = document.getElementById("coachModal");
-      if (!modal) return;
-      modal.classList.toggle("active", show);
-      if (show) {
-        renderCoachModal();
-      }
-    }
-
     function renderPowderModal() {
       const overlayToggle = document.getElementById("powderOverlayToggle");
       if (overlayToggle) {
@@ -3474,9 +3512,6 @@
         const handKey = button.dataset.handEmoji;
         button.classList.toggle("active", handKey === state.handEmojiPreference);
       });
-    }
-
-    function renderCoachModal() {
       const coachCurrent = document.getElementById("coachCurrent");
       if (coachCurrent) {
         const labelMap = {
@@ -3486,8 +3521,8 @@
         };
         coachCurrent.textContent = `Current: ${labelMap[state.coachMode] || "On"}`;
       }
-      const buttons = document.querySelectorAll("[data-coach-mode]");
-      buttons.forEach((button) => {
+      const coachButtons = document.querySelectorAll("[data-coach-mode]");
+      coachButtons.forEach((button) => {
         const mode = button.dataset.coachMode;
         button.classList.toggle("active", mode === state.coachMode);
       });
@@ -3688,6 +3723,7 @@
       state.fullAutoGames = 0;
       state.mode = "FULL";
       state.autoStrategy = state.autoStrategy || "RANDOM";
+      showIntroOverlay(false);
       beginGame();
       runFullAutoLoop();
     }
@@ -3875,19 +3911,19 @@
       const sequence = ["❄️", "👑", "🏔️", "⛷️"];
       let step = 0;
       showModeOverlay(false);
+      createSnowstorm(snowstorm, 140);
+      snowstorm.classList.add("active");
 
       const showStep = () => {
         if (state.loadingDismissed) return;
         if (step >= sequence.length) {
-          createSnowstorm(snowstorm, 140);
-          snowstorm.classList.add("active");
           setTimeout(() => {
             if (state.loadingDismissed) return;
             loadingScreen.classList.add("white-out");
             setTimeout(() => {
               if (state.loadingDismissed) return;
               loadingScreen.style.display = "none";
-              showModeOverlay(true);
+              showIntroOverlay(true);
             }, 700);
           }, 600);
           return;
@@ -3910,6 +3946,7 @@
       state.autoMode = null;
       state.mode = mode;
       showModeOverlay(false);
+      showIntroOverlay(false);
       beginGame();
     }
 
@@ -3926,6 +3963,41 @@
 
     window.startMode = startMode;
 
+    const INTRO_STEPS = [
+      {
+        title: "Welcome to Powder Crown 🏔️",
+        body: "Meet your skier token ⛷️ (or snowboarder 🏂). This is who you are guiding down the mountain."
+      },
+      {
+        title: "Pick your line 👈 👉",
+        body: "Use the left/right buttons (or arrow keys) to choose your next condition card. The tram 🚡 lets you cycle the lift queue before you start."
+      },
+      {
+        title: "I’m your coach 🗣️",
+        body: "I’ll explain what happens if you go left or right and help you learn the mountain. You can hide me at any time in settings."
+      }
+    ];
+
+    function showIntroOverlay(show) {
+      const overlay = document.getElementById("introOverlay");
+      if (!overlay) return;
+      overlay.classList.toggle("active", show);
+      if (show) {
+        state.introStep = 0;
+        renderIntroOverlay();
+      }
+    }
+
+    function renderIntroOverlay() {
+      const overlay = document.getElementById("introOverlay");
+      if (!overlay) return;
+      const step = INTRO_STEPS[state.introStep] || INTRO_STEPS[0];
+      const titleEl = document.getElementById("introTitle");
+      const bodyEl = document.getElementById("introBody");
+      if (titleEl) titleEl.textContent = step.title;
+      if (bodyEl) bodyEl.textContent = step.body;
+    }
+
     document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
     document.getElementById("peak1").addEventListener("click", () => setPeak("PEAK_1"));
@@ -3935,8 +4007,10 @@
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
-    document.getElementById("coachButton").addEventListener("click", () => showCoachModal(true));
-    document.getElementById("coachClose").addEventListener("click", () => showCoachModal(false));
+    document.getElementById("coachButton").addEventListener("click", () => {
+      state.coachMode = state.coachMode === "OFF" ? "ON" : "OFF";
+      render();
+    });
     document.getElementById("highScoreButton").addEventListener("click", () => showHighScoreModal(true));
     document.getElementById("highScoreClose").addEventListener("click", () => showHighScoreModal(false));
     document.getElementById("openHighScoreFromScore").addEventListener("click", () => {
@@ -3968,8 +4042,8 @@
     document.querySelectorAll("[data-coach-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         state.coachMode = button.dataset.coachMode;
-        renderCoachModal();
         render();
+        renderPowderModal();
       });
     });
     document.querySelectorAll("[data-score-mode]").forEach((button) => {
@@ -3992,6 +4066,19 @@
       showModeOverlay(true);
     });
     document.getElementById("returnToGame").addEventListener("click", () => showModeOverlay(false));
+    document.getElementById("introNext").addEventListener("click", () => {
+      state.introStep += 1;
+      if (state.introStep >= INTRO_STEPS.length) {
+        showIntroOverlay(false);
+        showModeOverlay(true);
+        return;
+      }
+      renderIntroOverlay();
+    });
+    document.getElementById("introSkip").addEventListener("click", () => {
+      showIntroOverlay(false);
+      showModeOverlay(true);
+    });
     const toggleDebugButton = document.getElementById("toggleDebug");
     document.body.classList.add("hide-coords");
     document.body.classList.toggle("debug-enabled", false);
@@ -4022,11 +4109,13 @@
         return;
       }
       finalizeLoading();
+      showIntroOverlay(false);
       showModeOverlay(true);
     });
     document.addEventListener("keydown", (event) => {
       if (!state.loadingDismissed) {
         finalizeLoading();
+        showIntroOverlay(false);
         showModeOverlay(true);
         return;
       }
