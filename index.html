@@ -299,15 +299,19 @@
       justify-items: center;
       padding: 12px 0;
     }
+    .first-person-skier {
+      display: flex;
+      justify-content: center;
+    }
     .first-person-options {
       display: flex;
-      gap: 24px;
+      gap: 32px;
       flex-wrap: wrap;
       justify-content: center;
     }
     .first-person-option {
-      min-width: 260px;
-      min-height: 200px;
+      min-width: 420px;
+      min-height: 320px;
     }
     .first-person-next {
       display: flex;
@@ -321,6 +325,18 @@
       border-radius: 8px;
       padding: 6px 8px;
       font-size: 12px;
+    }
+    .first-person-indicator {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+    .first-person-option.can-collect .first-person-indicator {
+      color: #0f766e;
+    }
+    .first-person-option.will-miss .first-person-indicator {
+      color: #b45309;
     }
     .row {
       display: grid;
@@ -2285,6 +2301,14 @@
       const optionIds = options.length > 1 ? [options[0], options[options.length - 1]] : [options[0]];
       const wrapper = document.createElement("div");
       wrapper.className = "first-person-view";
+      const skierRow = document.createElement("div");
+      skierRow.className = "first-person-skier";
+      if (state.activeRun) {
+        skierRow.innerHTML = getSkierTokenMarkup(state.activeRun.leadSkierId);
+      } else {
+        skierRow.innerHTML = "<span class=\"footer-note\">Select a start slot to begin.</span>";
+      }
+      wrapper.appendChild(skierRow);
       const optionsRow = document.createElement("div");
       optionsRow.className = "first-person-options";
       optionIds.forEach((slotIdValue) => {
@@ -2292,17 +2316,33 @@
         const button = document.createElement("button");
         button.className = "slot first-person-option";
         let label = "Empty";
+        let indicator = "";
         if (slot.isLiftZone) {
           label = "🚡 Lift Zone";
+          indicator = "Lift zone";
         } else if (card) {
           const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
           label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
+          if (state.activeRun && card.type !== "SPECIAL") {
+            const skierCard = getSkierCard(state.activeRun.leadSkierId);
+            const willCollect = card.difficultyRank <= skierCard.difficultyRank;
+            if (willCollect) {
+              button.classList.add("can-collect");
+              indicator = "✅ Collects";
+            } else {
+              button.classList.add("will-miss");
+              indicator = slot.bonusEmoji ? "⚠️ Miss upgrades" : "⚠️ Miss stays";
+            }
+          }
         } else if (slot.lastResult) {
           const lastCard = state.cards[slot.lastResult.cardId];
           const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
           label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
         }
-        button.innerHTML = `<div class="card-label">${label}</div>`;
+        button.innerHTML = `
+          <div class="card-label">${label}</div>
+          ${indicator ? `<div class="first-person-indicator">${indicator}</div>` : ""}
+        `;
         button.addEventListener("click", () => handleSlotClick(slotIdValue));
         const nextOptions = state.downNeighbors[slotIdValue]?.filter(
           (nextId) => state.mountain[nextId].occupiedBySkierId === null
