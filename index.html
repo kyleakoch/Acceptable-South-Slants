@@ -1887,7 +1887,7 @@
           if (state.activeRun && state.activeRun.currentSlotId === id) {
             button.classList.add("current");
           }
-          button.disabled = !isHighlighted;
+          button.disabled = !isHighlighted && !slot.isLiftZone;
           let label = "Empty";
           if (slot.isLiftZone) {
             const liftTokens = getLiftZoneSkierIds()
