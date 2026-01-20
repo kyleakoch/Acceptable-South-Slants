@@ -317,8 +317,8 @@
       top: 6px;
       left: 50%;
       transform: translateX(-50%) scale(1.5);
-      width: 36px;
-      height: 44px;
+      width: 38px;
+      height: 48px;
       border-radius: 12px;
       background: #ffffff;
       border: 2px solid #1e2430;
@@ -370,18 +370,10 @@
       font-size: 14px;
       margin-top: -2px;
     }
-    .slot .token .token-type {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      opacity: 0.8;
-      line-height: 1.1;
-    }
     .slot .token .token-emoji {
       font-size: 16px;
       line-height: 1;
     }
-    .slot .token.collected .token-type,
     .slot .token.collected .token-emoji {
       display: none;
     }
@@ -413,8 +405,8 @@
     .lift-zone-token .token {
       position: static;
       transform: scale(1);
-      width: 30px;
-      height: 38px;
+      width: 34px;
+      height: 42px;
       border-radius: 10px;
     }
     .lift-zone-tram {
@@ -944,7 +936,7 @@
       mode: null,
       gameStarted: false,
       autoMode: null,
-      autoSpeed: "ONE_X",
+      autoSpeed: "TWO_X",
       autoRunning: false,
       bestRun: null,
       todayHighScore: 0,
@@ -996,8 +988,9 @@
       { key: "BREW", label: "Beer Brew Mode" }
     ];
     const AUTO_SPEEDS = [
-      { key: "ONE_X", label: "1x", delay: 250 },
-      { key: "HALF_X", label: "0.5x", delay: 1000 },
+      { key: "TWO_X", label: "2x", delay: 250 },
+      { key: "ONE_X", label: "1x", delay: 1000 },
+      { key: "HALF_X", label: "0.5x", delay: 2000 },
       { key: "INSTANT", label: "Instant", delay: 0 }
     ];
     const AUTO_STRATEGIES = [
@@ -1215,11 +1208,9 @@
       const symbol = getSymbol(card);
       const riderIcon =
         card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
-      const riderLabel = getRiderLabel(card);
       const variantClass = variant ? ` ${variant}` : "";
       return `<div class="token${variantClass}" aria-hidden="true">
         <div class="token-rank">${card.rank}${symbol.icon}</div>
-        <div class="token-type">${riderLabel}</div>
         <div class="token-emoji">${riderIcon}</div>
       </div>`;
     }
@@ -1371,7 +1362,7 @@
       state.lastRunScore = null;
       state.memoriesPile = [];
       state.autoMode = null;
-      state.autoSpeed = "ONE_X";
+      state.autoSpeed = "TWO_X";
       state.autoRunning = false;
       state.bestRun = null;
       state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
@@ -2280,7 +2271,7 @@
 
     function startFullAuto() {
       state.fullAuto = true;
-      state.autoSpeed = "ONE_X";
+      state.autoSpeed = "TWO_X";
       state.fullAutoGames = 0;
       state.mode = "FULL";
       state.autoStrategy = state.autoStrategy || "RANDOM";
