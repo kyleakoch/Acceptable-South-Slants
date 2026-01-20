@@ -378,6 +378,37 @@
       font-size: 11px;
       opacity: 0.6;
     }
+    .lift-zone {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+    }
+    .lift-zone-content {
+      display: grid;
+      gap: 6px;
+    }
+    .lift-zone-title {
+      font-weight: 700;
+    }
+    .lift-zone-tokens {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .lift-zone-token .token {
+      position: static;
+      transform: scale(1);
+      width: 30px;
+      height: 38px;
+      border-radius: 10px;
+    }
+    .lift-zone-tram {
+      font-size: 26px;
+      line-height: 1;
+    }
     .hide-coords .coords {
       display: none;
     }
@@ -1150,6 +1181,18 @@
       </div>`;
     }
 
+    function getLiftZoneSkierIds(limit = 4) {
+      const player = getPlayer();
+      if (!player) return [];
+      const activeSkierId = state.activeRun?.leadSkierId || null;
+      return player.skierQueue
+        .filter((skierId) => {
+          const skier = state.cards[skierId];
+          return skier.status === "available" && skierId !== activeSkierId;
+        })
+        .slice(0, limit);
+    }
+
     function getTokenVariantForRow(row) {
       if (row === 1) return "fork";
       if (row === 2) return "fork-2";
@@ -1770,7 +1813,18 @@
           button.disabled = !isHighlighted;
           let label = "Empty";
           if (slot.isLiftZone) {
-            label = "🚡 Lift Zone";
+            const liftTokens = getLiftZoneSkierIds()
+              .map((skierId) => `<div class="lift-zone-token">${getSkierTokenMarkup(skierId)}</div>`)
+              .join("");
+            label = `
+              <div class="lift-zone">
+                <div class="lift-zone-content">
+                  <div class="lift-zone-title">Lift Zone</div>
+                  <div class="lift-zone-tokens">${liftTokens}</div>
+                </div>
+                <div class="lift-zone-tram">🚡</div>
+              </div>
+            `;
           } else if (card) {
             const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
             label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
