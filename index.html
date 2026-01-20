@@ -1,0 +1,3661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Powder Crown Downhill Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      --slot-min: 70px;
+      --slot-gap: 8px;
+    }
+    body.night-skiing {
+      background: #0b1220;
+      color: #e5e7eb;
+    }
+    body.night-skiing .panel {
+      background: #111827;
+      color: #e5e7eb;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    }
+    body.night-skiing .card {
+      background: #1f2937;
+      color: #e5e7eb;
+    }
+    body.night-skiing .tag {
+      background: #1f2937;
+      color: #e5e7eb;
+    }
+    body.night-skiing .slot {
+      background: #1f2937;
+    }
+    body.night-skiing .slot.occupied {
+      background: #3b2b1c;
+      border-color: #f2994a;
+    }
+    body.night-skiing .slot .token {
+      background: #111827;
+      border-color: #e5e7eb;
+      color: #e5e7eb;
+    }
+    body.night-skiing .card-label {
+      color: #f9fafb;
+    }
+    body.night-skiing .mode-overlay {
+      background: rgba(10, 15, 30, 0.92);
+    }
+    body.night-skiing .mode-card {
+      background: #111827;
+      color: #e5e7eb;
+    }
+    body.night-skiing .legend span {
+      color: #e5e7eb;
+    }
+    body.night-skiing .footer-note {
+      color: #94a3b8;
+    }
+    body {
+      margin: 0;
+      background: #f4f6fb;
+      color: #1e2430;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .snowstorm,
+      .ambient-snow,
+      .loading-screen {
+        transition: none !important;
+      }
+    }
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      opacity: 1;
+      transition: opacity 1s ease, background-color 0.8s ease;
+    }
+    .loading-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-screen.white-out {
+      background: #ffffff;
+    }
+    .loading-emoji {
+      font-size: clamp(48px, 9vw, 96px);
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      letter-spacing: 8px;
+    }
+    .loading-emoji.visible {
+      opacity: 1;
+    }
+    .snowstorm {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    .snowstorm.active {
+      opacity: 1;
+    }
+    .snowflake {
+      position: absolute;
+      top: -10vh;
+      font-size: 20px;
+      animation: snow-fall linear infinite;
+      opacity: 0.85;
+    }
+    @keyframes snow-fall {
+      0% {
+        transform: translateY(-10vh);
+      }
+      100% {
+        transform: translateY(110vh);
+      }
+    }
+    @keyframes emoji-fall {
+      0% {
+        transform: translate3d(0, -10vh, 0);
+      }
+      100% {
+        transform: translate3d(0, 110vh, 0);
+      }
+    }
+    .mode-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(13, 59, 102, 0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      padding: 24px;
+    }
+    .mode-card {
+      max-width: 720px;
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      display: grid;
+      gap: 16px;
+    }
+    .mode-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    .mode-option {
+      border: 2px solid #dfe6f2;
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+      background: #f7f9fd;
+      text-align: left;
+    }
+    .mode-option.disabled {
+      opacity: 0.5;
+      filter: grayscale(0.4);
+    }
+    .mode-option button {
+      width: 100%;
+    }
+    .closed-sign {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #f3d9a4;
+      color: #7b4f00;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .auto-modes {
+      display: none;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .auto-modes .auto-grid {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    }
+    .auto-modes button {
+      border-radius: 10px;
+      font-size: 12px;
+      padding: 6px 8px;
+    }
+    .auto-modes button.active {
+      border-color: #1f8f4d;
+      box-shadow: 0 0 0 2px rgba(31, 143, 77, 0.2);
+    }
+    .auto-speed {
+      display: grid;
+      gap: 6px;
+    }
+    .auto-speed .speed-grid {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    }
+    .strategy-grid {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+    main {
+      padding: 24px;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(280px, 1fr) minmax(320px, 360px);
+    }
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 600px) {
+      :root {
+        --slot-min: 58px;
+        --slot-gap: 6px;
+      }
+      main {
+        padding: 16px;
+      }
+    }
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+    .mountain-panel {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(224, 239, 255, 0.45), rgba(255, 255, 255, 0.95));
+    }
+    .mountain-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(86, 155, 220, 0.45), transparent 38%),
+        radial-gradient(circle at 92% 6%, rgba(90, 164, 228, 0.4), transparent 36%),
+        linear-gradient(140deg, rgba(235, 245, 255, 0.8), rgba(255, 255, 255, 0.1) 55%),
+        linear-gradient(220deg, rgba(220, 235, 250, 0.55), rgba(255, 255, 255, 0.1) 50%);
+      opacity: 0.65;
+      pointer-events: none;
+    }
+    .mountain-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 45% 52%, rgba(90, 140, 60, 0.45), transparent 28%),
+        radial-gradient(circle at 50% 56%, rgba(100, 150, 70, 0.35), transparent 30%),
+        radial-gradient(circle at 35% 66%, rgba(100, 150, 70, 0.35), transparent 30%),
+        radial-gradient(circle at 65% 68%, rgba(100, 150, 70, 0.35), transparent 30%),
+        radial-gradient(circle at 25% 78%, rgba(100, 150, 70, 0.4), transparent 30%),
+        radial-gradient(circle at 75% 78%, rgba(100, 150, 70, 0.4), transparent 30%),
+        radial-gradient(circle at 20% 88%, rgba(100, 150, 70, 0.45), transparent 28%),
+        radial-gradient(circle at 80% 88%, rgba(100, 150, 70, 0.45), transparent 28%);
+      opacity: 0.5;
+      pointer-events: none;
+      mix-blend-mode: multiply;
+    }
+    .mountain-panel > * {
+      position: relative;
+      z-index: 1;
+    }
+    .mountain {
+      display: grid;
+      gap: var(--slot-gap);
+      width: 100%;
+    }
+    .finish-zone {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-height: 56px;
+      margin-top: 8px;
+      width: 100%;
+    }
+    .finish-zone-tokens {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+      width: 100%;
+    }
+    .finish-zone-token .token {
+      position: static;
+      transform: scale(1);
+      width: 34px;
+      height: 42px;
+      border-radius: 10px;
+    }
+    .mountain-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    .tram-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+      width: 100%;
+    }
+    .tram-controls button {
+      min-width: 48px;
+      font-size: clamp(52px, 6.4vw, 68px);
+      line-height: 1;
+      padding: 6px 10px;
+      border: 2px solid transparent;
+    }
+    .tram-controls button:hover {
+      border-color: #2f80ed;
+    }
+    .collected-bubble {
+      display: grid;
+      gap: 6px;
+      align-items: center;
+    }
+    .collected-bubble-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .collected-rows {
+      display: grid;
+      gap: 6px;
+    }
+    .collected-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+    .collected-pill {
+      background: #f8f9fd;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .collected-bubble .pile {
+      grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+      justify-items: end;
+    }
+    .mountain.first-person {
+      display: block;
+    }
+    .first-person-view {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+      padding: 12px 0;
+    }
+    .first-person-skier {
+      display: flex;
+      justify-content: center;
+    }
+    .first-person-options {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .first-person-option {
+      min-width: 420px;
+      min-height: 320px;
+    }
+    .first-person-next {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0.7;
+    }
+    .first-person-next .next-card {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+    .first-person-indicator {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .first-person-option:hover .first-person-indicator {
+      opacity: 1;
+    }
+    .first-person-option.can-collect .first-person-indicator {
+      color: #0f766e;
+    }
+    .first-person-option.will-miss .first-person-indicator {
+      color: #b45309;
+    }
+    .tree-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(16px, 1fr));
+      justify-items: center;
+      gap: 4px;
+    }
+    .row {
+      display: grid;
+      gap: var(--slot-gap);
+      justify-content: center;
+    }
+    .slot {
+      background: #eef1f8;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 10px;
+      min-width: 70px;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-size: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.1s ease, border 0.2s ease;
+      position: relative;
+    }
+    .slot:disabled {
+      cursor: not-allowed;
+    }
+    .slot.highlight {
+      border-color: #2f80ed;
+      box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.2);
+    }
+    .slot.occupied {
+      background: #fdebd2;
+      border-color: #f2994a;
+    }
+    .slot.current {
+      border-color: #27ae60;
+      box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.2);
+    }
+    .slot .unknown-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+    .slot .token {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%) scale(1.5);
+      width: 38px;
+      height: 48px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 2px solid #1e2430;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #1e2430;
+      box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.12),
+        0 0 6px rgba(56, 189, 248, 0.2);
+      pointer-events: none;
+      z-index: 2;
+      animation: token-glow 2.4s ease-in-out infinite;
+    }
+    @keyframes token-glow {
+      0%,
+      100% {
+        box-shadow:
+          0 6px 12px rgba(0, 0, 0, 0.12),
+          0 0 6px rgba(56, 189, 248, 0.18),
+          0 0 12px rgba(56, 189, 248, 0.12);
+      }
+      50% {
+        box-shadow:
+          0 6px 12px rgba(0, 0, 0, 0.12),
+          0 0 12px rgba(56, 189, 248, 0.5),
+          0 0 20px rgba(56, 189, 248, 0.3);
+      }
+    }
+    .flip {
+      transform: scaleX(-1);
+      display: inline-block;
+    }
+    .slot .token.fork {
+      top: -14px;
+    }
+    .slot .token.fork-2 {
+      top: -22px;
+    }
+    .slot .token.fork-3 {
+      top: -26px;
+    }
+    .slot .token.fork-4 {
+      top: -30px;
+    }
+    .slot .token .token-suit {
+      font-size: 14px;
+      margin-top: -2px;
+    }
+    .slot .token .token-emoji {
+      font-size: 16px;
+      line-height: 1;
+    }
+    .slot .token.collected .token-emoji {
+      display: none;
+    }
+    .slot .token.collected .token-rank {
+      font-size: 12px;
+      line-height: 1.2;
+    }
+    .slot .token.resting {
+      width: 34px;
+      height: 42px;
+      border-radius: 10px;
+      transform: translateX(-50%) scale(1);
+    }
+    .slot .token.completed-under {
+      top: auto;
+      bottom: 6px;
+    }
+    .slot .token .token-rank {
+      font-size: 15px;
+      line-height: 1;
+    }
+    .slot .coords {
+      font-size: 11px;
+      opacity: 0.6;
+    }
+    .lift-zone {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+    }
+    .lift-zone-tokens {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-left: auto;
+    }
+    .lift-zone-token .token {
+      position: static;
+      transform: scale(1);
+      width: 34px;
+      height: 42px;
+      border-radius: 10px;
+    }
+    .lift-zone-tram {
+      font-size: clamp(44px, 6vw, 60px);
+      line-height: 1;
+    }
+    .slot.lift-zone-slot .card-label {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding-right: 12px;
+      width: 100%;
+    }
+    .hide-coords .coords {
+      display: none;
+    }
+    .card-label {
+      color: #111827;
+      font-weight: 600;
+    }
+    .card-label .card-line {
+      display: block;
+    }
+    .card-label .card-type {
+      display: block;
+      font-size: 12px;
+      opacity: 0.75;
+    }
+    .card-label .card-emoji {
+      display: block;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .result-badge {
+      font-size: 13px;
+      margin-left: 4px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #eef1f8;
+    }
+    .queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .mountain-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+      position: relative;
+    }
+    .mountain-header h2 {
+      margin: 0;
+    }
+    .title-emoji {
+      font-size: clamp(52px, 6.4vw, 68px);
+      letter-spacing: 6px;
+      line-height: 1;
+    }
+    .title-button {
+      border: none;
+      background: transparent;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+    }
+    .goggles-button {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+      border: none;
+      background: transparent;
+      font-size: 28px;
+      cursor: pointer;
+      display: none;
+      padding: 0;
+      line-height: 1;
+    }
+    .debug-enabled .goggles-button {
+      display: inline-flex;
+    }
+    .debug-enabled .auto-modes {
+      display: grid;
+    }
+    .mountain-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .mode-button {
+      background: transparent;
+      border: none;
+      padding: 0;
+      font-size: clamp(44px, 6vw, 60px);
+      cursor: pointer;
+    }
+    .mode-button:hover {
+      background: transparent;
+    }
+    .mountain-actions .active {
+      border: 2px solid #38bdf8;
+    }
+    .sky-toggle {
+      background: transparent;
+      border: none;
+      padding: 0;
+      font-size: clamp(44px, 6vw, 60px);
+      cursor: pointer;
+    }
+    .sky-toggle:hover {
+      background: transparent;
+    }
+    .ambient-snow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 12;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    .ambient-snow.active {
+      opacity: 0.6;
+    }
+    .actions {
+      display: grid;
+      gap: 8px;
+    }
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #2f80ed;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background: #1c66c5;
+    }
+    button.secondary {
+      background: #f2f4f8;
+      color: #1e2430;
+    }
+    button.secondary:hover {
+      background: #e0e5ef;
+    }
+    .status {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .pile {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .card {
+      background: #f8f9fd;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .card.active {
+      border: 2px solid #27ae60;
+      box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
+    }
+    .card.used {
+      opacity: 0.4;
+    }
+    .legend {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+    }
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .footer-note {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: 8px;
+    }
+    footer {
+      padding: 12px 24px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #4a5568;
+    }
+    .debug-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #5b677a;
+    }
+    .score-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .score-modal.active {
+      display: flex;
+    }
+    .score-modal .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(520px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 12px;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .modal-header h2 {
+      margin: 0;
+    }
+    .modal-crown-button {
+      border: none;
+      background: transparent;
+      font-size: 26px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    .score-modal .score-hero {
+      font-size: clamp(28px, 5vw, 40px);
+      font-weight: 700;
+      text-align: center;
+    }
+    .score-modal .best-run {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .score-modal .best-run .best-icon {
+      font-size: 32px;
+    }
+    .bonus-counts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 6px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .score-modal .modal-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .score-modal .snowstorm {
+      opacity: 0.5;
+    }
+    body.night-skiing .score-modal .modal-card,
+    body.night-skiing .schedule-modal .modal-card,
+    body.night-skiing .powder-modal .modal-card,
+    body.night-skiing .high-score-modal .modal-card {
+      background: #111827;
+      color: #e5e7eb;
+    }
+    body.night-skiing .score-modal .status,
+    body.night-skiing .schedule-modal .schedule-item,
+    body.night-skiing .powder-modal .powder-item {
+      color: #e5e7eb;
+    }
+    body.night-skiing .high-score-modal .status {
+      color: #e5e7eb;
+    }
+    .schedule-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 26;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .schedule-modal.active {
+      display: flex;
+    }
+    .schedule-modal .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(620px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      display: grid;
+      gap: 12px;
+    }
+    .high-score-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 26;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .high-score-modal.active {
+      display: flex;
+    }
+    .high-score-modal .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(640px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      display: grid;
+      gap: 12px;
+    }
+    .score-mode-panel {
+      display: grid;
+      gap: 10px;
+      background: #f8f9fd;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .score-mode-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .score-mode-buttons button {
+      font-size: 12px;
+      border-radius: 10px;
+      padding: 6px 10px;
+    }
+    .score-mode-formula {
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      background: #eef1f8;
+      border-radius: 10px;
+      padding: 8px 10px;
+      white-space: pre-wrap;
+    }
+    .high-score-grid {
+      display: grid;
+      gap: 8px;
+    }
+    .podium-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+    .podium-card {
+      background: #f8f9fd;
+      border-radius: 12px;
+      padding: 8px;
+      display: grid;
+      gap: 6px;
+      text-align: center;
+      justify-items: center;
+    }
+    .podium-rank {
+      font-weight: 700;
+    }
+    .podium-totem {
+      display: grid;
+      gap: 4px;
+      justify-items: center;
+    }
+    .podium-block {
+      font-size: 18px;
+    }
+    body.night-skiing .podium-card {
+      background: #1f2937;
+    }
+    .high-score-list {
+      margin: 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 6px;
+    }
+    .powder-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 26;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .powder-modal.active {
+      display: flex;
+    }
+    .powder-modal .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(520px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      display: grid;
+      gap: 12px;
+    }
+    .powder-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .powder-item {
+      display: grid;
+      gap: 6px;
+    }
+    .powder-current {
+      font-size: 12px;
+      opacity: 0.75;
+    }
+    .powder-options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .hand-emoji-button {
+      font-size: clamp(52px, 6.4vw, 68px);
+      line-height: 1;
+      padding: 6px 10px;
+      border: 2px solid transparent;
+    }
+    .hand-emoji-button:hover {
+      border-color: #2f80ed;
+    }
+    .schedule-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .schedule-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    .schedule-item {
+      display: grid;
+      gap: 6px;
+    }
+    .emoji-rain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 15;
+    }
+    .emoji-drop {
+      position: absolute;
+      top: -10vh;
+      font-size: 22px;
+      animation: emoji-fall linear forwards;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingScreen" class="loading-screen" aria-live="polite">
+    <div id="loadingEmoji" class="loading-emoji">❄️</div>
+    <div id="snowstorm" class="snowstorm"></div>
+  </div>
+  <div id="scoreModal" class="score-modal" aria-live="polite">
+    <div class="snowstorm" aria-hidden="true"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <button id="openHighScoreFromScore" class="modal-crown-button" type="button" aria-label="View high scores">👑</button>
+        <h2>Run Summary</h2>
+        <span></span>
+      </div>
+      <div id="currentScoreHero" class="score-hero"></div>
+      <div id="bestRunHero" class="best-run"></div>
+      <div id="scoreSummary"></div>
+      <div id="bonusCounts" class="bonus-counts"></div>
+      <div id="todayHighScore" class="status"></div>
+      <div id="allTimeHighScore" class="status"></div>
+      <div class="modal-actions">
+        <button id="modalPlayAgain">Play again</button>
+        <button id="modalMode" class="secondary">Mode</button>
+      </div>
+    </div>
+  </div>
+  <div id="emojiRain" class="emoji-rain" aria-hidden="true"></div>
+  <div id="ambientSnow" class="ambient-snow snowstorm" aria-hidden="true"></div>
+  <div id="scheduleModal" class="schedule-modal" aria-live="polite">
+    <div class="modal-card">
+      <h2>Schedule Auto</h2>
+      <div class="schedule-tabs">
+        <button id="scheduleTypeTab" class="secondary">Type</button>
+        <button id="scheduleRankTab" class="secondary">Rank</button>
+      </div>
+      <div id="scheduleContent" class="schedule-grid"></div>
+      <div class="modal-actions">
+        <button id="scheduleStart">Start scheduled auto</button>
+        <button id="scheduleClose" class="secondary">Close</button>
+      </div>
+    </div>
+  </div>
+  <div id="powderModal" class="powder-modal" aria-live="polite">
+    <div class="modal-card">
+      <h2>Powder Settings</h2>
+      <div class="powder-grid">
+        <div class="powder-item">
+          <strong>Emoji overlay snowflakes</strong>
+          <button id="powderOverlayToggle" class="secondary" type="button">On</button>
+        </div>
+        <div class="powder-item">
+          <strong>Emoji fall mode</strong>
+          <div id="powderCurrent" class="powder-current"></div>
+          <div class="powder-options">
+            <button type="button" class="secondary" data-powder-mode="GAME">Game mode</button>
+            <button type="button" class="secondary" data-powder-mode="REAL">Real rep</button>
+            <button type="button" class="secondary" data-powder-mode="DK">DK mode</button>
+          </div>
+        </div>
+        <div class="powder-item">
+          <strong>Hand emoji style</strong>
+          <div id="handEmojiCurrent" class="powder-current"></div>
+          <div class="powder-options">
+            <button type="button" class="secondary hand-emoji-button" data-hand-emoji="DEFAULT">👈👉</button>
+            <button type="button" class="secondary hand-emoji-button" data-hand-emoji="LIGHT">👈🏻👉🏻</button>
+            <button type="button" class="secondary hand-emoji-button" data-hand-emoji="MEDIUM_LIGHT">👈🏼👉🏼</button>
+            <button type="button" class="secondary hand-emoji-button" data-hand-emoji="MEDIUM">👈🏽👉🏽</button>
+            <button type="button" class="secondary hand-emoji-button" data-hand-emoji="MEDIUM_DARK">👈🏾👉🏾</button>
+            <button type="button" class="secondary hand-emoji-button" data-hand-emoji="DARK">👈🏿👉🏿</button>
+            <button type="button" class="secondary hand-emoji-button" data-hand-emoji="PALMS">🫲🫱</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="powderClose" class="secondary">Close</button>
+      </div>
+    </div>
+  </div>
+  <div id="highScoreModal" class="high-score-modal" aria-live="polite">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>High Scores</h2>
+        <button id="highScoreClose" class="secondary">Close</button>
+      </div>
+      <div class="score-mode-panel">
+        <strong>Scoring Mode</strong>
+        <div class="score-mode-buttons">
+          <button type="button" class="secondary" data-score-mode="COSMIC">Cosmic</button>
+          <button type="button" class="secondary" data-score-mode="LADDER">Default (Ladder)</button>
+          <button type="button" class="secondary" data-score-mode="DECIMAL_LADDER">Spicy (Decimal Ladder)</button>
+          <button type="button" class="secondary" data-score-mode="NORMALIZED_EXP">Normalized Exponential</button>
+          <button type="button" class="secondary" data-score-mode="COMPETITIVE">Competitive</button>
+        </div>
+        <p id="scoreModeDescription" class="status"></p>
+        <div id="scoreModeFormula" class="score-mode-formula"></div>
+      </div>
+      <div class="high-score-grid">
+        <div id="highScorePodium" class="podium-row"></div>
+        <div id="highScoreSummary" class="status"></div>
+        <div>
+          <strong>Top Runs</strong>
+          <ol id="highScoreList" class="high-score-list"></ol>
+        </div>
+        <div id="highScoreLastRun" class="status"></div>
+      </div>
+    </div>
+  </div>
+  <main>
+    <section class="panel mountain-panel">
+      <div class="mountain-header">
+        <h2 class="title-emoji">
+          <button id="powderButton" class="title-button" type="button" aria-label="Powder settings">❄️</button>
+          <button id="highScoreButton" class="title-button" type="button" aria-label="High scores">👑</button>
+        </h2>
+        <button id="firstPersonToggle" class="goggles-button" type="button" aria-label="Toggle first person view" aria-pressed="false">🥽</button>
+        <div class="mountain-actions">
+          <button id="peakButton" class="mode-button" type="button" aria-label="Select peak">
+            <span id="peakIcon">🏔️¹</span>
+          </button>
+          <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
+        </div>
+      </div>
+      <div id="mountain" class="mountain"></div>
+      <div class="finish-zone" aria-label="Finished skiers">
+        <div id="finishTokens" class="finish-zone-tokens"></div>
+      </div>
+      <div class="tram-controls" aria-label="Lift zone controls">
+        <button id="tramLeftButton" class="secondary" type="button" aria-label="Move left">👈</button>
+        <button id="tramCycleButton" class="secondary" type="button" aria-label="Cycle lift zone">🚡</button>
+        <button id="tramRightButton" class="secondary" type="button" aria-label="Move right">👉</button>
+      </div>
+      <div class="mountain-footer">
+        <div class="collected-bubble">
+          <div class="collected-bubble-header">🗺️</div>
+          <div id="collectedPile" class="collected-rows"></div>
+        </div>
+      </div>
+      <div class="auto-modes" id="autoModes">
+        <div class="footer-note">Auto modes</div>
+        <div class="auto-grid"></div>
+        <div id="autoModeStatus" class="footer-note"></div>
+        <div class="strategy-grid"></div>
+        <div class="auto-speed">
+          <div class="footer-note">Auto speed</div>
+          <div class="speed-grid"></div>
+        </div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Run Controls</h2>
+      <div class="status" id="status"></div>
+      <div class="actions" id="actions"></div>
+      <h3>Active Skier</h3>
+      <div id="activeSkier" class="tag"></div>
+      <div class="queue-header">
+        <h3>Lift Zone</h3>
+        <div id="crowdCounter" class="tag"></div>
+      </div>
+      <div id="bonusTracker" class="status"></div>
+      <div id="skierQueue" class="pile"></div>
+      <div id="score" class="status"></div>
+      <h3>Scoreboard</h3>
+      <div id="scoreHistory" class="status"></div>
+      <h3>Decks</h3>
+      <div class="status" id="deckStatus"></div>
+      <h3>Difficulty Legend</h3>
+      <div class="legend" id="legend"></div>
+    </section>
+  </main>
+  <footer>
+    Prototype v0.3 — single-player Party Mode (mouse or touch controls)
+    <div class="debug-footer">
+      <span>Debug overlay shows (row, idx).</span>
+      <button id="toggleDebug" type="button" class="secondary">Show debug</button>
+    </div>
+  </footer>
+  <div id="modeOverlay" class="mode-overlay">
+    <div class="mode-card">
+      <h2>Select a Game Mode</h2>
+      <p>Choose how you want to ski today. More modes are on the way!</p>
+      <div class="mode-grid">
+        <div class="mode-option">
+          <strong>Free-Play (Single Run)</strong>
+          <span class="footer-note">One quick run with the current queue of skiers.</span>
+          <button id="startFreePlay">Start Free-Play</button>
+        </div>
+        <div class="mode-option">
+          <strong>Full Crowd (Single Player)</strong>
+          <span class="footer-note">Play through all 32 skiers and recycle memories.</span>
+          <button id="startFullCrowd">Start Full Crowd</button>
+        </div>
+        <div class="mode-option disabled">
+          <strong>Multiplayer (2-4)</strong>
+          <span class="footer-note">Take turns on the shared mountain.</span>
+          <span class="closed-sign">⛷️ Temporary Closed</span>
+          <button disabled>Temporarily Closed</button>
+        </div>
+      </div>
+      <div class="mode-option">
+        <strong>Mountain Peak</strong>
+        <span class="footer-note">Select your peak layout.</span>
+        <div class="mode-grid">
+          <button id="peak1">🏔️¹ Classic</button>
+          <button id="peak2">🏔️² Diamond</button>
+          <button id="peak3">🏔️³ Twin</button>
+          <button id="peak100">🏔️💯 Peak 100</button>
+        </div>
+      </div>
+      <button id="returnToGame" class="secondary" style="display: none;">Return to current game</button>
+    </div>
+  </div>
+  <script>
+    const SYMBOLS = [
+      { key: "GREEN", label: "Green Circle", icon: "🟢", difficultyRank: 1, suit: "CLUBS" },
+      { key: "BLUE", label: "Blue Square", icon: "🟦", difficultyRank: 2, suit: "SPADES" },
+      { key: "BLACK", label: "Black Diamond", icon: "◆", difficultyRank: 3, suit: "HEARTS" },
+      { key: "DOUBLE_BLACK", label: "Double Black", icon: "◆◆", difficultyRank: 4, suit: "DIAMONDS" }
+    ];
+    const SKIER_RANKS = ["A", "J", "Q", "K"];
+    const CONDITION_RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const PEAKS = {
+      PEAK_1: { label: "🏔️¹", rows: [1, 2, 3, 4, 5] },
+      PEAK_2: { label: "🏔️²", rows: [1, 2, 3, 4, 5, 4, 3, 2, 2] },
+      PEAK_3: { label: "🏔️³", rows: [2, 3, 4, 5, 4] },
+      PEAK_100: { label: "🏔️💯", rows: Array(10).fill(10) }
+    };
+    const SPECIAL_CARDS = [
+      { key: "WHITEOUT", name: "Whiteout", emoji: "🌀", effect: "WHITEOUT" },
+      { key: "CROWN", name: "Summit Crown", emoji: "👑", effect: "CROWN" },
+      { key: "SURGE", name: "Surge Gate", emoji: "⚡", effect: "SURGE" },
+      { key: "FIRELINE", name: "Fireline", emoji: "🔥", effect: "FIRELINE" },
+      { key: "PIZZA", name: "Pizza Rain", emoji: "🍕", effect: "CONFETTI" },
+      { key: "POPCORN", name: "Pop Spill", emoji: "🍿", effect: "CONFETTI" },
+      { key: "DONUT", name: "Donut Roll", emoji: "🍩", effect: "CONFETTI" },
+      { key: "FRIES", name: "Fry Scatter", emoji: "🍟", effect: "CONFETTI" }
+    ];
+
+    const state = {
+      cards: {},
+      crowdDeck: [],
+      cloudDeck: [],
+      players: [],
+      mountain: [],
+      activePlayerId: "P1",
+      activeRun: null,
+      awaitingStartChoice: false,
+      gameEnded: false,
+      message: "",
+      scoreHistory: [],
+      lastRunScore: null,
+      memoriesPile: [],
+      mode: null,
+      gameStarted: false,
+      autoMode: null,
+      autoSpeed: "ONE_X",
+      autoRunning: false,
+      bestRun: null,
+      todayHighScore: 0,
+      allTimeHighScore: 0,
+      nightSkiing: false,
+      nightPhaseIndex: 0,
+      dayIcon: "☀️",
+      fullAuto: false,
+      fullAutoLoopRunning: false,
+      fullAutoGames: 0,
+      fullAutoTimeoutId: null,
+      loadingDismissed: false,
+      autoStrategy: "MANUAL",
+      autoCancelled: false,
+      emojiOverlayEnabled: true,
+      emojiRainMode: "REAL",
+      handEmojiPreference: "DEFAULT",
+      scoringMode: "COSMIC",
+      scheduleMode: "TYPE",
+      scheduleConfig: {
+        type: { SKIER: "MATCH", SNOWBOARDER: "MATCH" },
+        rank: { A: "MATCH", J: "MATCH", Q: "MATCH", K: "MATCH" }
+      },
+      peak: "PEAK_1",
+      rowSizes: [...PEAKS.PEAK_1.rows],
+      currentAutoModeForRun: null,
+      lastRunToken: null,
+      firstPersonView: false,
+      usedCrowdCount: 0,
+      skierCounter: 0
+    };
+
+    const BONUS_EMOJIS = {
+      1: "🌭",
+      2: "🍔",
+      3: "🍺",
+      4: "🍦"
+    };
+
+    const BONUS_TARGETS = {
+      "🌭": 4,
+      "🍔": 3,
+      "🍺": 2,
+      "🍦": 1
+    };
+    const AUTO_MODES = [
+      { key: "MATCH", label: "Match Mode" },
+      { key: "DISCOVER", label: "Discover Mode" },
+      { key: "EASY", label: "Easy Mode" },
+      { key: "HUNGRY", label: "Hungry Mode" },
+      { key: "THIRSTY", label: "Thirsty Mode" },
+      { key: "BREW", label: "Beer Brew Mode" }
+    ];
+    const AUTO_SPEEDS = [
+      { key: "STOP", label: "🛑", delay: null },
+      { key: "HALF_X", label: "0.5x", delay: 2000 },
+      { key: "ONE_X", label: "1x", delay: 1000 },
+      { key: "TWO_X", label: "2X", delay: 250 },
+      { key: "INSTANT", label: "Instant", delay: 0 }
+    ];
+    const HAND_EMOJI_OPTIONS = [
+      { key: "DEFAULT", label: "👈👉", left: "👈", right: "👉" },
+      { key: "LIGHT", label: "👈🏻👉🏻", left: "👈🏻", right: "👉🏻" },
+      { key: "MEDIUM_LIGHT", label: "👈🏼👉🏼", left: "👈🏼", right: "👉🏼" },
+      { key: "MEDIUM", label: "👈🏽👉🏽", left: "👈🏽", right: "👉🏽" },
+      { key: "MEDIUM_DARK", label: "👈🏾👉🏾", left: "👈🏾", right: "👉🏾" },
+      { key: "DARK", label: "👈🏿👉🏿", left: "👈🏿", right: "👉🏿" },
+      { key: "PALMS", label: "🫲🫱", left: "🫲", right: "🫱" }
+    ];
+    const SCORING_TUNING = {
+      normalizedN: 1000,
+      normalizedM: 1000,
+      competitiveGamma: 0.8
+    };
+    const SCORING_MODES = [
+      {
+        key: "COSMIC",
+        label: "Cosmic Scoring",
+        description:
+          "Cosmic Scoring is the current score system. Runs add up a base total from collected ranks and bonuses, then apply a multiplier based on your most-collected rank. The end-of-day score is the final score raised to the combo exponent (based on bonus goals met), with a π boost when every bonus goal is satisfied.",
+        formula:
+          "final_score = base_total * multiplier\nend_of_day_score = final_score ^ exponent\nif all goals met: end_of_day_score *= π"
+      },
+      {
+        key: "LADDER",
+        label: "Default (Ladder Scoring)",
+        description:
+          "Ladder Scoring is a readable baseline. Each combo tier doubles the payout instead of using literal exponentiation, keeping scores in the thousands to hundreds of thousands for daily play and casual comparison.",
+        formula:
+          "final_score = base_total * multiplier\nend_of_day_score = final_score * (2 ^ (exponent - 1))"
+      },
+      {
+        key: "DECIMAL_LADDER",
+        label: "Spicy (Decimal Ladder)",
+        description:
+          "Decimal Ladder Scoring is a higher-voltage ladder. Each combo tier adds a zero train, so tier 2 adds one zero, tier 3 adds two zeros, and so on.",
+        formula:
+          "final_score = base_total * multiplier\nend_of_day_score = final_score * (10 ^ (exponent - 1))"
+      },
+      {
+        key: "NORMALIZED_EXP",
+        label: "Normalized Exponential Scoring",
+        description:
+          "Normalized Exponential Scoring keeps the exponential feel but normalizes the score before exponentiation. Two tuning constants (N and M) control the pace and scale of growth.",
+        formula:
+          "final_score = base_total * multiplier\nnorm = 1 + (final_score / N)\nend_of_day_score = round((norm ^ exponent) * M)"
+      },
+      {
+        key: "COMPETITIVE",
+        label: "Soft-Capped Competitive Scoring",
+        description:
+          "Competitive Scoring compresses large scores for fair leaderboards. It applies a gamma exponent to a ladder-style raw score, preserving ordering while reducing runaway gaps.",
+        formula:
+          "final_score = base_total * multiplier\nraw_score = final_score * (2 ^ (exponent - 1))\ncompetitive_score = floor(raw_score ^ gamma)"
+      }
+    ];
+    const AUTO_STRATEGIES = [
+      { key: "RANDOM", label: "🎲 x ∞" },
+      { key: "MANUAL", label: "🎮 x ∞" },
+      { key: "SCHEDULED", label: "🗓️ x ∞" }
+    ];
+    const NIGHT_PHASES = ["🌕", "🌖", "🌗", "🌘", "🌑", "🌒", "🌓", "🌔"];
+    const DAY_ICONS = ["☀️", "🌤️", "⛅️", "🌥️", "☁️", "🌨️"];
+
+    const TOTAL_CROWD = 32;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function buildCrowdDeck(startId) {
+      let idCounter = startId;
+      const cards = [];
+      for (let deck = 0; deck < 2; deck += 1) {
+        for (const symbol of SYMBOLS) {
+          for (const rank of SKIER_RANKS) {
+            const card = {
+              id: `C${idCounter}`,
+              type: "SKIER",
+              rank,
+              symbol: symbol.key,
+              difficultyRank: symbol.difficultyRank,
+              riderType: deck === 0 ? "SKIER" : "SNOWBOARDER"
+            };
+            cards.push(card);
+            idCounter += 1;
+          }
+        }
+      }
+      return { cards, nextId: idCounter };
+    }
+
+    function buildConditionDeck(startId, deckCount) {
+      let idCounter = startId;
+      const cards = [];
+      for (let deck = 0; deck < deckCount; deck += 1) {
+        for (const symbol of SYMBOLS) {
+          for (const rank of CONDITION_RANKS) {
+            const card = {
+              id: `C${idCounter}`,
+              type: "CONDITION",
+              rank,
+              symbol: symbol.key,
+              difficultyRank: symbol.difficultyRank,
+              riderType: null
+            };
+            cards.push(card);
+            idCounter += 1;
+          }
+        }
+      }
+      return { cards, nextId: idCounter };
+    }
+
+    function buildSpecialDeck(startId) {
+      let idCounter = startId;
+      const cards = [];
+      SPECIAL_CARDS.forEach((entry) => {
+        for (let i = 0; i < 4; i += 1) {
+          cards.push({
+            id: `C${idCounter}`,
+            type: "SPECIAL",
+            rank: 0,
+            symbol: null,
+            difficultyRank: 1,
+            riderType: null,
+            specialKey: entry.key,
+            specialName: entry.name,
+            specialEmoji: entry.emoji,
+            specialEffect: entry.effect
+          });
+          idCounter += 1;
+        }
+      });
+      return { cards, nextId: idCounter };
+    }
+
+    function buildDecksForPeak(peakKey) {
+      let idCounter = 1;
+      const crowdDeck = buildCrowdDeck(idCounter);
+      idCounter = crowdDeck.nextId;
+      const conditionDeckCount = peakKey === "PEAK_100" ? 10 : 2;
+      const conditionDeck = buildConditionDeck(idCounter, conditionDeckCount);
+      idCounter = conditionDeck.nextId;
+      const specialDeck = peakKey === "PEAK_100" ? buildSpecialDeck(idCounter) : { cards: [], nextId: idCounter };
+      idCounter = specialDeck.nextId;
+      const cloudDeck = [...conditionDeck.cards, ...specialDeck.cards];
+      const allCards = [...crowdDeck.cards, ...cloudDeck];
+      return { allCards, crowd: crowdDeck.cards, cloud: cloudDeck };
+    }
+
+    function splitCrowdCloud(cards) {
+      const crowd = [];
+      const cloud = [];
+      cards.forEach((card) => {
+        if (card.type === "SKIER") {
+          crowd.push(card);
+        } else {
+          cloud.push(card);
+        }
+      });
+      return { crowd, cloud };
+    }
+
+    function faceShuffleCloud(cloudCards) {
+      const deck = shuffle([...cloudCards]);
+      const midpoint = Math.ceil(deck.length / 2);
+      const firstHalf = deck.slice(0, midpoint);
+      const secondHalf = deck.slice(midpoint);
+      const faceUpSet = new Set(secondHalf.map((card) => card.id));
+      const combined = shuffle([...firstHalf, ...secondHalf]);
+      return combined.map((card) => ({ cardId: card.id, isFaceUp: faceUpSet.has(card.id) }));
+    }
+
+    function replenishCloudFromMemories() {
+      if (!state.memoriesPile.length) return false;
+      const memoryCards = state.memoriesPile.map((cardId) => state.cards[cardId]);
+      state.memoriesPile = [];
+      state.cloudDeck = faceShuffleCloud(memoryCards);
+      return true;
+    }
+
+    function drawCloudCard() {
+      if (!state.cloudDeck.length && state.memoriesPile.length) {
+        replenishCloudFromMemories();
+      }
+      return state.cloudDeck.pop() || null;
+    }
+
+    function slotId(row, idx) {
+      let id = 0;
+      for (let r = 1; r < row; r += 1) {
+        id += state.rowSizes[r - 1];
+      }
+      return id + idx;
+    }
+
+    function rowIdxFromSlotId(id) {
+      let remaining = id;
+      for (let r = 1; r <= state.rowSizes.length; r += 1) {
+        const size = state.rowSizes[r - 1];
+        if (remaining < size) {
+          return { row: r, idx: remaining };
+        }
+        remaining -= size;
+      }
+      return { row: state.rowSizes.length, idx: 0 };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function buildDownNeighbors() {
+      const totalSlots = state.rowSizes.reduce((sum, size) => sum + size, 0);
+      const neighbors = Array(totalSlots).fill(null).map(() => []);
+      state.rowSizes.forEach((size, rowIndex) => {
+        const row = rowIndex + 1;
+        const nextSize = state.rowSizes[rowIndex + 1] || 0;
+        for (let idx = 0; idx < size; idx += 1) {
+          const current = slotId(row, idx);
+          if (row < state.rowSizes.length) {
+            if (nextSize >= size) {
+              const leftIdx = Math.min(idx, nextSize - 1);
+              const rightIdx = Math.min(idx + 1, nextSize - 1);
+              const left = slotId(row + 1, leftIdx);
+              const right = slotId(row + 1, rightIdx);
+              neighbors[current].push(left);
+              if (right !== left) {
+                neighbors[current].push(right);
+              }
+            } else {
+              const offset = Math.floor((size - nextSize) / 2);
+              const base = idx - offset;
+              const leftIdx = clamp(base, 0, nextSize - 1);
+              const rightIdx = clamp(base + 1, 0, nextSize - 1);
+              neighbors[current].push(slotId(row + 1, leftIdx), slotId(row + 1, rightIdx));
+            }
+          }
+        }
+      });
+      return neighbors;
+    }
+
+    function dealMountain() {
+      const mountain = [];
+      state.rowSizes.forEach((size, rowIndex) => {
+        for (let idx = 0; idx < size; idx += 1) {
+          const isLiftZone = rowIndex === 0 && idx === 0;
+          const isStartRow = rowIndex === 0;
+          const draw = isLiftZone || isStartRow ? null : drawCloudCard();
+          mountain.push({
+            row: rowIndex + 1,
+            idx,
+            conditionCardId: draw?.cardId || null,
+            isFaceUp: draw?.isFaceUp || false,
+            occupiedBySkierId: null,
+            lastResult: null,
+            missCount: 0,
+            bonusEmoji: null,
+            isLiftZone
+          });
+        }
+      });
+      return mountain;
+    }
+
+    function dealSkiers(player, count = 4) {
+      for (let i = 0; i < count; i += 1) {
+        const card = state.crowdDeck.pop();
+        if (!card) return;
+        state.skierCounter += 1;
+        const skierId = `S${state.skierCounter}`;
+        state.cards[skierId] = {
+          id: skierId,
+          ownerId: player.id,
+          cardId: card.id,
+          status: "available",
+          pausedPos: null,
+          piggybackRole: "none",
+          linkedSkierId: null
+        };
+        player.skierQueue.push(skierId);
+      }
+    }
+
+    function getSymbol(card) {
+      return SYMBOLS.find((symbol) => symbol.key === card.symbol);
+    }
+
+    function getRiderLabel(card) {
+      return card.riderType === "SNOWBOARDER" ? "Boarder" : "Skier";
+    }
+
+    function getCardLabel(card) {
+      if (card.type === "SPECIAL") {
+        return `
+          <span class="card-line">${card.specialEmoji} ${card.specialName}</span>
+        `;
+      }
+      const symbol = getSymbol(card);
+      if (card.type === "SKIER") {
+        const riderIcon =
+          card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
+        const riderLabel = getRiderLabel(card);
+        return `
+          <span class="card-line">${card.rank}${symbol.icon}</span>
+          <span class="card-type">${riderLabel}</span>
+          <span class="card-emoji">${riderIcon}</span>
+        `;
+      }
+      return `<span class="card-line">${card.rank}${symbol.icon}</span>`;
+    }
+
+    function getHiddenConditionLabel(card) {
+      if (card.type === "SPECIAL") {
+        return "❔";
+      }
+      const treeCount = Math.max(1, Math.min(4, card.difficultyRank));
+      return "🌲".repeat(treeCount);
+    }
+
+    function getBonusEmoji(missCount) {
+      const capped = Math.min(4, missCount);
+      return BONUS_EMOJIS[capped] || null;
+    }
+
+    function getBonusValue(missCount) {
+      return Math.min(4, missCount);
+    }
+
+    function getSkierTokenMarkup(skierId, variant = "") {
+      if (!skierId) return "";
+      const skierState = state.cards[skierId];
+      const card = state.cards[skierState.cardId];
+      const symbol = getSymbol(card);
+      const riderIcon =
+        card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
+      const variantClass = variant ? ` ${variant}` : "";
+      return `<div class="token${variantClass}" aria-hidden="true">
+        <div class="token-rank">${card.rank}${symbol.icon}</div>
+        <div class="token-emoji">${riderIcon}</div>
+      </div>`;
+    }
+
+    function getSkierTokenMarkupFromCard(card) {
+      if (!card) return "⛷️";
+      const symbol = getSymbol(card);
+      const riderIcon =
+        card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
+      return `<div class="token" aria-hidden="true">
+        <div class="token-rank">${card.rank}${symbol.icon}</div>
+        <div class="token-emoji">${riderIcon}</div>
+      </div>`;
+    }
+
+    function getCollectedTokenMarkup(collectedRanks = [], variant = "", extraClass = "") {
+      const variantClass = variant ? ` ${variant}` : "";
+      const extraClassName = extraClass ? ` ${extraClass}` : "";
+      const rankLabel = collectedRanks.length ? collectedRanks.join(" ") : "0";
+      return `<div class="token collected${variantClass}${extraClassName}" aria-hidden="true">
+        <div class="token-rank">${rankLabel}</div>
+      </div>`;
+    }
+
+    function getLiftZoneSkierIds(limit = 4) {
+      const player = getPlayer();
+      if (!player) return [];
+      const activeSkierId = state.activeRun?.leadSkierId || null;
+      return player.skierQueue
+        .filter((skierId) => {
+          const skier = state.cards[skierId];
+          return skier.status === "available" && skierId !== activeSkierId;
+        })
+        .slice(0, limit);
+    }
+
+    function isLiftZoneSlot(slotIdValue) {
+      return state.mountain[slotIdValue]?.isLiftZone;
+    }
+
+    function cycleLiftZoneOrder() {
+      const player = getPlayer();
+      if (!player) return;
+      const activeSkierId = state.activeRun?.leadSkierId || null;
+      const activeRow = state.activeRun ? rowIdxFromSlotId(state.activeRun.currentSlotId).row : null;
+      const allowActiveSwap =
+        state.activeRun && activeRow === 1 && !state.activeRun.resumed && !state.activeRun.lastMoveDirection;
+      const availableIds = player.skierQueue.filter((skierId) => {
+        const skier = state.cards[skierId];
+        if (skier.status !== "available") return false;
+        if (allowActiveSwap) return true;
+        return skierId !== activeSkierId;
+      });
+      if (availableIds.length < 2) return;
+      const rotated = availableIds.slice(1).concat(availableIds[0]);
+      let rotatedIndex = 0;
+      player.skierQueue = player.skierQueue.map((skierId) => {
+        const skier = state.cards[skierId];
+        if (skier.status === "available" && (allowActiveSwap || skierId !== activeSkierId)) {
+          const nextId = rotated[rotatedIndex];
+          rotatedIndex += 1;
+          return nextId;
+        }
+        return skierId;
+      });
+      if (allowActiveSwap && state.activeRun) {
+        const nextActiveId = player.skierQueue.find(
+          (skierId) => state.cards[skierId].status === "available"
+        );
+        if (nextActiveId) {
+          state.activeRun.leadSkierId = nextActiveId;
+          state.currentAutoModeForRun = getActiveAutoModeForSkier(nextActiveId);
+        }
+      }
+    }
+
+    function getTokenVariantForRow(row) {
+      if (row === 1) return "fork";
+      if (row === 2) return "fork-2";
+      if (row === 3) return "fork-3";
+      if (row >= 4) return "fork-4";
+      return "";
+    }
+
+    function getHandEmoji(direction) {
+      const option = HAND_EMOJI_OPTIONS.find((entry) => entry.key === state.handEmojiPreference)
+        || HAND_EMOJI_OPTIONS[0];
+      return direction === "RIGHT" ? option.right : option.left;
+    }
+
+    function formatNumber(value) {
+      if (!Number.isFinite(value)) return "∞";
+      if (Math.abs(value) >= 1e12) {
+        return value.toExponential(2);
+      }
+      return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    }
+
+    function getScoringMode() {
+      return SCORING_MODES.find((mode) => mode.key === state.scoringMode) || SCORING_MODES[0];
+    }
+
+    function getEndOfDayScoreForMode(summary, modeKey) {
+      if (!summary) return 0;
+      const exponent = Math.max(1, summary.exponent || 1);
+      const finalScore = summary.finalScore || 0;
+      switch (modeKey) {
+        case "LADDER":
+          return finalScore * 2 ** (exponent - 1);
+        case "DECIMAL_LADDER":
+          return finalScore * 10 ** (exponent - 1);
+        case "NORMALIZED_EXP": {
+          const norm = 1 + finalScore / SCORING_TUNING.normalizedN;
+          return Math.round(norm ** exponent * SCORING_TUNING.normalizedM);
+        }
+        case "COMPETITIVE": {
+          const rawScore = finalScore * 2 ** (exponent - 1);
+          return Math.floor(rawScore ** SCORING_TUNING.competitiveGamma);
+        }
+        case "COSMIC":
+        default: {
+          let score = finalScore ** exponent;
+          if (summary.goalCount === Object.keys(BONUS_TARGETS).length) {
+            score *= Math.PI;
+          }
+          return score;
+        }
+      }
+    }
+
+    function getCollectedPileSorted() {
+      const pile = getPlayer().collectedPile;
+      return [...pile].sort((a, b) => {
+        const aRank = Number(state.cards[a.cardId].rank);
+        const bRank = Number(state.cards[b.cardId].rank);
+        return bRank - aRank;
+      });
+    }
+
+    function getCollectedPileGrouped() {
+      const grouped = new Map();
+      getPlayer().collectedPile.forEach((entry) => {
+        const key = entry.cardId;
+        if (!grouped.has(key)) {
+          grouped.set(key, { entry, count: 0 });
+        }
+        grouped.get(key).count += 1;
+      });
+      return [...grouped.values()].sort((a, b) => {
+        const aRank = Number(state.cards[a.entry.cardId].rank);
+        const bRank = Number(state.cards[b.entry.cardId].rank);
+        return bRank - aRank;
+      });
+    }
+
+    function getPlayer() {
+      return state.players.find((player) => player.id === state.activePlayerId);
+    }
+
+    function getPausedSkier() {
+      const player = getPlayer();
+      return player.skierQueue.find((skierId) => state.cards[skierId].status === "paused");
+    }
+
+    function getStartSlots(mountain = state.mountain) {
+      for (let row = 1; row <= state.rowSizes.length; row += 1) {
+        const candidates = mountain
+          .map((slot, id) => ({ ...slot, id }))
+          .filter((slot) => slot.row === row && slot.occupiedBySkierId === null);
+        if (candidates.length) {
+          return candidates.map((slot) => slot.id);
+        }
+      }
+      return [];
+    }
+
+    function hasClearPath(tempOccupiedSlotId) {
+      const occupied = new Set(
+        state.mountain
+          .map((slot, id) => ({ slot, id }))
+          .filter(({ slot }) => slot.occupiedBySkierId)
+          .map(({ id }) => id)
+      );
+      if (tempOccupiedSlotId !== null) {
+        occupied.add(tempOccupiedSlotId);
+      }
+      const startSlots = getStartSlots(
+        state.mountain.map((slot, id) => ({
+          ...slot,
+          occupiedBySkierId: occupied.has(id) ? "blocked" : null
+        }))
+      );
+      const lastRow = state.rowSizes.length;
+      const goals = new Set(
+        state.mountain
+          .map((slot, id) => ({ slot, id }))
+          .filter(({ slot }) => slot.row === lastRow && !occupied.has(id))
+          .map(({ id }) => id)
+      );
+      const queue = [...startSlots];
+      const visited = new Set(queue);
+      while (queue.length) {
+        const current = queue.shift();
+        if (goals.has(current)) {
+          return true;
+        }
+        state.downNeighbors[current].forEach((neighbor) => {
+          if (!occupied.has(neighbor) && !visited.has(neighbor)) {
+            visited.add(neighbor);
+            queue.push(neighbor);
+          }
+        });
+      }
+      return false;
+    }
+
+    function beginGame() {
+      state.gameStarted = true;
+      hideScoreModal();
+      const deckBundle = buildDecksForPeak(state.peak);
+      deckBundle.allCards.forEach((card) => {
+        state.cards[card.id] = card;
+      });
+      state.crowdDeck = shuffle([...deckBundle.crowd]);
+      state.cloudDeck = faceShuffleCloud(deckBundle.cloud);
+      setPeak(state.peak);
+      state.mountain = dealMountain();
+      state.downNeighbors = buildDownNeighbors();
+      state.usedCrowdCount = 0;
+      state.skierCounter = 0;
+      const player = { id: "P1", skierQueue: [], collectedPile: [] };
+      state.players = [player];
+      dealSkiers(player, 4);
+      state.activeRun = null;
+      state.gameEnded = false;
+      state.message = "Game ready. Start your first run!";
+      state.scoreHistory = [];
+      state.lastRunScore = null;
+      state.memoriesPile = [];
+      state.autoMode = null;
+      state.autoSpeed = "ONE_X";
+      state.autoRunning = false;
+      state.bestRun = null;
+      state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
+      state.autoCancelled = false;
+      state.lastRunToken = null;
+      if (!state.allTimeHighScore) {
+        state.allTimeHighScore = loadAllTimeHighScore();
+      }
+      updateSkyIndicator();
+      updateTurn();
+    }
+
+    function updateTurn() {
+      if (state.gameEnded) {
+        render();
+        return;
+      }
+      const player = getPlayer();
+      const pausedSkierId = getPausedSkier();
+      if (pausedSkierId) {
+        const skier = state.cards[pausedSkierId];
+        if (skier.pausedPos !== null) {
+          state.mountain[skier.pausedPos].occupiedBySkierId = null;
+        }
+        skier.status = "available";
+        state.activeRun = {
+          playerId: player.id,
+          leadSkierId: pausedSkierId,
+          currentSlotId: skier.pausedPos,
+          resumed: true,
+          collectedScore: 0,
+          collectedRanks: [],
+          collectedEmojis: new Set(),
+          surgeActive: false,
+          firelineActive: false,
+          firelineDirection: null,
+          lastMoveDirection: null,
+          multiplierBonus: 0
+      };
+      state.currentAutoModeForRun = getActiveAutoModeForSkier(pausedSkierId);
+        state.message = "Resuming paused skier. Choose your next step.";
+      } else if (!state.activeRun) {
+        let nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+        if (!nextSkierId && state.mode === "FULL" && state.crowdDeck.length > 0) {
+          dealSkiers(player, 4);
+          nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+        }
+      if (!nextSkierId) {
+        state.message = "All skiers used. Game over!";
+        state.gameEnded = true;
+        showScoreModal();
+        if (state.fullAuto) {
+          if (state.fullAutoTimeoutId) {
+            clearTimeout(state.fullAutoTimeoutId);
+          }
+          state.fullAutoTimeoutId = setTimeout(() => {
+            state.fullAutoGames += 1;
+            if (state.fullAutoGames % 2 === 0) {
+              setNightSkiing(!state.nightSkiing);
+            }
+            beginGame();
+            runFullAutoLoop();
+          }, 3000);
+        }
+        render();
+        return;
+      }
+        const startSlots = getStartSlots();
+        state.awaitingStartChoice = true;
+        if (startSlots.length === 1) {
+          startRunAt(startSlots[0]);
+        } else {
+          state.message = "Pick a start slot to begin the run.";
+        }
+      }
+      render();
+    }
+
+    function startRunAt(slotIdChoice) {
+      const player = getPlayer();
+      const nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+      state.activeRun = {
+        playerId: player.id,
+        leadSkierId: nextSkierId,
+        currentSlotId: slotIdChoice,
+        resumed: false,
+        collectedScore: 0,
+        collectedRanks: [],
+        collectedEmojis: new Set(),
+        surgeActive: false,
+        firelineActive: false,
+        firelineDirection: null,
+        lastMoveDirection: null,
+        multiplierBonus: 0
+      };
+      state.currentAutoModeForRun = getActiveAutoModeForSkier(nextSkierId);
+      state.awaitingStartChoice = false;
+      resolveSlot(slotIdChoice, nextSkierId);
+      state.message = "Run started. Continue downhill.";
+    }
+
+    function getNextAvailableSkierId() {
+      return getPlayer().skierQueue.find((skierId) => state.cards[skierId].status === "available") || null;
+    }
+
+    function getSkierCard(skierId) {
+      if (!skierId) return null;
+      const skierState = state.cards[skierId];
+      return state.cards[skierState.cardId];
+    }
+
+    function getCollectedCounts() {
+      return getPlayer().collectedPile.reduce((acc, entry) => {
+        const card = state.cards[entry.cardId];
+        acc[card.rank] = (acc[card.rank] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function getSlotData(slotId) {
+      const slot = state.mountain[slotId];
+      const card = slot.conditionCardId ? state.cards[slot.conditionCardId] : null;
+      return { slot, card };
+    }
+
+    function getBonusCounts() {
+      return getPlayer().collectedPile.reduce((acc, entry) => {
+        if (entry.bonusEmoji) {
+          acc[entry.bonusEmoji] = (acc[entry.bonusEmoji] || 0) + 1;
+        }
+        return acc;
+      }, {});
+    }
+
+    function scoreMatchMode(card, skierCard, rankCounts) {
+      if (!card || !skierCard) return 0;
+      const eligible = card.difficultyRank <= skierCard.difficultyRank;
+      const matches = rankCounts[card.rank] || 0;
+      const suitMatch = card.symbol === skierCard.symbol ? 1 : 0;
+      const rankValue = Number(card.rank) || 0;
+      const base = eligible ? 1000 : 0;
+      const difficultyWeight = eligible ? 100 : 12;
+      return base + card.difficultyRank * difficultyWeight + suitMatch * 40 + matches * 15 + rankValue;
+    }
+
+    function scoreDiscoverMode(card, slot) {
+      if (!card) return 0;
+      const hiddenBonus = slot.isFaceUp ? 0 : 500;
+      return hiddenBonus + card.difficultyRank * 20 + Number(card.rank || 0);
+    }
+
+    function scoreEasyMode(card) {
+      if (!card) return 0;
+      const difficultyScore = (5 - card.difficultyRank) * 20;
+      const rankScore = 11 - Number(card.rank || 0);
+      return difficultyScore + rankScore;
+    }
+
+    function scoreHungryMode(card, slot, bonusCounts, skierCard) {
+      if (!card || !slot.bonusEmoji) return 0;
+      const emoji = slot.bonusEmoji;
+      const targets = BONUS_TARGETS[emoji] || 0;
+      const current = bonusCounts[emoji] || 0;
+      const needs = Math.max(0, targets - current);
+      const isQueen = skierCard?.rank === "Q";
+      let priority = 0;
+      if (emoji === "🌭" && needs > 0) priority = 300;
+      if (emoji === "🍔" && needs > 0) priority = Math.max(priority, 280);
+      if (emoji === "🍺") priority = Math.max(priority, isQueen ? 220 : 260);
+      if (emoji === "🍦") priority = Math.max(priority, isQueen ? 340 : 220);
+      return priority + card.difficultyRank * 10;
+    }
+
+    function scoreThirstyMode(card, slot) {
+      if (!card) return 0;
+      const beerBonus = slot.bonusEmoji === "🍺" ? 300 : 0;
+      return beerBonus + card.difficultyRank * 10 + Number(card.rank || 0);
+    }
+
+    function scoreBrewMode(card, slot, skierCard) {
+      if (!card || !skierCard) return 0;
+      const eligible = card.difficultyRank <= skierCard.difficultyRank;
+      const uncollectable = eligible ? 0 : 240;
+      const burgerBonus = !eligible && slot.bonusEmoji === "🍔" ? 60 : 0;
+      return uncollectable + burgerBonus + card.difficultyRank * 10;
+    }
+
+    function chooseAutoSlot(mode, slotIds, skierCard) {
+      const rankCounts = getCollectedCounts();
+      const bonusCounts = getBonusCounts();
+      let best = slotIds[0];
+      let bestScore = -Infinity;
+      slotIds.forEach((slotId) => {
+        const { slot, card } = getSlotData(slotId);
+        let score = 0;
+        if (mode === "MATCH") {
+          score = scoreMatchMode(card, skierCard, rankCounts);
+        } else if (mode === "DISCOVER") {
+          score = scoreDiscoverMode(card, slot);
+        } else if (mode === "EASY") {
+          score = scoreEasyMode(card);
+        } else if (mode === "HUNGRY") {
+          score = scoreHungryMode(card, slot, bonusCounts, skierCard);
+        } else if (mode === "THIRSTY") {
+          score = scoreThirstyMode(card, slot);
+        } else if (mode === "BREW") {
+          score = scoreBrewMode(card, slot, skierCard);
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          best = slotId;
+        }
+      });
+      return best;
+    }
+
+    function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function getAutoDelay() {
+      const speed = AUTO_SPEEDS.find((entry) => entry.key === state.autoSpeed) || AUTO_SPEEDS[0];
+      return speed.delay;
+    }
+
+    async function runAutoMode(mode) {
+      if (state.autoSpeed === "STOP") {
+        state.autoRunning = false;
+        return;
+      }
+      if (state.gameEnded || !state.gameStarted) return;
+      if (state.autoRunning) return;
+      state.autoRunning = true;
+      state.autoCancelled = false;
+      state.autoMode = mode;
+      let safety = 0;
+      while (safety < 50) {
+        if (state.autoCancelled) break;
+        if (state.gameEnded) break;
+        if (state.awaitingStartChoice) {
+          const startSlots = getStartSlots();
+          if (!startSlots.length) break;
+          const skierCard = getSkierCard(getNextAvailableSkierId());
+          const choice = chooseAutoSlot(mode, startSlots, skierCard);
+          consumeLastRunToken();
+          startRunAt(choice);
+          if (getAutoDelay() > 0) {
+            await wait(getAutoDelay());
+          }
+          safety += 1;
+          continue;
+        }
+        if (!state.activeRun) break;
+        const options = getMoveOptionsOrdered();
+        if (!options.length) break;
+        const skierCard = getSkierCard(state.activeRun.leadSkierId);
+        const choice = chooseAutoSlot(mode, options, skierCard);
+        consumeLastRunToken();
+        moveTo(choice);
+        if (getAutoDelay() > 0) {
+          await wait(getAutoDelay());
+        }
+        safety += 1;
+      }
+      state.autoRunning = false;
+      render();
+    }
+
+    function shuffleActiveConditions() {
+      const activeSlots = state.mountain.filter((slot) => slot.conditionCardId);
+      if (!activeSlots.length) return;
+      const cardIds = activeSlots.map((slot) => slot.conditionCardId);
+      shuffle(cardIds);
+      activeSlots.forEach((slot, index) => {
+        slot.conditionCardId = cardIds[index];
+      });
+      const redrawSlot = activeSlots[0];
+      if (redrawSlot) {
+        const draw = drawCloudCard();
+        if (draw?.cardId) {
+          redrawSlot.conditionCardId = draw.cardId;
+          redrawSlot.isFaceUp = true;
+        }
+      }
+    }
+
+    function applySpecialCardEffect(card) {
+      const run = state.activeRun;
+      switch (card.specialEffect) {
+        case "WHITEOUT":
+          shuffleActiveConditions();
+          break;
+        case "CROWN":
+          if (run) {
+            run.multiplierBonus += run.collectedEmojis.size;
+          }
+          break;
+        case "SURGE":
+          if (run) {
+            run.surgeActive = true;
+          }
+          break;
+        case "FIRELINE":
+          if (run) {
+            run.collectedScore += 3;
+            run.firelineActive = true;
+            run.firelineDirection = run.lastMoveDirection;
+          }
+          break;
+        case "CONFETTI":
+          spawnEmojiRain(card.specialEmoji, 12);
+          break;
+        default:
+          break;
+      }
+    }
+
+    function resolveSlot(slotId, skierId) {
+      const slot = state.mountain[slotId];
+      if (!slot.conditionCardId) {
+        return;
+      }
+      if (!slot.isFaceUp) {
+        slot.isFaceUp = true;
+      }
+      const card = state.cards[slot.conditionCardId];
+      if (card.type === "SPECIAL") {
+        slot.conditionCardId = null;
+        slot.isFaceUp = false;
+        slot.lastResult = { cardId: card.id, outcome: "collected" };
+        state.memoriesPile.push(card.id);
+        applySpecialCardEffect(card);
+        state.message = `Special condition: ${card.specialName}!`;
+        return;
+      }
+      const skierCard = state.cards[state.cards[skierId].cardId];
+      if (card.difficultyRank <= skierCard.difficultyRank) {
+        const bonusValue = getBonusValue(slot.missCount || 0);
+        const bonusEmoji = slot.bonusEmoji;
+        slot.conditionCardId = null;
+        slot.isFaceUp = false;
+        slot.lastResult = { cardId: card.id, outcome: "collected" };
+        getPlayer().collectedPile.push({
+          cardId: card.id,
+          bonus: bonusValue,
+          bonusEmoji: slot.bonusEmoji
+        });
+        state.memoriesPile.push(card.id);
+        slot.missCount = 0;
+        slot.bonusEmoji = null;
+        const run = state.activeRun;
+        if (run) {
+          run.collectedScore = (run.collectedScore || 0) + Number(card.rank) + bonusValue;
+          if (run.collectedRanks) {
+            run.collectedRanks.push(card.rank);
+          }
+          if (run.surgeActive) {
+            run.collectedScore += Number(card.rank);
+            run.surgeActive = false;
+          }
+          if (run.firelineActive) {
+            if (run.lastMoveDirection && run.lastMoveDirection === run.firelineDirection) {
+              run.collectedScore += 1;
+            }
+            run.firelineActive = false;
+          }
+          if (bonusEmoji) {
+            run.collectedEmojis.add(bonusEmoji);
+          }
+        }
+        if (bonusEmoji) {
+          spawnEmojiRain(bonusEmoji, 8);
+        }
+        state.message = bonusValue
+          ? `Condition collected with bonus +${bonusValue}!`
+          : "Condition collected!";
+      } else {
+        slot.lastResult = { cardId: card.id, outcome: "missed" };
+        state.message = "Condition too difficult. It remains on the mountain.";
+      }
+    }
+
+    function moveTo(slotId) {
+      if (!state.activeRun) return;
+      const { idx: prevIdx } = rowIdxFromSlotId(state.activeRun.currentSlotId);
+      const { idx: nextIdx } = rowIdxFromSlotId(slotId);
+      if (nextIdx < prevIdx) {
+        state.activeRun.lastMoveDirection = "LEFT";
+      } else if (nextIdx > prevIdx) {
+        state.activeRun.lastMoveDirection = "RIGHT";
+      }
+      state.activeRun.currentSlotId = slotId;
+      resolveSlot(slotId, state.activeRun.leadSkierId);
+      const { row } = rowIdxFromSlotId(slotId);
+      if (row === state.rowSizes.length) {
+        finishRun();
+        return;
+      }
+      render();
+    }
+
+    function finishRun() {
+      const run = state.activeRun;
+      const skierState = state.cards[run.leadSkierId];
+      skierState.status = "used";
+      skierState.pausedPos = null;
+      if (run.multiplierBonus) {
+        run.collectedScore *= 1 + run.multiplierBonus;
+      }
+      state.lastRunToken = {
+        slotId: run.currentSlotId,
+        skierId: run.leadSkierId,
+        clicksRemaining: Number.POSITIVE_INFINITY,
+        collectedRanks: run.collectedRanks || []
+      };
+      if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
+        const skierCardId = state.cards[run.leadSkierId].cardId;
+        state.bestRun = {
+          skierId: run.leadSkierId,
+          skierCardId,
+          finalScore: run.collectedScore || 0
+        };
+      }
+      state.currentAutoModeForRun = null;
+      state.activeRun = null;
+      state.usedCrowdCount += 1;
+      if (!state.nightSkiing && state.usedCrowdCount % 16 === 0) {
+        state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
+        updateSkyIndicator();
+      }
+      recordScore();
+      applyMissUpgrades();
+      state.message = "Run complete! Mountain is refilling.";
+      refillMountain();
+      updateTurn();
+    }
+
+    function applyMissUpgrades() {
+      state.mountain.forEach((slot) => {
+        if (slot.lastResult?.outcome === "missed" && slot.conditionCardId) {
+          slot.missCount = (slot.missCount || 0) + 1;
+          slot.bonusEmoji = getBonusEmoji(slot.missCount);
+          slot.lastResult = null;
+        }
+      });
+    }
+
+    function refillMountain() {
+      const emptySlots = state.mountain.filter((slot) => slot.conditionCardId === null);
+      let available = state.cloudDeck.length;
+      if (available < emptySlots.length && state.memoriesPile.length) {
+        replenishCloudFromMemories();
+        available = state.cloudDeck.length;
+      }
+      if (available < emptySlots.length) {
+        state.gameEnded = true;
+        state.message = "Cloud deck depleted. Game over!";
+        render();
+        return;
+      }
+      emptySlots.forEach((slot) => {
+        const draw = drawCloudCard();
+        slot.conditionCardId = draw.cardId;
+        slot.isFaceUp = draw.isFaceUp;
+        slot.lastResult = null;
+        slot.missCount = 0;
+        slot.bonusEmoji = null;
+      });
+    }
+
+    function waitForGroup() {
+      if (!state.activeRun) return;
+      const slotId = state.activeRun.currentSlotId;
+      if (!hasClearPath(slotId)) {
+        state.message = "Wait blocked: no clear path for the next run.";
+        render();
+        return;
+      }
+      const skier = state.cards[state.activeRun.leadSkierId];
+      skier.status = "paused";
+      skier.pausedPos = slotId;
+      state.mountain[slotId].occupiedBySkierId = skier.id;
+      state.activeRun = null;
+      state.message = "Skier paused. Next skier's turn.";
+      updateTurn();
+    }
+
+    function computeScore(modeKey = state.scoringMode) {
+      const pile = getPlayer().collectedPile;
+      const baseTotal = pile.reduce((sum, entry) => sum + Number(state.cards[entry.cardId].rank) + entry.bonus, 0);
+      const counts = pile.reduce((acc, entry) => {
+        const card = state.cards[entry.cardId];
+        acc[card.rank] = (acc[card.rank] || 0) + 1;
+        return acc;
+      }, {});
+      const maxCount = Math.max(0, ...Object.values(counts));
+      const mult = Math.min(8, maxCount || 1);
+      const finalScore = baseTotal * mult;
+      const bonusCounts = pile.reduce((acc, entry) => {
+        if (entry.bonusEmoji) {
+          acc[entry.bonusEmoji] = (acc[entry.bonusEmoji] || 0) + 1;
+        }
+        return acc;
+      }, {});
+      const metGoals = Object.entries(BONUS_TARGETS).filter(
+        ([emoji, target]) => (bonusCounts[emoji] || 0) >= target
+      );
+      const goalCount = metGoals.length;
+      const exponent = goalCount === 0 ? 1 : goalCount + 1;
+      const endDayScore = getEndOfDayScoreForMode(
+        { baseTotal, mult, finalScore, counts, bonusCounts, goalCount, exponent },
+        modeKey
+      );
+      return {
+        baseTotal,
+        mult,
+        finalScore,
+        endDayScore,
+        counts,
+        bonusCounts,
+        goalCount,
+        exponent
+      };
+    }
+
+    function recordScore() {
+      const summary = computeScore();
+      const run = state.activeRun;
+      const runSkierCardId = run ? state.cards[run.leadSkierId]?.cardId : null;
+      const runEmojis = run ? Array.from(run.collectedEmojis || []) : [];
+      state.lastRunScore = {
+        ...summary,
+        collected: [...getPlayer().collectedPile],
+        skierCardId: runSkierCardId,
+        runEmojis
+      };
+      state.scoreHistory.push({
+        ...summary,
+        skierCardId: runSkierCardId,
+        runEmojis,
+        timestamp: Date.now()
+      });
+      state.scoreHistory.sort((a, b) => b.endDayScore - a.endDayScore);
+      state.scoreHistory = state.scoreHistory.slice(0, 5);
+      state.todayHighScore = Math.max(state.todayHighScore || 0, summary.endDayScore || 0);
+      const allTime = loadAllTimeHighScore();
+      if (summary.endDayScore > allTime) {
+        saveAllTimeHighScore(summary.endDayScore);
+        state.allTimeHighScore = summary.endDayScore;
+      } else {
+        state.allTimeHighScore = allTime;
+      }
+    }
+
+    function getMoveOptions() {
+      if (!state.activeRun) return [];
+      const { currentSlotId } = state.activeRun;
+      const { row } = rowIdxFromSlotId(currentSlotId);
+      if (row === state.rowSizes.length) return [];
+      return state.downNeighbors[currentSlotId].filter((id) => state.mountain[id].occupiedBySkierId === null);
+    }
+
+    function getMoveOptionsOrdered() {
+      if (!state.activeRun) return [];
+      const { currentSlotId } = state.activeRun;
+      const neighbors = state.downNeighbors[currentSlotId];
+      return neighbors.filter((id) => state.mountain[id].occupiedBySkierId === null);
+    }
+
+    function render() {
+      renderMountain();
+      renderFinishZone();
+      renderSidebar();
+      const fullAutoButton = document.getElementById("fullAutoButton");
+      if (fullAutoButton) {
+        fullAutoButton.classList.toggle("active", state.fullAuto);
+        fullAutoButton.textContent = state.fullAuto ? "Stop auto" : "Full auto";
+      }
+      updateFirstPersonToggle();
+    }
+
+    function renderFinishZone() {
+      const finishTokensEl = document.getElementById("finishTokens");
+      if (!finishTokensEl) return;
+      finishTokensEl.innerHTML = "";
+      const lastRun = state.lastRunToken;
+      if (!lastRun) return;
+      const tokenWrapper = document.createElement("div");
+      tokenWrapper.className = "finish-zone-token";
+      tokenWrapper.innerHTML = getSkierTokenMarkup(lastRun.skierId);
+      finishTokensEl.appendChild(tokenWrapper);
+    }
+
+    function renderMountain() {
+      const mountainEl = document.getElementById("mountain");
+      mountainEl.innerHTML = "";
+      mountainEl.classList.toggle("first-person", state.firstPersonView);
+      if (state.firstPersonView && (state.activeRun || state.awaitingStartChoice)) {
+        renderFirstPerson(mountainEl);
+        return;
+      }
+      state.rowSizes.forEach((size, rowIndex) => {
+        const rowEl = document.createElement("div");
+        rowEl.className = "row";
+        rowEl.style.gridTemplateColumns = `repeat(${size}, minmax(var(--slot-min), 1fr))`;
+        for (let idx = 0; idx < size; idx += 1) {
+          const id = slotId(rowIndex + 1, idx);
+          const slot = state.mountain[id];
+          const card = slot.conditionCardId ? state.cards[slot.conditionCardId] : null;
+          const button = document.createElement("button");
+          button.className = "slot";
+          if (slot.isLiftZone) {
+            button.classList.add("lift-zone-slot");
+          }
+          const isHighlighted = isSelectableSlot(id);
+          if (isHighlighted) {
+            button.classList.add("highlight");
+          }
+          if (slot.occupiedBySkierId) {
+            button.classList.add("occupied");
+          }
+          if (state.activeRun && state.activeRun.currentSlotId === id) {
+            button.classList.add("current");
+          }
+          button.disabled = !isHighlighted && !slot.isLiftZone;
+          let label = "Empty";
+          if (slot.isLiftZone) {
+            const liftTokens = getLiftZoneSkierIds()
+              .map((skierId) => `<div class="lift-zone-token">${getSkierTokenMarkup(skierId)}</div>`)
+              .join("");
+            label = `
+              <div class="lift-zone">
+                <div class="lift-zone-tram">🚡</div>
+                <div class="lift-zone-tokens">${liftTokens}</div>
+              </div>
+            `;
+          } else if (card) {
+            const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
+            label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
+            if (slot.lastResult && slot.lastResult.outcome === "missed" && slot.isFaceUp) {
+              label = `${label} <span class="result-badge">❌</span>`;
+            }
+          } else if (slot.lastResult) {
+            const lastCard = state.cards[slot.lastResult.cardId];
+            const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
+            label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
+          }
+          let tokenMarkup = "";
+          if (state.activeRun && state.activeRun.currentSlotId === id) {
+            const tokenVariant = getTokenVariantForRow(slot.row);
+            const isBottomRow = slot.row === state.rowSizes.length;
+            const tokenClass = isBottomRow
+              ? `${tokenVariant} completed-under resting`.trim()
+              : tokenVariant;
+            tokenMarkup = getSkierTokenMarkup(state.activeRun.leadSkierId, tokenClass);
+          }
+          button.innerHTML = `
+            <div class="card-label">${label}</div>
+            <div class="coords">(${slot.row}, ${slot.idx})</div>
+            ${slot.occupiedBySkierId ? `<div class="coords">Paused</div>` : ""}
+            ${card && !slot.isFaceUp ? `<div class="unknown-badge">❔</div>` : ""}
+            ${tokenMarkup}
+          `;
+          button.addEventListener("click", () => handleSlotClick(id));
+          rowEl.appendChild(button);
+        }
+        mountainEl.appendChild(rowEl);
+      });
+    }
+
+    function renderFirstPerson(mountainEl) {
+      const options = state.awaitingStartChoice ? getStartSlots() : getMoveOptionsOrdered();
+      if (!options.length) {
+        mountainEl.innerHTML = "<div class=\"status\">No moves available.</div>";
+        return;
+      }
+      const optionIds = options.length > 1 ? [options[0], options[options.length - 1]] : [options[0]];
+      const wrapper = document.createElement("div");
+      wrapper.className = "first-person-view";
+      const skierRow = document.createElement("div");
+      skierRow.className = "first-person-skier";
+      if (state.activeRun) {
+        skierRow.innerHTML = getSkierTokenMarkup(state.activeRun.leadSkierId);
+      } else {
+        skierRow.innerHTML = "<span class=\"footer-note\">Select a start slot to begin.</span>";
+      }
+      wrapper.appendChild(skierRow);
+      const optionsRow = document.createElement("div");
+      optionsRow.className = "first-person-options";
+      optionIds.forEach((slotIdValue) => {
+        const { slot, card } = getSlotData(slotIdValue);
+        const button = document.createElement("button");
+        button.className = "slot first-person-option";
+        let label = "Empty";
+        let indicator = "";
+        if (slot.isLiftZone) {
+          label = "🚡 Lift Zone";
+          indicator = "Lift zone";
+        } else if (card) {
+          const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
+          if (!slot.isFaceUp && card.difficultyRank >= 4) {
+            label = `
+              <div class="tree-grid">
+                <span>🌲</span><span>🌲</span><span>🌲</span><span>🌲</span>
+              </div>
+            `;
+          } else {
+            label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
+          }
+          if (state.activeRun && card.type !== "SPECIAL") {
+            const skierCard = getSkierCard(state.activeRun.leadSkierId);
+            const willCollect = card.difficultyRank <= skierCard.difficultyRank;
+            if (willCollect) {
+              button.classList.add("can-collect");
+              indicator = "✅ Collects";
+            } else {
+              button.classList.add("will-miss");
+              indicator = slot.bonusEmoji ? "⚠️ Miss upgrades" : "⚠️ Miss stays";
+            }
+          }
+        } else if (slot.lastResult) {
+          const lastCard = state.cards[slot.lastResult.cardId];
+          const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
+          label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
+        }
+        button.innerHTML = `
+          <div class="card-label">${label}</div>
+          ${indicator ? `<div class="first-person-indicator">${indicator}</div>` : ""}
+        `;
+        button.addEventListener("click", () => handleSlotClick(slotIdValue));
+        const nextOptions = state.downNeighbors[slotIdValue]?.filter(
+          (nextId) => state.mountain[nextId].occupiedBySkierId === null
+        ) || [];
+        if (nextOptions.length) {
+          const nextRow = document.createElement("div");
+          nextRow.className = "first-person-next";
+          nextOptions.slice(0, 3).forEach((nextId) => {
+            const nextSlot = state.mountain[nextId];
+            const nextCard = nextSlot.conditionCardId ? state.cards[nextSlot.conditionCardId] : null;
+            const nextLabel = nextCard
+              ? nextSlot.isFaceUp
+                ? `${nextCard.rank}${getSymbol(nextCard).icon}`
+                : getHiddenConditionLabel(nextCard)
+              : "—";
+            const nextBadge = document.createElement("div");
+            nextBadge.className = "next-card";
+            nextBadge.textContent = nextLabel;
+            nextRow.appendChild(nextBadge);
+          });
+          button.appendChild(nextRow);
+        }
+        optionsRow.appendChild(button);
+      });
+      wrapper.appendChild(optionsRow);
+      mountainEl.appendChild(wrapper);
+    }
+
+    function updateFirstPersonToggle() {
+      const toggle = document.getElementById("firstPersonToggle");
+      if (!toggle) return;
+      toggle.setAttribute("aria-pressed", state.firstPersonView ? "true" : "false");
+    }
+
+    function updateTramControls() {
+      const leftButton = document.getElementById("tramLeftButton");
+      const rightButton = document.getElementById("tramRightButton");
+      if (leftButton) {
+        leftButton.textContent = getHandEmoji("LEFT");
+      }
+      if (rightButton) {
+        rightButton.textContent = getHandEmoji("RIGHT");
+      }
+    }
+
+    function handleDirectionalMove(direction) {
+      if (!state.gameStarted || state.gameEnded) return;
+      if (state.awaitingStartChoice) {
+        const startSlots = getStartSlots();
+        if (!startSlots.length) return;
+        consumeLastRunToken();
+        if (direction === "LEFT") {
+          startRunAt(startSlots[0]);
+        } else {
+          startRunAt(startSlots[startSlots.length - 1]);
+        }
+        return;
+      }
+      if (!state.activeRun) return;
+      const options = getMoveOptionsOrdered();
+      if (!options.length) return;
+      consumeLastRunToken();
+      if (direction === "LEFT") {
+        moveTo(options[0]);
+      } else {
+        moveTo(options[options.length - 1]);
+      }
+    }
+
+    function isSelectableSlot(id) {
+      if (state.gameEnded) return false;
+      if (state.awaitingStartChoice) {
+        return getStartSlots().includes(id);
+      }
+      const moveOptions = getMoveOptions();
+      return moveOptions.includes(id);
+    }
+
+    function consumeLastRunToken() {
+      if (!state.lastRunToken) return;
+      if (!Number.isFinite(state.lastRunToken.clicksRemaining)) return;
+      state.lastRunToken.clicksRemaining -= 1;
+      if (state.lastRunToken.clicksRemaining <= 0) {
+        state.lastRunToken = null;
+      }
+    }
+
+    function handleSlotClick(id) {
+      if (isLiftZoneSlot(id)) {
+        cycleLiftZoneOrder();
+        render();
+        return;
+      }
+      if (state.awaitingStartChoice) {
+        consumeLastRunToken();
+        startRunAt(id);
+        return;
+      }
+      if (getMoveOptions().includes(id)) {
+        consumeLastRunToken();
+        moveTo(id);
+      }
+    }
+
+    function handleKeyMove(event) {
+      if (!state.gameStarted || state.gameEnded) return;
+      if (event.code === "Space" || event.key === " ") {
+        event.preventDefault();
+        cycleLiftZoneOrder();
+        render();
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        handleDirectionalMove("LEFT");
+      } else if (event.key === "ArrowRight") {
+        handleDirectionalMove("RIGHT");
+      }
+    }
+
+    function renderSidebar() {
+      const statusEl = document.getElementById("status");
+      const actionsEl = document.getElementById("actions");
+      const activeSkierEl = document.getElementById("activeSkier");
+      const autoModesEl = document.getElementById("autoModes");
+      const queueEl = document.getElementById("skierQueue");
+      const collectedEl = document.getElementById("collectedPile");
+      const scoreEl = document.getElementById("score");
+      const scoreHistoryEl = document.getElementById("scoreHistory");
+      const deckStatusEl = document.getElementById("deckStatus");
+      const crowdCounterEl = document.getElementById("crowdCounter");
+      const legendEl = document.getElementById("legend");
+
+      updateTramControls();
+      statusEl.textContent = state.message;
+      actionsEl.innerHTML = "";
+      if (state.activeRun) {
+        const skierState = state.cards[state.activeRun.leadSkierId];
+        const card = state.cards[skierState.cardId];
+        activeSkierEl.innerHTML = `Lead: ${getCardLabel(card)} (${getSymbol(card).label})`;
+      } else {
+        activeSkierEl.textContent = "No active skier";
+      }
+
+      const autoGrid = autoModesEl.querySelector(".auto-grid");
+      autoGrid.innerHTML = "";
+      AUTO_MODES.forEach((mode) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = mode.label;
+        if (state.autoMode === mode.key) {
+          button.classList.add("active");
+        }
+        button.addEventListener("click", () => {
+          state.autoStrategy = "MANUAL";
+          state.autoMode = mode.key;
+          state.fullAuto = true;
+          runFullAutoLoop();
+          render();
+        });
+        autoGrid.appendChild(button);
+      });
+      const autoModeStatus = document.getElementById("autoModeStatus");
+      if (autoModeStatus) {
+        const activeMode = state.currentAutoModeForRun || state.autoMode || "MATCH";
+        const activeLabel = AUTO_MODES.find((mode) => mode.key === activeMode)?.label || "None";
+        const strategyLabel =
+          AUTO_STRATEGIES.find((entry) => entry.key === state.autoStrategy)?.label || "🎮 x ♾️";
+        autoModeStatus.textContent = `${strategyLabel} · Active mode: ${activeLabel}`;
+      }
+      const strategyGrid = autoModesEl.querySelector(".strategy-grid");
+      if (strategyGrid) {
+        strategyGrid.innerHTML = "";
+        AUTO_STRATEGIES.forEach((strategy) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = strategy.label;
+          if (state.autoStrategy === strategy.key) {
+            button.classList.add("active");
+          }
+          button.addEventListener("click", () => {
+            if (state.fullAuto && state.autoStrategy === strategy.key) {
+              stopFullAuto();
+              render();
+              return;
+            }
+            if (strategy.key === "SCHEDULED") {
+              openScheduleModal();
+              return;
+            }
+            state.autoStrategy = strategy.key;
+            state.fullAuto = true;
+            runFullAutoLoop();
+            render();
+          });
+          strategyGrid.appendChild(button);
+        });
+      }
+      const speedGrid = autoModesEl.querySelector(".speed-grid");
+      speedGrid.innerHTML = "";
+      AUTO_SPEEDS.forEach((speed) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = speed.label;
+        if (state.autoSpeed === speed.key) {
+          button.classList.add("active");
+        }
+        button.addEventListener("click", () => {
+          if (speed.key === "STOP") {
+            stopFullAuto();
+            state.autoSpeed = speed.key;
+            render();
+            return;
+          }
+          state.autoSpeed = speed.key;
+          render();
+        });
+        speedGrid.appendChild(button);
+      });
+
+      queueEl.innerHTML = "";
+      const activeSkierId = state.activeRun?.leadSkierId || null;
+      const queueSorted = [...getPlayer().skierQueue].sort((a, b) => {
+        const aUsed = state.cards[a].status === "used";
+        const bUsed = state.cards[b].status === "used";
+        if (aUsed === bUsed) return 0;
+        return aUsed ? 1 : -1;
+      });
+      queueSorted.forEach((skierId) => {
+        const skierState = state.cards[skierId];
+        const card = state.cards[skierState.cardId];
+        const div = document.createElement("div");
+        div.className = "card";
+        if (skierId === activeSkierId) {
+          div.classList.add("active");
+        }
+        if (skierState.status === "used") {
+          div.classList.add("used");
+        }
+        const statusLabel = skierId === activeSkierId ? "active" : skierState.status;
+        div.innerHTML = `${getCardLabel(card)} - ${statusLabel}`;
+        queueEl.appendChild(div);
+      });
+
+      collectedEl.innerHTML = "";
+      const rankCounts = getPlayer().collectedPile.reduce((acc, entry) => {
+        const card = state.cards[entry.cardId];
+        if (card.type !== "CONDITION") return acc;
+        acc[card.rank] = (acc[card.rank] || 0) + 1;
+        return acc;
+      }, {});
+      const rankedCounts = CONDITION_RANKS.map((rank) => ({
+        rank,
+        count: rankCounts[rank] || 0
+      }))
+        .filter((entry) => entry.count > 0)
+        .sort((a, b) => b.count - a.count || b.rank - a.rank);
+      const topThreshold = rankedCounts.length >= 3 ? rankedCounts[2].count : 0;
+      const targets = rankedCounts.filter((entry) => entry.count >= topThreshold);
+      const remainder = rankedCounts.filter((entry) => !targets.includes(entry));
+      const renderRow = (entries) => {
+        const row = document.createElement("div");
+        row.className = "collected-row";
+        entries.forEach((entry) => {
+          const pill = document.createElement("div");
+          pill.className = "collected-pill";
+          pill.textContent = `${entry.rank} ×${entry.count}`;
+          row.appendChild(pill);
+        });
+        return row;
+      };
+      const rows = document.createElement("div");
+      rows.className = "collected-rows";
+      if (targets.length) {
+        rows.appendChild(renderRow(targets));
+      }
+      if (remainder.length) {
+        rows.appendChild(renderRow(remainder));
+      }
+      collectedEl.appendChild(rows);
+
+      const modeInfo = getScoringMode();
+      const { baseTotal, mult, finalScore, counts, bonusCounts, exponent, goalCount } = computeScore();
+      const endDayScore = getEndOfDayScoreForMode(
+        { baseTotal, mult, finalScore, counts, bonusCounts, exponent, goalCount },
+        modeInfo.key
+      );
+      const histogram = Object.entries(counts)
+        .map(([rank, count]) => `${rank}: ${count}`)
+        .join(", ");
+      const bonusSummary = Object.entries(BONUS_TARGETS)
+        .map(([emoji, target]) => `${emoji} ${bonusCounts[emoji] || 0}/${target}`)
+        .join(" · ");
+      scoreEl.innerHTML = `Base total: <strong>${formatNumber(baseTotal)}</strong><br />
+        Multiplier: <strong>${mult}×</strong><br />
+        Final score: <strong>${formatNumber(finalScore)}</strong><br />
+        End of day score: <strong>${formatNumber(endDayScore)}</strong><br />
+        <span class="footer-note">Exponent: ${exponent} (goals met: ${goalCount})</span><br />
+        <span class="footer-note">Ranks collected: ${histogram || "None"}</span>`;
+      const bonusTrackerEl = document.getElementById("bonusTracker");
+      bonusTrackerEl.innerHTML = `<span class="footer-note">Bonus goals: ${bonusSummary}</span>`;
+
+      const lastRun = state.lastRunScore;
+      const topScores = state.scoreHistory;
+      const formatCollected = (entries) =>
+        entries.length
+          ? entries
+              .map((entry) => {
+                const card = state.cards[entry.cardId];
+                return `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}`;
+              })
+              .join(", ")
+          : "None";
+      const lastRunEndDay = lastRun ? getEndOfDayScoreForMode(lastRun, modeInfo.key) : 0;
+      const lastRunText = lastRun
+        ? `Last run — base ${formatNumber(lastRun.baseTotal)}, mult ${lastRun.mult}×, final ${formatNumber(
+            lastRun.finalScore
+          )}, end-day ${formatNumber(lastRunEndDay)}<br />
+        <span class="footer-note">Collected: ${formatCollected(lastRun.collected)}</span><br />`
+        : "Last run — none yet";
+      const topList = topScores.length
+        ? `<ol>${topScores
+            .map((entry) => {
+              const modeScore = getEndOfDayScoreForMode(entry, modeInfo.key);
+              return `<li>${formatNumber(modeScore)} (final ${formatNumber(entry.finalScore)}, ${entry.exponent}x)</li>`;
+            })
+            .join("")}</ol>`
+        : "<p>No top scores yet.</p>";
+      scoreHistoryEl.innerHTML = `${lastRunText}${topList}`;
+
+      const modeHighScore = topScores.length
+        ? Math.max(...topScores.map((entry) => getEndOfDayScoreForMode(entry, modeInfo.key)))
+        : 0;
+      const modeLine = `High Score (mode): <strong>${formatNumber(modeHighScore)}</strong>`;
+      scoreHistoryEl.innerHTML += `<p>${modeLine}</p>`;
+
+      deckStatusEl.innerHTML = `Crowd deck remaining: ${state.crowdDeck.length}<br />
+        Cloud deck remaining: ${state.cloudDeck.length}<br />
+        Memories pile: ${state.memoriesPile.length}`;
+
+      legendEl.innerHTML = "";
+      SYMBOLS.forEach((symbol) => {
+        const row = document.createElement("span");
+        row.textContent = `${symbol.icon} ${symbol.label} (Rank ${symbol.difficultyRank})`;
+        legendEl.appendChild(row);
+      });
+
+      const totalCrowd = TOTAL_CROWD;
+      crowdCounterEl.textContent = `${state.usedCrowdCount}/${totalCrowd}`;
+    }
+
+    function showModeOverlay(show) {
+      const overlay = document.getElementById("modeOverlay");
+      const returnButton = document.getElementById("returnToGame");
+      if (returnButton) {
+        returnButton.style.display = show && state.gameStarted ? "inline-flex" : "none";
+      }
+      overlay.style.display = show ? "flex" : "none";
+    }
+
+    function showPowderModal(show) {
+      const modal = document.getElementById("powderModal");
+      if (!modal) return;
+      modal.classList.toggle("active", show);
+      if (show) {
+        renderPowderModal();
+      }
+    }
+
+    function renderPowderModal() {
+      const overlayToggle = document.getElementById("powderOverlayToggle");
+      if (overlayToggle) {
+        overlayToggle.textContent = state.emojiOverlayEnabled ? "On" : "Off";
+      }
+      const powderCurrent = document.getElementById("powderCurrent");
+      if (powderCurrent) {
+        const labelMap = {
+          GAME: "Game mode",
+          REAL: "Real rep",
+          DK: "DK mode"
+        };
+        powderCurrent.textContent = `Current: ${labelMap[state.emojiRainMode] || "Game mode"}`;
+      }
+      const modeButtons = document.querySelectorAll("[data-powder-mode]");
+      modeButtons.forEach((button) => {
+        const mode = button.dataset.powderMode;
+        button.classList.toggle("active", mode === state.emojiRainMode);
+      });
+      const handCurrent = document.getElementById("handEmojiCurrent");
+      const currentHand = HAND_EMOJI_OPTIONS.find((entry) => entry.key === state.handEmojiPreference)
+        || HAND_EMOJI_OPTIONS[0];
+      if (handCurrent) {
+        handCurrent.textContent = `Current: ${currentHand.label}`;
+      }
+      const handButtons = document.querySelectorAll("[data-hand-emoji]");
+      handButtons.forEach((button) => {
+        const handKey = button.dataset.handEmoji;
+        button.classList.toggle("active", handKey === state.handEmojiPreference);
+      });
+    }
+
+    function showHighScoreModal(show) {
+      const modal = document.getElementById("highScoreModal");
+      if (!modal) return;
+      modal.classList.toggle("active", show);
+      if (show) {
+        renderHighScoreModal();
+      }
+    }
+
+    function renderHighScoreModal() {
+      const summaryEl = document.getElementById("highScoreSummary");
+      const listEl = document.getElementById("highScoreList");
+      const lastRunEl = document.getElementById("highScoreLastRun");
+      const podiumEl = document.getElementById("highScorePodium");
+      const modeInfo = getScoringMode();
+      const summary = computeScore();
+      const summaryEndDay = getEndOfDayScoreForMode(summary, modeInfo.key);
+      const scoredRuns = [...state.scoreHistory]
+        .map((entry) => ({
+          ...entry,
+          computedEndDayScore: getEndOfDayScoreForMode(entry, modeInfo.key)
+        }))
+        .sort((a, b) => b.computedEndDayScore - a.computedEndDayScore);
+      const modeHighScore = scoredRuns.length ? scoredRuns[0].computedEndDayScore : 0;
+      const scoreModeDescription = document.getElementById("scoreModeDescription");
+      const scoreModeFormula = document.getElementById("scoreModeFormula");
+      const scoreModeButtons = document.querySelectorAll("[data-score-mode]");
+      if (scoreModeDescription) {
+        scoreModeDescription.textContent = modeInfo.description;
+      }
+      if (scoreModeFormula) {
+      scoreModeFormula.textContent = modeInfo.formula
+          .replaceAll("N", `${SCORING_TUNING.normalizedN}`)
+          .replaceAll("M", `${SCORING_TUNING.normalizedM}`)
+          .replaceAll("gamma", `${SCORING_TUNING.competitiveGamma}`);
+      }
+      scoreModeButtons.forEach((button) => {
+        const modeKey = button.dataset.scoreMode;
+        button.classList.toggle("active", modeKey === modeInfo.key);
+      });
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+          High Score (mode): <strong>${formatNumber(modeHighScore)}</strong><br />
+          Current End of Day Score: <strong>${formatNumber(summaryEndDay)}</strong>
+        `;
+      }
+      if (listEl) {
+        listEl.innerHTML = "";
+        const topScores = scoredRuns.length ? scoredRuns : [];
+        if (!topScores.length) {
+          const li = document.createElement("li");
+          li.textContent = "No scores yet.";
+          listEl.appendChild(li);
+        } else {
+          topScores.forEach((entry, index) => {
+            const li = document.createElement("li");
+            li.textContent = `#${index + 1} · ${formatNumber(entry.computedEndDayScore)} (final ${formatNumber(
+              entry.finalScore
+            )}, ${entry.exponent}x)`;
+            listEl.appendChild(li);
+          });
+        }
+      }
+      if (lastRunEl) {
+        const lastRun = state.lastRunScore;
+        const lastRunEndDay = lastRun ? getEndOfDayScoreForMode(lastRun, modeInfo.key) : 0;
+        lastRunEl.innerHTML = lastRun
+          ? `Last run: base ${formatNumber(lastRun.baseTotal)}, mult ${lastRun.mult}×, final ${formatNumber(
+              lastRun.finalScore
+            )}, end-day ${formatNumber(lastRunEndDay)}`
+          : "Last run: none yet.";
+      }
+      if (podiumEl) {
+        podiumEl.innerHTML = "";
+        const topRuns = scoredRuns.slice(0, 3);
+        topRuns.forEach((entry, index) => {
+          const card = entry.skierCardId ? state.cards[entry.skierCardId] : null;
+          const podiumCard = document.createElement("div");
+          podiumCard.className = "podium-card";
+          const rankLabel = document.createElement("div");
+          rankLabel.className = "podium-rank";
+          rankLabel.textContent = `#${index + 1}`;
+          const token = document.createElement("div");
+          token.innerHTML = getSkierTokenMarkupFromCard(card);
+          const totem = document.createElement("div");
+          totem.className = "podium-totem";
+          const emojis = entry.runEmojis && entry.runEmojis.length ? entry.runEmojis : ["✨"];
+          emojis.forEach((emoji) => {
+            const block = document.createElement("div");
+            block.className = "podium-block";
+            block.textContent = emoji;
+            totem.appendChild(block);
+          });
+          podiumCard.append(rankLabel, totem, token);
+          podiumEl.appendChild(podiumCard);
+        });
+      }
+    }
+
+    function setNightSkiing(enabled) {
+      state.nightSkiing = enabled;
+      document.body.classList.toggle("night-skiing", enabled);
+      if (enabled) {
+        state.nightPhaseIndex = (state.nightPhaseIndex + 1) % NIGHT_PHASES.length;
+      } else {
+        state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
+      }
+      updateSkyIndicator();
+    }
+
+    function updateSkyIndicator() {
+      const toggle = document.getElementById("skyToggle");
+      if (!toggle) return;
+      if (state.nightSkiing) {
+        toggle.textContent = NIGHT_PHASES[state.nightPhaseIndex];
+      } else {
+        toggle.textContent = state.dayIcon;
+      }
+      updateAmbientSnow();
+    }
+
+    function updateAmbientSnow() {
+      const ambient = document.getElementById("ambientSnow");
+      if (!ambient) return;
+      const snowActive = !state.nightSkiing && state.dayIcon === "🌨️";
+      if (snowActive) {
+        createSnowstorm(ambient, 80);
+        ambient.classList.add("active");
+      } else {
+        ambient.classList.remove("active");
+        ambient.innerHTML = "";
+      }
+    }
+
+    function getRandomAutoMode() {
+      return AUTO_MODES[Math.floor(Math.random() * AUTO_MODES.length)].key;
+    }
+
+    function getScheduledModeForSkier(skierCard) {
+      if (!skierCard) return "MATCH";
+      if (state.scheduleMode === "TYPE") {
+        const typeKey = skierCard.riderType === "SNOWBOARDER" ? "SNOWBOARDER" : "SKIER";
+        return state.scheduleConfig.type[typeKey] || "MATCH";
+      }
+      return state.scheduleConfig.rank[skierCard.rank] || "MATCH";
+    }
+
+    function getActiveAutoModeForSkier(skierId) {
+      if (state.autoStrategy === "MANUAL") {
+        return state.autoMode || "MATCH";
+      }
+      if (state.autoStrategy === "SCHEDULED") {
+        const skierCard = getSkierCard(skierId);
+        return getScheduledModeForSkier(skierCard);
+      }
+      if (state.currentAutoModeForRun) {
+        return state.currentAutoModeForRun;
+      }
+      state.currentAutoModeForRun = getRandomAutoMode();
+      return state.currentAutoModeForRun;
+    }
+
+    async function runFullAutoLoop() {
+      if (state.fullAutoLoopRunning) return;
+      state.fullAutoLoopRunning = true;
+      while (state.fullAuto) {
+        if (state.gameEnded) {
+          await wait(200);
+          continue;
+        }
+        if (state.autoRunning) {
+          await wait(100);
+          continue;
+        }
+        if (state.awaitingStartChoice || state.activeRun) {
+          const skierId = state.activeRun?.leadSkierId || getNextAvailableSkierId();
+          const mode = getActiveAutoModeForSkier(skierId);
+          await runAutoMode(mode);
+        } else {
+          await wait(100);
+        }
+      }
+      state.fullAutoLoopRunning = false;
+    }
+
+    function startFullAuto() {
+      state.fullAuto = true;
+      state.autoSpeed = "ONE_X";
+      state.fullAutoGames = 0;
+      state.mode = "FULL";
+      state.autoStrategy = state.autoStrategy || "RANDOM";
+      beginGame();
+      runFullAutoLoop();
+    }
+
+    function stopFullAuto() {
+      state.fullAuto = false;
+      state.autoCancelled = true;
+      if (state.fullAutoTimeoutId) {
+        clearTimeout(state.fullAutoTimeoutId);
+        state.fullAutoTimeoutId = null;
+      }
+    }
+
+    function showScoreModal() {
+      const modal = document.getElementById("scoreModal");
+      const summaryEl = document.getElementById("scoreSummary");
+      const heroEl = document.getElementById("currentScoreHero");
+      const bestRunEl = document.getElementById("bestRunHero");
+      const bonusCountsEl = document.getElementById("bonusCounts");
+      const todayEl = document.getElementById("todayHighScore");
+      const allTimeEl = document.getElementById("allTimeHighScore");
+      const summary = computeScore();
+      const bestRun = state.bestRun;
+      const bestRunLabel = bestRun ? getCardLabel(state.cards[bestRun.skierCardId]) : "None yet";
+      summaryEl.innerHTML = `
+        <div class="status">Base total: <strong>${formatNumber(summary.baseTotal)}</strong></div>
+        <div class="status">Multiplier: <strong>${summary.mult}×</strong></div>
+        <div class="status">Final score: <strong>${formatNumber(summary.finalScore)}</strong></div>
+        <div class="status">End of day score: <strong>${formatNumber(summary.endDayScore)}</strong></div>
+        <div class="status">Exponent: <strong>${summary.exponent}</strong></div>
+      `;
+      heroEl.textContent = `Current score: ${formatNumber(summary.endDayScore)}`;
+      bestRunEl.innerHTML = bestRun
+        ? `<div class="best-icon">${bestRunLabel}</div><div>Best run: ${formatNumber(bestRun.finalScore)}</div>`
+        : `<div class="best-icon">—</div><div>Best run: None yet</div>`;
+      const bonusCounts = summary.bonusCounts || {};
+      bonusCountsEl.innerHTML = Object.entries(BONUS_TARGETS)
+        .map(([emoji, target]) => `${emoji} ${bonusCounts[emoji] || 0}/${target}`)
+        .join(" ");
+      todayEl.innerHTML = `Today’s High Score: <strong>${formatNumber(state.todayHighScore)}</strong>`;
+      allTimeEl.innerHTML = `All-time High Score (local): <strong>${formatNumber(state.allTimeHighScore)}</strong>`;
+      const snowstorm = modal.querySelector(".snowstorm");
+      if (snowstorm) {
+        createSnowstorm(snowstorm);
+        snowstorm.classList.add("active");
+      }
+      modal.classList.add("active");
+    }
+
+    function hideScoreModal() {
+      const modal = document.getElementById("scoreModal");
+      modal.classList.remove("active");
+    }
+
+    function openScheduleModal() {
+      const modal = document.getElementById("scheduleModal");
+      modal.classList.add("active");
+      renderScheduleModal();
+    }
+
+    function closeScheduleModal() {
+      const modal = document.getElementById("scheduleModal");
+      modal.classList.remove("active");
+    }
+
+    function renderScheduleModal() {
+      const content = document.getElementById("scheduleContent");
+      content.innerHTML = "";
+      if (state.scheduleMode === "TYPE") {
+        ["SKIER", "SNOWBOARDER"].forEach((type) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "schedule-item";
+          const label = document.createElement("div");
+          label.textContent = type === "SKIER" ? "Skiers" : "Snowboarders";
+          const button = document.createElement("button");
+          button.className = "secondary";
+          const current = state.scheduleConfig.type[type];
+          button.textContent = AUTO_MODES.find((mode) => mode.key === current)?.label || current;
+          button.addEventListener("click", () => {
+            const nextIndex =
+              (AUTO_MODES.findIndex((mode) => mode.key === state.scheduleConfig.type[type]) + 1) %
+              AUTO_MODES.length;
+            state.scheduleConfig.type[type] = AUTO_MODES[nextIndex].key;
+            renderScheduleModal();
+          });
+          wrapper.append(label, button);
+          content.appendChild(wrapper);
+        });
+      } else {
+        ["A", "J", "Q", "K"].forEach((rank) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "schedule-item";
+          const label = document.createElement("div");
+          label.textContent = rank;
+          const button = document.createElement("button");
+          button.className = "secondary";
+          const current = state.scheduleConfig.rank[rank];
+          button.textContent = AUTO_MODES.find((mode) => mode.key === current)?.label || current;
+          button.addEventListener("click", () => {
+            const nextIndex =
+              (AUTO_MODES.findIndex((mode) => mode.key === state.scheduleConfig.rank[rank]) + 1) %
+              AUTO_MODES.length;
+            state.scheduleConfig.rank[rank] = AUTO_MODES[nextIndex].key;
+            renderScheduleModal();
+          });
+          wrapper.append(label, button);
+          content.appendChild(wrapper);
+        });
+      }
+      const typeTab = document.getElementById("scheduleTypeTab");
+      const rankTab = document.getElementById("scheduleRankTab");
+      typeTab.classList.toggle("active", state.scheduleMode === "TYPE");
+      rankTab.classList.toggle("active", state.scheduleMode === "RANK");
+    }
+
+    function spawnEmojiRain(emoji, count = 6) {
+      if (!state.emojiOverlayEnabled) return;
+      const rain = document.getElementById("emojiRain");
+      const mode = state.emojiRainMode || "GAME";
+      const dropCount = mode === "REAL" ? 1 : count;
+      const sizeMultiplier = mode === "DK" ? 3 : 1;
+      for (let i = 0; i < dropCount; i += 1) {
+        const drop = document.createElement("span");
+        drop.className = "emoji-drop";
+        drop.textContent = emoji;
+        drop.style.left = `${Math.random() * 100}%`;
+        drop.style.animationDuration = `${1.6 + Math.random() * 1.8}s`;
+        const baseSize = 18 + Math.random() * 18;
+        drop.style.fontSize = `${baseSize * sizeMultiplier}px`;
+        rain.appendChild(drop);
+        setTimeout(() => {
+          drop.remove();
+        }, 3000);
+      }
+    }
+
+    function dropSampleEmojiRain() {
+      Object.keys(BONUS_TARGETS).forEach((emoji) => {
+        spawnEmojiRain(emoji, 6);
+      });
+    }
+
+    function loadAllTimeHighScore() {
+      const stored = localStorage.getItem("powderCrownHighScore");
+      const value = stored ? Number(stored) : 0;
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function saveAllTimeHighScore(value) {
+      localStorage.setItem("powderCrownHighScore", String(value));
+    }
+
+    function createSnowstorm(target = document.getElementById("snowstorm"), count = 60) {
+      const snowstorm = target;
+      snowstorm.innerHTML = "";
+      const symbols = ["❅", "❆", "❅"];
+      const colors = ["#ffffff", "#d7ecff", "#c1dbf7"];
+      for (let i = 0; i < count; i += 1) {
+        const flake = document.createElement("span");
+        flake.className = "snowflake";
+        flake.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        flake.style.left = `${Math.random() * 100}%`;
+        flake.style.color = colors[Math.floor(Math.random() * colors.length)];
+        flake.style.animationDuration = `${2 + Math.random() * 3}s`;
+        flake.style.animationDelay = `${Math.random() * 1.5}s`;
+        flake.style.fontSize = `${14 + Math.random() * 18}px`;
+        snowstorm.appendChild(flake);
+      }
+    }
+
+    function finalizeLoading() {
+      const loadingScreen = document.getElementById("loadingScreen");
+      if (state.loadingDismissed) return;
+      state.loadingDismissed = true;
+      loadingScreen.classList.add("fade-out");
+      setTimeout(() => {
+        loadingScreen.style.display = "none";
+      }, 600);
+    }
+
+    function startLoadingSequence() {
+      const loadingScreen = document.getElementById("loadingScreen");
+      const loadingEmoji = document.getElementById("loadingEmoji");
+      const snowstorm = document.getElementById("snowstorm");
+      const sequence = ["❄️", "👑", "🏔️", "⛷️"];
+      let step = 0;
+      showModeOverlay(false);
+
+      const showStep = () => {
+        if (state.loadingDismissed) return;
+        if (step >= sequence.length) {
+          createSnowstorm(snowstorm, 140);
+          snowstorm.classList.add("active");
+          setTimeout(() => {
+            if (state.loadingDismissed) return;
+            loadingScreen.classList.add("white-out");
+            setTimeout(() => {
+              if (state.loadingDismissed) return;
+              loadingScreen.style.display = "none";
+              showModeOverlay(true);
+            }, 700);
+          }, 600);
+          return;
+        }
+        loadingEmoji.textContent = sequence[step];
+        loadingEmoji.classList.add("visible");
+        setTimeout(() => {
+          loadingEmoji.classList.remove("visible");
+          step += 1;
+          setTimeout(showStep, 300);
+        }, 700);
+      };
+
+      showStep();
+    }
+
+    function startMode(mode) {
+      stopFullAuto();
+      state.autoStrategy = "MANUAL";
+      state.autoMode = null;
+      state.mode = mode;
+      showModeOverlay(false);
+      beginGame();
+    }
+
+    function setPeak(peakKey) {
+      const peak = PEAKS[peakKey] || PEAKS.PEAK_1;
+      state.peak = peakKey;
+      state.rowSizes = [...peak.rows];
+      state.downNeighbors = buildDownNeighbors();
+      const peakIcon = document.getElementById("peakIcon");
+      if (peakIcon) {
+        peakIcon.textContent = peak.label;
+      }
+    }
+
+    window.startMode = startMode;
+
+    document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
+    document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
+    document.getElementById("peak1").addEventListener("click", () => setPeak("PEAK_1"));
+    document.getElementById("peak2").addEventListener("click", () => setPeak("PEAK_2"));
+    document.getElementById("peak3").addEventListener("click", () => setPeak("PEAK_3"));
+    document.getElementById("peak100").addEventListener("click", () => setPeak("PEAK_100"));
+    document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
+    document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
+    document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
+    document.getElementById("highScoreButton").addEventListener("click", () => showHighScoreModal(true));
+    document.getElementById("highScoreClose").addEventListener("click", () => showHighScoreModal(false));
+    document.getElementById("openHighScoreFromScore").addEventListener("click", () => {
+      showHighScoreModal(true);
+    });
+    document.getElementById("firstPersonToggle").addEventListener("click", () => {
+      if (!document.body.classList.contains("debug-enabled")) return;
+      state.firstPersonView = !state.firstPersonView;
+      render();
+    });
+    document.getElementById("powderOverlayToggle").addEventListener("click", () => {
+      state.emojiOverlayEnabled = !state.emojiOverlayEnabled;
+      renderPowderModal();
+    });
+    document.querySelectorAll("[data-powder-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.emojiRainMode = button.dataset.powderMode;
+        renderPowderModal();
+        dropSampleEmojiRain();
+      });
+    });
+    document.querySelectorAll("[data-hand-emoji]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.handEmojiPreference = button.dataset.handEmoji;
+        renderPowderModal();
+        updateTramControls();
+      });
+    });
+    document.querySelectorAll("[data-score-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.scoringMode = button.dataset.scoreMode;
+        render();
+        renderHighScoreModal();
+      });
+    });
+    document.getElementById("modalPlayAgain").addEventListener("click", () => {
+      hideScoreModal();
+      beginGame();
+    });
+    document.getElementById("modalMode").addEventListener("click", () => {
+      hideScoreModal();
+      showModeOverlay(true);
+    });
+    document.getElementById("returnToGame").addEventListener("click", () => showModeOverlay(false));
+    const toggleDebugButton = document.getElementById("toggleDebug");
+    document.body.classList.add("hide-coords");
+    document.body.classList.toggle("debug-enabled", false);
+    toggleDebugButton.addEventListener("click", () => {
+      document.body.classList.toggle("hide-coords");
+      const debugEnabled = !document.body.classList.contains("hide-coords");
+      document.body.classList.toggle("debug-enabled", debugEnabled);
+      if (!debugEnabled) {
+        state.firstPersonView = false;
+      }
+      toggleDebugButton.textContent = document.body.classList.contains("hide-coords")
+        ? "Show debug"
+        : "Hide debug";
+      render();
+    });
+    const loadingScreen = document.getElementById("loadingScreen");
+    const loadingEmoji = document.getElementById("loadingEmoji");
+    loadingScreen.addEventListener("pointerdown", (event) => {
+      if (state.loadingDismissed) return;
+      if (event.target === loadingEmoji) {
+        finalizeLoading();
+        setNightSkiing(false);
+        state.fullAutoGames = 0;
+        state.autoStrategy = "RANDOM";
+        state.autoSpeed = "ONE_X";
+        setPeak("PEAK_1");
+        document.body.classList.remove("hide-coords");
+        document.body.classList.add("debug-enabled");
+        toggleDebugButton.textContent = "Hide debug";
+        startFullAuto();
+        return;
+      }
+      finalizeLoading();
+      showModeOverlay(true);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (!state.loadingDismissed) {
+        finalizeLoading();
+        showModeOverlay(true);
+        return;
+      }
+      handleKeyMove(event);
+    });
+    startLoadingSequence();
+    state.allTimeHighScore = loadAllTimeHighScore();
+    const skyToggle = document.getElementById("skyToggle");
+    updateSkyIndicator();
+    if (skyToggle) {
+      skyToggle.addEventListener("click", () => setNightSkiing(!state.nightSkiing));
+    }
+    document.getElementById("scheduleTypeTab").addEventListener("click", () => {
+      state.scheduleMode = "TYPE";
+      renderScheduleModal();
+    });
+    document.getElementById("scheduleRankTab").addEventListener("click", () => {
+      state.scheduleMode = "RANK";
+      renderScheduleModal();
+    });
+    document.getElementById("scheduleClose").addEventListener("click", closeScheduleModal);
+    document.getElementById("scheduleStart").addEventListener("click", () => {
+      closeScheduleModal();
+      state.autoStrategy = "SCHEDULED";
+      state.fullAuto = true;
+      runFullAutoLoop();
+      render();
+    });
+    document.getElementById("tramLeftButton").addEventListener("click", () => {
+      handleDirectionalMove("LEFT");
+      render();
+    });
+    document.getElementById("tramCycleButton").addEventListener("click", () => {
+      cycleLiftZoneOrder();
+      render();
+    });
+    document.getElementById("tramRightButton").addEventListener("click", () => {
+      handleDirectionalMove("RIGHT");
+      render();
+    });
+  </script>
+</body>
+</html>
