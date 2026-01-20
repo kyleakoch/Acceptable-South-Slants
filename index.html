@@ -178,6 +178,11 @@
     .mode-option button {
       width: 100%;
     }
+    .mode-grid button.active {
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+      background: #e8f4ff;
+    }
     .closed-sign {
       display: inline-flex;
       align-items: center;
@@ -1514,24 +1519,6 @@
     <div class="mode-card">
       <h2>Select a Game Mode</h2>
       <p>Choose how you want to ski today. More modes are on the way!</p>
-      <div class="mode-grid">
-        <div class="mode-option">
-          <strong>Free-Play (Single Run)</strong>
-          <span class="footer-note">One quick run with the current queue of skiers.</span>
-          <button id="startFreePlay">Start Free-Play</button>
-        </div>
-        <div class="mode-option">
-          <strong>Full Crowd (Single Player)</strong>
-          <span class="footer-note">Play through all 32 skiers and recycle memories.</span>
-          <button id="startFullCrowd">Start Full Crowd</button>
-        </div>
-        <div class="mode-option disabled">
-          <strong>Multiplayer (2-4)</strong>
-          <span class="footer-note">Take turns on the shared mountain.</span>
-          <span class="closed-sign">⛷️ Temporary Closed</span>
-          <button disabled>Temporarily Closed</button>
-        </div>
-      </div>
       <div class="mode-option">
         <strong>Mountain Peak</strong>
         <span class="footer-note">Select your peak layout.</span>
@@ -1540,6 +1527,18 @@
           <button id="peak2">🏔️² Diamond</button>
           <button id="peak3">🏔️³ Twin</button>
           <button id="peak100">🏔️💯 Peak 100</button>
+        </div>
+      </div>
+      <div class="mode-grid">
+        <div class="mode-option">
+          <strong>One Tram (1x 4 Humans)</strong>
+          <span class="footer-note">One quick run with the current queue of skiers.</span>
+          <button id="startFreePlay">Start One Tram</button>
+        </div>
+        <div class="mode-option">
+          <strong>Full Tram (8x 4 Humans)</strong>
+          <span class="footer-note">Play through all 32 skiers and recycle memories.</span>
+          <button id="startFullCrowd">Start Full Tram</button>
         </div>
       </div>
       <button id="returnToGame" class="secondary" style="display: none;">Return to current game</button>
@@ -3959,6 +3958,16 @@
       if (peakIcon) {
         peakIcon.textContent = peak.label;
       }
+      ["peak1", "peak2", "peak3", "peak100"].forEach((id) => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        const isActive =
+          (id === "peak1" && peakKey === "PEAK_1") ||
+          (id === "peak2" && peakKey === "PEAK_2") ||
+          (id === "peak3" && peakKey === "PEAK_3") ||
+          (id === "peak100" && peakKey === "PEAK_100");
+        button.classList.toggle("active", isActive);
+      });
     }
 
     window.startMode = startMode;
@@ -4070,7 +4079,7 @@
       state.introStep += 1;
       if (state.introStep >= INTRO_STEPS.length) {
         showIntroOverlay(false);
-        showModeOverlay(true);
+        startMode("FREE");
         return;
       }
       renderIntroOverlay();
