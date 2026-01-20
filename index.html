@@ -410,7 +410,7 @@
       border-radius: 10px;
     }
     .lift-zone-tram {
-      font-size: 26px;
+      font-size: clamp(44px, 6vw, 60px);
       line-height: 1;
     }
     .slot.lift-zone-slot .card-label {
@@ -936,7 +936,7 @@
       mode: null,
       gameStarted: false,
       autoMode: null,
-      autoSpeed: "TWO_X",
+      autoSpeed: "ONE_X",
       autoRunning: false,
       bestRun: null,
       todayHighScore: 0,
@@ -1235,6 +1235,32 @@
         .slice(0, limit);
     }
 
+    function isLiftZoneSlot(slotIdValue) {
+      return state.mountain[slotIdValue]?.isLiftZone;
+    }
+
+    function cycleLiftZoneOrder() {
+      const player = getPlayer();
+      if (!player) return;
+      const activeSkierId = state.activeRun?.leadSkierId || null;
+      const availableIds = player.skierQueue.filter((skierId) => {
+        const skier = state.cards[skierId];
+        return skier.status === "available" && skierId !== activeSkierId;
+      });
+      if (availableIds.length < 2) return;
+      const rotated = availableIds.slice(1).concat(availableIds[0]);
+      let rotatedIndex = 0;
+      player.skierQueue = player.skierQueue.map((skierId) => {
+        const skier = state.cards[skierId];
+        if (skier.status === "available" && skierId !== activeSkierId) {
+          const nextId = rotated[rotatedIndex];
+          rotatedIndex += 1;
+          return nextId;
+        }
+        return skierId;
+      });
+    }
+
     function getTokenVariantForRow(row) {
       if (row === 1) return "fork";
       if (row === 2) return "fork-2";
@@ -1362,7 +1388,7 @@
       state.lastRunScore = null;
       state.memoriesPile = [];
       state.autoMode = null;
-      state.autoSpeed = "TWO_X";
+      state.autoSpeed = "ONE_X";
       state.autoRunning = false;
       state.bestRun = null;
       state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
@@ -1927,6 +1953,11 @@
     }
 
     function handleSlotClick(id) {
+      if (isLiftZoneSlot(id)) {
+        cycleLiftZoneOrder();
+        render();
+        return;
+      }
       if (state.awaitingStartChoice) {
         consumeLastRunToken();
         startRunAt(id);
@@ -1940,6 +1971,12 @@
 
     function handleKeyMove(event) {
       if (!state.gameStarted || state.gameEnded) return;
+      if (event.code === "Space" || event.key === " ") {
+        event.preventDefault();
+        cycleLiftZoneOrder();
+        render();
+        return;
+      }
       if (state.awaitingStartChoice) {
         const startSlots = getStartSlots();
         if (!startSlots.length) return;
@@ -2271,7 +2308,7 @@
 
     function startFullAuto() {
       state.fullAuto = true;
-      state.autoSpeed = "TWO_X";
+      state.autoSpeed = "ONE_X";
       state.fullAutoGames = 0;
       state.mode = "FULL";
       state.autoStrategy = state.autoStrategy || "RANDOM";
