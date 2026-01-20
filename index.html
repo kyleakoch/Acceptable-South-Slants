@@ -1399,7 +1399,7 @@
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
-  <audio id="bgMusic" preload="auto" autoplay></audio>
+  <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
   <div id="scoreModal" class="score-modal" aria-live="polite">
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
@@ -3939,6 +3939,20 @@
       bgMusic.play().catch(() => {});
     }
 
+    function enableMusicOnInteraction() {
+      const tryPlay = () => {
+        ensureMusicPlaying();
+        document.removeEventListener("pointerdown", tryPlay);
+        document.removeEventListener("touchstart", tryPlay);
+        document.removeEventListener("click", tryPlay);
+        document.removeEventListener("keydown", tryPlay);
+      };
+      document.addEventListener("pointerdown", tryPlay, { once: true });
+      document.addEventListener("touchstart", tryPlay, { once: true });
+      document.addEventListener("click", tryPlay, { once: true });
+      document.addEventListener("keydown", tryPlay, { once: true });
+    }
+
     function stopMusic() {
       const bgMusic = document.getElementById("bgMusic");
       if (!bgMusic) return;
@@ -4345,6 +4359,7 @@
       handleKeyMove(event);
     });
     startLoadingSequence();
+    enableMusicOnInteraction();
     const bgMusic = document.getElementById("bgMusic");
     if (bgMusic) {
       bgMusic.addEventListener("ended", () => {
