@@ -381,6 +381,10 @@
       font-size: 12px;
       line-height: 1.2;
     }
+    .slot .token.completed-under {
+      top: auto;
+      bottom: 6px;
+    }
     .slot .token .token-rank {
       font-size: 15px;
       line-height: 1;
@@ -628,6 +632,23 @@
       display: grid;
       gap: 12px;
     }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .modal-header h2 {
+      margin: 0;
+    }
+    .modal-crown-button {
+      border: none;
+      background: transparent;
+      font-size: 26px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
     .score-modal .score-hero {
       font-size: clamp(28px, 5vw, 40px);
       font-weight: 700;
@@ -661,13 +682,17 @@
     }
     body.night-skiing .score-modal .modal-card,
     body.night-skiing .schedule-modal .modal-card,
-    body.night-skiing .powder-modal .modal-card {
+    body.night-skiing .powder-modal .modal-card,
+    body.night-skiing .high-score-modal .modal-card {
       background: #111827;
       color: #e5e7eb;
     }
     body.night-skiing .score-modal .status,
     body.night-skiing .schedule-modal .schedule-item,
     body.night-skiing .powder-modal .powder-item {
+      color: #e5e7eb;
+    }
+    body.night-skiing .high-score-modal .status {
       color: #e5e7eb;
     }
     .schedule-modal {
@@ -690,6 +715,37 @@
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
       display: grid;
       gap: 12px;
+    }
+    .high-score-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 26;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .high-score-modal.active {
+      display: flex;
+    }
+    .high-score-modal .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(640px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      display: grid;
+      gap: 12px;
+    }
+    .high-score-grid {
+      display: grid;
+      gap: 8px;
+    }
+    .high-score-list {
+      margin: 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 6px;
     }
     .powder-modal {
       position: fixed;
@@ -719,6 +775,10 @@
     .powder-item {
       display: grid;
       gap: 6px;
+    }
+    .powder-current {
+      font-size: 12px;
+      opacity: 0.75;
     }
     .powder-options {
       display: flex;
@@ -763,7 +823,11 @@
   <div id="scoreModal" class="score-modal" aria-live="polite">
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
-      <h2>Run Summary</h2>
+      <div class="modal-header">
+        <button id="openHighScoreFromScore" class="modal-crown-button" type="button" aria-label="View high scores">👑</button>
+        <h2>Run Summary</h2>
+        <span></span>
+      </div>
       <div id="currentScoreHero" class="score-hero"></div>
       <div id="bestRunHero" class="best-run"></div>
       <div id="scoreSummary"></div>
@@ -802,6 +866,7 @@
         </div>
         <div class="powder-item">
           <strong>Emoji fall mode</strong>
+          <div id="powderCurrent" class="powder-current"></div>
           <div class="powder-options">
             <button type="button" class="secondary" data-powder-mode="GAME">Game mode</button>
             <button type="button" class="secondary" data-powder-mode="REAL">Real rep</button>
@@ -814,12 +879,28 @@
       </div>
     </div>
   </div>
+  <div id="highScoreModal" class="high-score-modal" aria-live="polite">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>High Scores</h2>
+        <button id="highScoreClose" class="secondary">Close</button>
+      </div>
+      <div class="high-score-grid">
+        <div id="highScoreSummary" class="status"></div>
+        <div>
+          <strong>Top Runs</strong>
+          <ol id="highScoreList" class="high-score-list"></ol>
+        </div>
+        <div id="highScoreLastRun" class="status"></div>
+      </div>
+    </div>
+  </div>
   <main>
     <section class="panel mountain-panel">
       <div class="mountain-header">
         <h2 class="title-emoji">
           <button id="powderButton" class="title-button" type="button" aria-label="Powder settings">❄️</button>
-          👑
+          <button id="highScoreButton" class="title-button" type="button" aria-label="High scores">👑</button>
         </h2>
         <div class="mountain-actions">
           <button id="peakButton" class="mode-button" type="button" aria-label="Select peak">
@@ -952,7 +1033,7 @@
       autoStrategy: "MANUAL",
       autoCancelled: false,
       emojiOverlayEnabled: true,
-      emojiRainMode: "GAME",
+      emojiRainMode: "REAL",
       scheduleMode: "TYPE",
       scheduleConfig: {
         type: { SKIER: "MATCH", SNOWBOARDER: "MATCH" },
@@ -1220,10 +1301,11 @@
       </div>`;
     }
 
-    function getCollectedTokenMarkup(collectedRanks = [], variant = "") {
+    function getCollectedTokenMarkup(collectedRanks = [], variant = "", extraClass = "") {
       const variantClass = variant ? ` ${variant}` : "";
+      const extraClassName = extraClass ? ` ${extraClass}` : "";
       const rankLabel = collectedRanks.length ? collectedRanks.join(" ") : "0";
-      return `<div class="token collected${variantClass}" aria-hidden="true">
+      return `<div class="token collected${variantClass}${extraClassName}" aria-hidden="true">
         <div class="token-rank">${rankLabel}</div>
       </div>`;
     }
@@ -1922,7 +2004,8 @@
             if (state.lastRunToken.slotId === id) {
               tokenMarkup = getCollectedTokenMarkup(
                 state.lastRunToken.collectedRanks,
-                getTokenVariantForRow(slot.row)
+                getTokenVariantForRow(slot.row),
+                "completed-under"
               );
             }
           }
@@ -2218,11 +2301,68 @@
       if (overlayToggle) {
         overlayToggle.textContent = state.emojiOverlayEnabled ? "On" : "Off";
       }
+      const powderCurrent = document.getElementById("powderCurrent");
+      if (powderCurrent) {
+        const labelMap = {
+          GAME: "Game mode",
+          REAL: "Real rep",
+          DK: "DK mode"
+        };
+        powderCurrent.textContent = `Current: ${labelMap[state.emojiRainMode] || "Game mode"}`;
+      }
       const modeButtons = document.querySelectorAll("[data-powder-mode]");
       modeButtons.forEach((button) => {
         const mode = button.dataset.powderMode;
         button.classList.toggle("active", mode === state.emojiRainMode);
       });
+    }
+
+    function showHighScoreModal(show) {
+      const modal = document.getElementById("highScoreModal");
+      if (!modal) return;
+      modal.classList.toggle("active", show);
+      if (show) {
+        renderHighScoreModal();
+      }
+    }
+
+    function renderHighScoreModal() {
+      const summaryEl = document.getElementById("highScoreSummary");
+      const listEl = document.getElementById("highScoreList");
+      const lastRunEl = document.getElementById("highScoreLastRun");
+      const summary = computeScore();
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+          Today’s High Score: <strong>${formatNumber(state.todayHighScore)}</strong><br />
+          All-time High Score (local): <strong>${formatNumber(state.allTimeHighScore)}</strong><br />
+          Current End of Day Score: <strong>${formatNumber(summary.endDayScore)}</strong>
+        `;
+      }
+      if (listEl) {
+        listEl.innerHTML = "";
+        const topScores = state.scoreHistory.length ? state.scoreHistory : [];
+        if (!topScores.length) {
+          const li = document.createElement("li");
+          li.textContent = "No scores yet.";
+          listEl.appendChild(li);
+        } else {
+          topScores.forEach((entry, index) => {
+            const li = document.createElement("li");
+            li.textContent = `#${index + 1} · ${formatNumber(entry.endDayScore)} (final ${formatNumber(
+              entry.finalScore
+            )}, ${entry.exponent}x)`;
+            listEl.appendChild(li);
+          });
+        }
+      }
+      if (lastRunEl) {
+        const lastRun = state.lastRunScore;
+        lastRunEl.innerHTML = lastRun
+          ? `Last run: base ${formatNumber(lastRun.baseTotal)}, mult ${lastRun.mult}×, final ${formatNumber(
+              lastRun.finalScore
+            )}, end-day ${formatNumber(lastRun.endDayScore)}`
+          : "Last run: none yet.";
+      }
     }
 
     function setNightSkiing(enabled) {
@@ -2453,6 +2593,12 @@
       }
     }
 
+    function dropSampleEmojiRain() {
+      Object.keys(BONUS_TARGETS).forEach((emoji) => {
+        spawnEmojiRain(emoji, 6);
+      });
+    }
+
     function loadAllTimeHighScore() {
       const stored = localStorage.getItem("powderCrownHighScore");
       const value = stored ? Number(stored) : 0;
@@ -2557,6 +2703,11 @@
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
+    document.getElementById("highScoreButton").addEventListener("click", () => showHighScoreModal(true));
+    document.getElementById("highScoreClose").addEventListener("click", () => showHighScoreModal(false));
+    document.getElementById("openHighScoreFromScore").addEventListener("click", () => {
+      showHighScoreModal(true);
+    });
     document.getElementById("powderOverlayToggle").addEventListener("click", () => {
       state.emojiOverlayEnabled = !state.emojiOverlayEnabled;
       renderPowderModal();
@@ -2565,6 +2716,7 @@
       button.addEventListener("click", () => {
         state.emojiRainMode = button.dataset.powderMode;
         renderPowderModal();
+        dropSampleEmojiRain();
       });
     });
     document.getElementById("modalPlayAgain").addEventListener("click", () => {
