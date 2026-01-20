@@ -459,6 +459,14 @@
       gap: var(--slot-gap);
       justify-content: center;
     }
+    .mountain {
+      position: relative;
+    }
+    .glide-token {
+      position: absolute;
+      z-index: 5;
+      pointer-events: none;
+    }
     .curling-board {
       display: grid;
       gap: 16px;
@@ -1699,7 +1707,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.33 — single-player Party Mode (mouse or touch controls)
+    Prototype v0.34 — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -1837,6 +1845,7 @@
       endTipShown: false,
       musicIndex: 0,
       loopCurrentTrack: false,
+      lastGlide: null,
       curling: null,
       usedCrowdCount: 0,
       skierCounter: 0
@@ -1865,6 +1874,7 @@
     ];
     const AUTO_SPEEDS = [
       { key: "STOP", label: "🛑", delay: null },
+      { key: "TURTLE", label: "🐢", delay: 5000 },
       { key: "HALF_X", label: "0.5x", delay: 2000 },
       { key: "ONE_X", label: "1x", delay: 1000 },
       { key: "TWO_X", label: "2X", delay: 250 },
@@ -2915,13 +2925,15 @@
 
     function moveTo(slotId) {
       if (!state.activeRun) return;
-      const { idx: prevIdx } = rowIdxFromSlotId(state.activeRun.currentSlotId);
+      const prevSlotId = state.activeRun.currentSlotId;
+      const { idx: prevIdx } = rowIdxFromSlotId(prevSlotId);
       const { idx: nextIdx } = rowIdxFromSlotId(slotId);
       if (nextIdx < prevIdx) {
         state.activeRun.lastMoveDirection = "LEFT";
       } else if (nextIdx > prevIdx) {
         state.activeRun.lastMoveDirection = "RIGHT";
       }
+      state.lastGlide = { from: prevSlotId, to: slotId };
       state.activeRun.currentSlotId = slotId;
       resolveSlot(slotId, state.activeRun.leadSkierId);
       const { row } = rowIdxFromSlotId(slotId);
@@ -3102,6 +3114,7 @@
 
     function render() {
       renderMountain();
+      runGlideAnimation();
       renderFinishZone();
       renderCoachPanel();
       renderSidebar();
@@ -3119,6 +3132,51 @@
         fullAutoButton.textContent = state.fullAuto ? "Stop auto" : "Full auto";
       }
       updateFirstPersonToggle();
+    }
+
+    function runGlideAnimation() {
+      if (state.mode === "CURLING") return;
+      if (state.firstPersonView) return;
+      if (state.autoSpeed !== "TURTLE") return;
+      if (!state.lastGlide || !state.activeRun) return;
+      const { from, to } = state.lastGlide;
+      state.lastGlide = null;
+      const mountainEl = document.getElementById("mountain");
+      if (!mountainEl) return;
+      const fromEl = mountainEl.querySelector(`[data-slot-id="${from}"]`);
+      const toEl = mountainEl.querySelector(`[data-slot-id="${to}"]`);
+      if (!fromEl || !toEl) return;
+      const mountainRect = mountainEl.getBoundingClientRect();
+      const fromRect = fromEl.getBoundingClientRect();
+      const toRect = toEl.getBoundingClientRect();
+      const token = document.createElement("div");
+      token.className = "glide-token";
+      token.innerHTML = getSkierTokenMarkup(state.activeRun.leadSkierId);
+      const startX = fromRect.left + fromRect.width / 2 - mountainRect.left;
+      const startY = fromRect.top + fromRect.height / 2 - mountainRect.top;
+      const endX = toRect.left + toRect.width / 2 - mountainRect.left;
+      const endY = toRect.top + toRect.height / 2 - mountainRect.top;
+      token.style.left = `${startX}px`;
+      token.style.top = `${startY}px`;
+      mountainEl.appendChild(token);
+      token.animate(
+        [
+          { transform: "translate(-50%, -50%)", opacity: 0.9 },
+          { transform: "translate(-50%, -50%)", opacity: 0.2, offset: 0.9 },
+          { transform: "translate(-50%, -50%)", opacity: 0 }
+        ],
+        { duration: 1400, easing: "ease-in-out", fill: "forwards" }
+      );
+      token.animate(
+        [
+          { left: `${startX}px`, top: `${startY}px` },
+          { left: `${endX}px`, top: `${endY}px` }
+        ],
+        { duration: 1400, easing: "ease-in-out", fill: "forwards" }
+      );
+      setTimeout(() => {
+        token.remove();
+      }, 1500);
     }
 
     function renderCoachPanel() {
@@ -3176,6 +3234,7 @@
           const card = slot.conditionCardId ? state.cards[slot.conditionCardId] : null;
           const button = document.createElement("button");
           button.className = "slot";
+          button.dataset.slotId = id;
           if (slot.isLiftZone) {
             button.classList.add("lift-zone-slot");
           }
