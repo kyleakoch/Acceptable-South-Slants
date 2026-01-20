@@ -306,6 +306,22 @@
       justify-content: flex-end;
       width: 100%;
     }
+    .finish-zone-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .finish-zone-item .finish-card {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: #111827;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+    }
     .finish-zone-token .token {
       position: static;
       transform: scale(1);
@@ -463,6 +479,10 @@
       box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.2);
     }
     .slot.lift-zone-slot.highlight {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+    }
+    .slot.start-slot.highlight {
       border-color: #8b5cf6;
       box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
     }
@@ -2630,10 +2650,19 @@
       finishTokensEl.innerHTML = "";
       const lastRun = state.lastRunToken;
       if (!lastRun) return;
+      const slot = state.mountain[lastRun.slotId];
+      const lastCardId = slot?.lastResult?.cardId;
+      const lastCard = lastCardId ? state.cards[lastCardId] : null;
+      const item = document.createElement("div");
+      item.className = "finish-zone-item";
+      const cardLabel = document.createElement("div");
+      cardLabel.className = "finish-card";
+      cardLabel.innerHTML = lastCard ? getCardLabel(lastCard) : "—";
       const tokenWrapper = document.createElement("div");
       tokenWrapper.className = "finish-zone-token";
       tokenWrapper.innerHTML = getSkierTokenMarkup(lastRun.skierId);
-      finishTokensEl.appendChild(tokenWrapper);
+      item.append(cardLabel, tokenWrapper);
+      finishTokensEl.appendChild(item);
     }
 
     function renderMountain() {
@@ -2660,6 +2689,9 @@
           const isHighlighted = isSelectableSlot(id);
           if (isHighlighted) {
             button.classList.add("highlight");
+          }
+          if (isHighlighted && slot.row === 1 && slot.idx === 0) {
+            button.classList.add("start-slot");
           }
           if (slot.occupiedBySkierId) {
             button.classList.add("occupied");
