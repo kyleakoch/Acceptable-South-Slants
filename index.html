@@ -402,6 +402,13 @@
       font-size: 26px;
       line-height: 1;
     }
+    .slot.lift-zone-slot .card-label {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding-right: 12px;
+      width: 100%;
+    }
     .hide-coords .coords {
       display: none;
     }
@@ -1793,6 +1800,9 @@
           const card = slot.conditionCardId ? state.cards[slot.conditionCardId] : null;
           const button = document.createElement("button");
           button.className = "slot";
+          if (slot.isLiftZone) {
+            button.classList.add("lift-zone-slot");
+          }
           const isHighlighted = isSelectableSlot(id);
           if (isHighlighted) {
             button.classList.add("highlight");
