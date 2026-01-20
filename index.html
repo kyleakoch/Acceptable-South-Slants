@@ -268,6 +268,38 @@
       gap: var(--slot-gap);
       width: 100%;
     }
+    .mountain.first-person {
+      display: block;
+    }
+    .first-person-view {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+      padding: 12px 0;
+    }
+    .first-person-options {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .first-person-option {
+      min-width: 160px;
+      min-height: 120px;
+    }
+    .first-person-next {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0.7;
+    }
+    .first-person-next .next-card {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
     .row {
       display: grid;
       gap: var(--slot-gap);
@@ -470,6 +502,7 @@
       gap: 12px;
       flex-wrap: wrap;
       margin-bottom: 4px;
+      position: relative;
     }
     .mountain-header h2 {
       margin: 0;
@@ -488,6 +521,22 @@
       cursor: pointer;
       display: inline-flex;
       align-items: center;
+    }
+    .goggles-button {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+      border: none;
+      background: transparent;
+      font-size: 28px;
+      cursor: pointer;
+      display: none;
+      padding: 0;
+      line-height: 1;
+    }
+    .debug-enabled .goggles-button {
+      display: inline-flex;
     }
     .mountain-actions {
       display: flex;
@@ -902,6 +951,7 @@
           <button id="powderButton" class="title-button" type="button" aria-label="Powder settings">❄️</button>
           <button id="highScoreButton" class="title-button" type="button" aria-label="High scores">👑</button>
         </h2>
+        <button id="firstPersonToggle" class="goggles-button" type="button" aria-label="Toggle first person view" aria-pressed="false">🥽</button>
         <div class="mountain-actions">
           <button id="peakButton" class="mode-button" type="button" aria-label="Select peak">
             <span id="peakIcon">🏔️¹</span>
@@ -1043,6 +1093,7 @@
       rowSizes: [...PEAKS.PEAK_1.rows],
       currentAutoModeForRun: null,
       lastRunToken: null,
+      firstPersonView: false,
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -1946,11 +1997,17 @@
         fullAutoButton.classList.toggle("active", state.fullAuto);
         fullAutoButton.textContent = state.fullAuto ? "Stop auto" : "Full auto";
       }
+      updateFirstPersonToggle();
     }
 
     function renderMountain() {
       const mountainEl = document.getElementById("mountain");
       mountainEl.innerHTML = "";
+      mountainEl.classList.toggle("first-person", state.firstPersonView);
+      if (state.firstPersonView && (state.activeRun || state.awaitingStartChoice)) {
+        renderFirstPerson(mountainEl);
+        return;
+      }
       state.rowSizes.forEach((size, rowIndex) => {
         const rowEl = document.createElement("div");
         rowEl.className = "row";
@@ -2021,6 +2078,67 @@
         }
         mountainEl.appendChild(rowEl);
       });
+    }
+
+    function renderFirstPerson(mountainEl) {
+      const options = state.awaitingStartChoice ? getStartSlots() : getMoveOptionsOrdered();
+      if (!options.length) {
+        mountainEl.innerHTML = "<div class=\"status\">No moves available.</div>";
+        return;
+      }
+      const optionIds = options.length > 1 ? [options[0], options[options.length - 1]] : [options[0]];
+      const wrapper = document.createElement("div");
+      wrapper.className = "first-person-view";
+      const optionsRow = document.createElement("div");
+      optionsRow.className = "first-person-options";
+      optionIds.forEach((slotIdValue) => {
+        const { slot, card } = getSlotData(slotIdValue);
+        const button = document.createElement("button");
+        button.className = "slot first-person-option";
+        let label = "Empty";
+        if (slot.isLiftZone) {
+          label = "🚡 Lift Zone";
+        } else if (card) {
+          const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
+          label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
+        } else if (slot.lastResult) {
+          const lastCard = state.cards[slot.lastResult.cardId];
+          const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
+          label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
+        }
+        button.innerHTML = `<div class="card-label">${label}</div>`;
+        button.addEventListener("click", () => handleSlotClick(slotIdValue));
+        const nextOptions = state.downNeighbors[slotIdValue]?.filter(
+          (nextId) => state.mountain[nextId].occupiedBySkierId === null
+        ) || [];
+        if (nextOptions.length) {
+          const nextRow = document.createElement("div");
+          nextRow.className = "first-person-next";
+          nextOptions.slice(0, 3).forEach((nextId) => {
+            const nextSlot = state.mountain[nextId];
+            const nextCard = nextSlot.conditionCardId ? state.cards[nextSlot.conditionCardId] : null;
+            const nextLabel = nextCard
+              ? nextSlot.isFaceUp
+                ? `${nextCard.rank}${getSymbol(nextCard).icon}`
+                : getHiddenConditionLabel(nextCard)
+              : "—";
+            const nextBadge = document.createElement("div");
+            nextBadge.className = "next-card";
+            nextBadge.textContent = nextLabel;
+            nextRow.appendChild(nextBadge);
+          });
+          button.appendChild(nextRow);
+        }
+        optionsRow.appendChild(button);
+      });
+      wrapper.appendChild(optionsRow);
+      mountainEl.appendChild(wrapper);
+    }
+
+    function updateFirstPersonToggle() {
+      const toggle = document.getElementById("firstPersonToggle");
+      if (!toggle) return;
+      toggle.setAttribute("aria-pressed", state.firstPersonView ? "true" : "false");
     }
 
     function isSelectableSlot(id) {
@@ -2708,6 +2826,11 @@
     document.getElementById("openHighScoreFromScore").addEventListener("click", () => {
       showHighScoreModal(true);
     });
+    document.getElementById("firstPersonToggle").addEventListener("click", () => {
+      if (!document.body.classList.contains("debug-enabled")) return;
+      state.firstPersonView = !state.firstPersonView;
+      render();
+    });
     document.getElementById("powderOverlayToggle").addEventListener("click", () => {
       state.emojiOverlayEnabled = !state.emojiOverlayEnabled;
       renderPowderModal();
@@ -2730,11 +2853,18 @@
     document.getElementById("returnToGame").addEventListener("click", () => showModeOverlay(false));
     const toggleDebugButton = document.getElementById("toggleDebug");
     document.body.classList.add("hide-coords");
+    document.body.classList.toggle("debug-enabled", false);
     toggleDebugButton.addEventListener("click", () => {
       document.body.classList.toggle("hide-coords");
+      const debugEnabled = !document.body.classList.contains("hide-coords");
+      document.body.classList.toggle("debug-enabled", debugEnabled);
+      if (!debugEnabled) {
+        state.firstPersonView = false;
+      }
       toggleDebugButton.textContent = document.body.classList.contains("hide-coords")
         ? "Show debug"
         : "Hide debug";
+      render();
     });
     const loadingScreen = document.getElementById("loadingScreen");
     const loadingEmoji = document.getElementById("loadingEmoji");
