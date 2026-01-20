@@ -1030,6 +1030,7 @@
           <button id="peak1">🏔️¹ Classic</button>
           <button id="peak2">🏔️² Diamond</button>
           <button id="peak3">🏔️³ Twin</button>
+          <button id="peak100">🏔️💯 Peak 100</button>
         </div>
       </div>
       <button id="returnToGame" class="secondary" style="display: none;">Return to current game</button>
@@ -1047,8 +1048,19 @@
     const PEAKS = {
       PEAK_1: { label: "🏔️¹", rows: [1, 2, 3, 4, 5] },
       PEAK_2: { label: "🏔️²", rows: [1, 2, 3, 4, 5, 4, 3, 2, 2] },
-      PEAK_3: { label: "🏔️³", rows: [2, 3, 4, 5, 4] }
+      PEAK_3: { label: "🏔️³", rows: [2, 3, 4, 5, 4] },
+      PEAK_100: { label: "🏔️💯", rows: Array(10).fill(10) }
     };
+    const SPECIAL_CARDS = [
+      { key: "WHITEOUT", name: "Whiteout", emoji: "🌀", effect: "WHITEOUT" },
+      { key: "CROWN", name: "Summit Crown", emoji: "👑", effect: "CROWN" },
+      { key: "SURGE", name: "Surge Gate", emoji: "⚡", effect: "SURGE" },
+      { key: "FIRELINE", name: "Fireline", emoji: "🔥", effect: "FIRELINE" },
+      { key: "PIZZA", name: "Pizza Rain", emoji: "🍕", effect: "CONFETTI" },
+      { key: "POPCORN", name: "Pop Spill", emoji: "🍿", effect: "CONFETTI" },
+      { key: "DONUT", name: "Donut Roll", emoji: "🍩", effect: "CONFETTI" },
+      { key: "FRIES", name: "Fry Scatter", emoji: "🍟", effect: "CONFETTI" }
+    ];
 
     const state = {
       cards: {},
@@ -1143,28 +1155,85 @@
       return array;
     }
 
-    function buildDecks() {
-      let idCounter = 1;
+    function buildCrowdDeck(startId) {
+      let idCounter = startId;
       const cards = [];
       for (let deck = 0; deck < 2; deck += 1) {
         for (const symbol of SYMBOLS) {
-          for (const rank of [...SKIER_RANKS, ...CONDITION_RANKS]) {
-            const type = SKIER_RANKS.includes(rank) ? "SKIER" : "CONDITION";
-            const riderType = type === "SKIER" ? (deck === 0 ? "SKIER" : "SNOWBOARDER") : null;
+          for (const rank of SKIER_RANKS) {
             const card = {
               id: `C${idCounter}`,
-              type,
+              type: "SKIER",
               rank,
               symbol: symbol.key,
               difficultyRank: symbol.difficultyRank,
-              riderType
+              riderType: deck === 0 ? "SKIER" : "SNOWBOARDER"
             };
             cards.push(card);
             idCounter += 1;
           }
         }
       }
-      return cards;
+      return { cards, nextId: idCounter };
+    }
+
+    function buildConditionDeck(startId, deckCount) {
+      let idCounter = startId;
+      const cards = [];
+      for (let deck = 0; deck < deckCount; deck += 1) {
+        for (const symbol of SYMBOLS) {
+          for (const rank of CONDITION_RANKS) {
+            const card = {
+              id: `C${idCounter}`,
+              type: "CONDITION",
+              rank,
+              symbol: symbol.key,
+              difficultyRank: symbol.difficultyRank,
+              riderType: null
+            };
+            cards.push(card);
+            idCounter += 1;
+          }
+        }
+      }
+      return { cards, nextId: idCounter };
+    }
+
+    function buildSpecialDeck(startId) {
+      let idCounter = startId;
+      const cards = [];
+      SPECIAL_CARDS.forEach((entry) => {
+        for (let i = 0; i < 4; i += 1) {
+          cards.push({
+            id: `C${idCounter}`,
+            type: "SPECIAL",
+            rank: 0,
+            symbol: null,
+            difficultyRank: 1,
+            riderType: null,
+            specialKey: entry.key,
+            specialName: entry.name,
+            specialEmoji: entry.emoji,
+            specialEffect: entry.effect
+          });
+          idCounter += 1;
+        }
+      });
+      return { cards, nextId: idCounter };
+    }
+
+    function buildDecksForPeak(peakKey) {
+      let idCounter = 1;
+      const crowdDeck = buildCrowdDeck(idCounter);
+      idCounter = crowdDeck.nextId;
+      const conditionDeckCount = peakKey === "PEAK_100" ? 10 : 2;
+      const conditionDeck = buildConditionDeck(idCounter, conditionDeckCount);
+      idCounter = conditionDeck.nextId;
+      const specialDeck = peakKey === "PEAK_100" ? buildSpecialDeck(idCounter) : { cards: [], nextId: idCounter };
+      idCounter = specialDeck.nextId;
+      const cloudDeck = [...conditionDeck.cards, ...specialDeck.cards];
+      const allCards = [...crowdDeck.cards, ...cloudDeck];
+      return { allCards, crowd: crowdDeck.cards, cloud: cloudDeck };
     }
 
     function splitCrowdCloud(cards) {
@@ -1310,6 +1379,11 @@
     }
 
     function getCardLabel(card) {
+      if (card.type === "SPECIAL") {
+        return `
+          <span class="card-line">${card.specialEmoji} ${card.specialName}</span>
+        `;
+      }
       const symbol = getSymbol(card);
       if (card.type === "SKIER") {
         const riderIcon =
@@ -1325,6 +1399,9 @@
     }
 
     function getHiddenConditionLabel(card) {
+      if (card.type === "SPECIAL") {
+        return "❔";
+      }
       const treeCount = Math.max(1, Math.min(4, card.difficultyRank));
       return "🌲".repeat(treeCount);
     }
@@ -1504,13 +1581,12 @@
     function beginGame() {
       state.gameStarted = true;
       hideScoreModal();
-      const deck = buildDecks();
-      deck.forEach((card) => {
+      const deckBundle = buildDecksForPeak(state.peak);
+      deckBundle.allCards.forEach((card) => {
         state.cards[card.id] = card;
       });
-      const { crowd, cloud } = splitCrowdCloud(deck);
-      state.crowdDeck = shuffle([...crowd]);
-      state.cloudDeck = faceShuffleCloud(cloud);
+      state.crowdDeck = shuffle([...deckBundle.crowd]);
+      state.cloudDeck = faceShuffleCloud(deckBundle.cloud);
       setPeak(state.peak);
       state.mountain = dealMountain();
       state.downNeighbors = buildDownNeighbors();
@@ -1558,7 +1634,13 @@
           currentSlotId: skier.pausedPos,
           resumed: true,
           collectedScore: 0,
-          collectedRanks: []
+          collectedRanks: [],
+          collectedEmojis: new Set(),
+          surgeActive: false,
+          firelineActive: false,
+          firelineDirection: null,
+          lastMoveDirection: null,
+          multiplierBonus: 0
       };
       state.currentAutoModeForRun = getActiveAutoModeForSkier(pausedSkierId);
         state.message = "Resuming paused skier. Choose your next step.";
@@ -1608,7 +1690,13 @@
         currentSlotId: slotIdChoice,
         resumed: false,
         collectedScore: 0,
-        collectedRanks: []
+        collectedRanks: [],
+        collectedEmojis: new Set(),
+        surgeActive: false,
+        firelineActive: false,
+        firelineDirection: null,
+        lastMoveDirection: null,
+        multiplierBonus: 0
       };
       state.currentAutoModeForRun = getActiveAutoModeForSkier(nextSkierId);
       state.awaitingStartChoice = false;
@@ -1779,6 +1867,55 @@
       render();
     }
 
+    function shuffleActiveConditions() {
+      const activeSlots = state.mountain.filter((slot) => slot.conditionCardId);
+      if (!activeSlots.length) return;
+      const cardIds = activeSlots.map((slot) => slot.conditionCardId);
+      shuffle(cardIds);
+      activeSlots.forEach((slot, index) => {
+        slot.conditionCardId = cardIds[index];
+      });
+      const redrawSlot = activeSlots[0];
+      if (redrawSlot) {
+        const draw = drawCloudCard();
+        if (draw?.cardId) {
+          redrawSlot.conditionCardId = draw.cardId;
+          redrawSlot.isFaceUp = true;
+        }
+      }
+    }
+
+    function applySpecialCardEffect(card) {
+      const run = state.activeRun;
+      switch (card.specialEffect) {
+        case "WHITEOUT":
+          shuffleActiveConditions();
+          break;
+        case "CROWN":
+          if (run) {
+            run.multiplierBonus += run.collectedEmojis.size;
+          }
+          break;
+        case "SURGE":
+          if (run) {
+            run.surgeActive = true;
+          }
+          break;
+        case "FIRELINE":
+          if (run) {
+            run.collectedScore += 3;
+            run.firelineActive = true;
+            run.firelineDirection = run.lastMoveDirection;
+          }
+          break;
+        case "CONFETTI":
+          spawnEmojiRain(card.specialEmoji, 12);
+          break;
+        default:
+          break;
+      }
+    }
+
     function resolveSlot(slotId, skierId) {
       const slot = state.mountain[slotId];
       if (!slot.conditionCardId) {
@@ -1788,6 +1925,15 @@
         slot.isFaceUp = true;
       }
       const card = state.cards[slot.conditionCardId];
+      if (card.type === "SPECIAL") {
+        slot.conditionCardId = null;
+        slot.isFaceUp = false;
+        slot.lastResult = { cardId: card.id, outcome: "collected" };
+        state.memoriesPile.push(card.id);
+        applySpecialCardEffect(card);
+        state.message = `Special condition: ${card.specialName}!`;
+        return;
+      }
       const skierCard = state.cards[state.cards[skierId].cardId];
       if (card.difficultyRank <= skierCard.difficultyRank) {
         const bonusValue = getBonusValue(slot.missCount || 0);
@@ -1809,6 +1955,19 @@
           if (run.collectedRanks) {
             run.collectedRanks.push(card.rank);
           }
+          if (run.surgeActive) {
+            run.collectedScore += Number(card.rank);
+            run.surgeActive = false;
+          }
+          if (run.firelineActive) {
+            if (run.lastMoveDirection && run.lastMoveDirection === run.firelineDirection) {
+              run.collectedScore += 1;
+            }
+            run.firelineActive = false;
+          }
+          if (bonusEmoji) {
+            run.collectedEmojis.add(bonusEmoji);
+          }
         }
         if (bonusEmoji) {
           spawnEmojiRain(bonusEmoji, 8);
@@ -1824,6 +1983,13 @@
 
     function moveTo(slotId) {
       if (!state.activeRun) return;
+      const { idx: prevIdx } = rowIdxFromSlotId(state.activeRun.currentSlotId);
+      const { idx: nextIdx } = rowIdxFromSlotId(slotId);
+      if (nextIdx < prevIdx) {
+        state.activeRun.lastMoveDirection = "LEFT";
+      } else if (nextIdx > prevIdx) {
+        state.activeRun.lastMoveDirection = "RIGHT";
+      }
       state.activeRun.currentSlotId = slotId;
       resolveSlot(slotId, state.activeRun.leadSkierId);
       const { row } = rowIdxFromSlotId(slotId);
@@ -1839,6 +2005,9 @@
       const skierState = state.cards[run.leadSkierId];
       skierState.status = "used";
       skierState.pausedPos = null;
+      if (run.multiplierBonus) {
+        run.collectedScore *= 1 + run.multiplierBonus;
+      }
       state.lastRunToken = {
         slotId: run.currentSlotId,
         skierId: run.leadSkierId,
@@ -2818,6 +2987,7 @@
     document.getElementById("peak1").addEventListener("click", () => setPeak("PEAK_1"));
     document.getElementById("peak2").addEventListener("click", () => setPeak("PEAK_2"));
     document.getElementById("peak3").addEventListener("click", () => setPeak("PEAK_3"));
+    document.getElementById("peak100").addEventListener("click", () => setPeak("PEAK_100"));
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
