@@ -761,7 +761,7 @@
       cursor: pointer;
       transition: background 0.2s ease;
     }
-    button:hover {
+    button:not(.slot):hover {
       background: #1c66c5;
     }
     button.secondary {
@@ -1244,7 +1244,7 @@
         </div>
       </div>
       <div id="mountain" class="mountain"></div>
-      <div class="finish-zone" aria-label="Finished skiers">
+      <div id="finishZone" class="finish-zone" aria-label="Finished skiers">
         <div id="finishTokens" class="finish-zone-tokens"></div>
       </div>
       <div class="tram-controls" aria-label="Lift zone controls">
@@ -2646,23 +2646,12 @@
 
     function renderFinishZone() {
       const finishTokensEl = document.getElementById("finishTokens");
+      const finishZoneEl = document.getElementById("finishZone");
+      if (finishZoneEl) {
+        finishZoneEl.style.display = "none";
+      }
       if (!finishTokensEl) return;
       finishTokensEl.innerHTML = "";
-      const lastRun = state.lastRunToken;
-      if (!lastRun) return;
-      const slot = state.mountain[lastRun.slotId];
-      const lastCardId = slot?.lastResult?.cardId;
-      const lastCard = lastCardId ? state.cards[lastCardId] : null;
-      const item = document.createElement("div");
-      item.className = "finish-zone-item";
-      const cardLabel = document.createElement("div");
-      cardLabel.className = "finish-card";
-      cardLabel.innerHTML = lastCard ? getCardLabel(lastCard) : "—";
-      const tokenWrapper = document.createElement("div");
-      tokenWrapper.className = "finish-zone-token";
-      tokenWrapper.innerHTML = getSkierTokenMarkup(lastRun.skierId);
-      item.append(cardLabel, tokenWrapper);
-      finishTokensEl.appendChild(item);
     }
 
     function renderMountain() {
