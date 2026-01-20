@@ -1273,6 +1273,11 @@
       display: grid;
       gap: 10px;
     }
+    .powder-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
     .powder-item {
       display: grid;
       gap: 6px;
@@ -1394,9 +1399,7 @@
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
-  <audio id="bgMusic" preload="auto" loop autoplay>
-    <source src="https://www.dropbox.com/scl/fi/o2xmqc8ejn2pn7izoiqtc/PowderKeg001.mp3?rlkey=o5lgl0v6pwg4wsqyq7y2il8xt&st=rbubemwx&dl=1" type="audio/mpeg" />
-  </audio>
+  <audio id="bgMusic" preload="auto" autoplay></audio>
   <div id="scoreModal" class="score-modal" aria-live="polite">
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
@@ -1451,6 +1454,15 @@
     <div class="modal-card">
       <h2>Powder Settings</h2>
       <div class="powder-grid">
+        <div class="powder-item">
+          <strong>Now playing</strong>
+          <div id="musicTitle" class="powder-current"></div>
+          <div class="powder-controls">
+            <button id="musicStop" class="secondary" type="button">Stop</button>
+            <button id="musicNext" class="secondary" type="button">Next track</button>
+            <button id="musicLoop" class="secondary" type="button">Loop track</button>
+          </div>
+        </div>
         <div class="powder-item">
           <strong>Emoji overlay snowflakes</strong>
           <button id="powderOverlayToggle" class="secondary" type="button">On</button>
@@ -1656,6 +1668,20 @@
       { key: "DONUT", name: "Donut Roll", emoji: "🍩", effect: "CONFETTI" },
       { key: "FRIES", name: "Fry Scatter", emoji: "🍟", effect: "CONFETTI" }
     ];
+    const MUSIC_PLAYLIST = [
+      {
+        title: "PowderKeg001",
+        url: "https://www.dropbox.com/scl/fi/o2xmqc8ejn2pn7izoiqtc/PowderKeg001.mp3?rlkey=o5lgl0v6pwg4wsqyq7y2il8xt&st=rbubemwx&dl=1"
+      },
+      {
+        title: "26 USA A",
+        url: "https://www.dropbox.com/scl/fi/jx71o3ksl6mi93rgzl4sd/26-USA-A.mp3?rlkey=v8a47vf7c6aza5njphkjo65pf&st=s8bptoa8&dl=1"
+      },
+      {
+        title: "Ski Bum",
+        url: "https://www.dropbox.com/scl/fi/py8u1mznhn58uqprwe9cz/Ski-Bum.mp3?rlkey=b7xtbhso0nb5neainohm4yfmb&st=xat8kyds&dl=1"
+      }
+    ];
 
     const state = {
       cards: {},
@@ -1708,6 +1734,8 @@
       introStep: 0,
       coachTipShown: false,
       endTipShown: false,
+      musicIndex: 0,
+      loopCurrentTrack: false,
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -3588,6 +3616,16 @@
       if (overlayToggle) {
         overlayToggle.textContent = state.emojiOverlayEnabled ? "On" : "Off";
       }
+      const musicTitle = document.getElementById("musicTitle");
+      if (musicTitle) {
+        const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+        musicTitle.textContent = track ? track.title : "—";
+      }
+      const loopButton = document.getElementById("musicLoop");
+      if (loopButton) {
+        loopButton.classList.toggle("active", state.loopCurrentTrack);
+        loopButton.textContent = state.loopCurrentTrack ? "Looping" : "Loop track";
+      }
       const powderCurrent = document.getElementById("powderCurrent");
       if (powderCurrent) {
         const labelMap = {
@@ -3892,8 +3930,31 @@
     function ensureMusicPlaying() {
       const bgMusic = document.getElementById("bgMusic");
       if (!bgMusic) return;
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      if (track && bgMusic.src !== track.url) {
+        bgMusic.src = track.url;
+      }
+      bgMusic.loop = state.loopCurrentTrack;
       if (!bgMusic.paused) return;
       bgMusic.play().catch(() => {});
+    }
+
+    function stopMusic() {
+      const bgMusic = document.getElementById("bgMusic");
+      if (!bgMusic) return;
+      bgMusic.pause();
+      bgMusic.currentTime = 0;
+    }
+
+    function nextTrack() {
+      const bgMusic = document.getElementById("bgMusic");
+      if (!bgMusic) return;
+      state.musicIndex = (state.musicIndex + 1) % MUSIC_PLAYLIST.length;
+      const track = MUSIC_PLAYLIST[state.musicIndex];
+      bgMusic.src = track.url;
+      bgMusic.loop = state.loopCurrentTrack;
+      bgMusic.play().catch(() => {});
+      renderPowderModal();
     }
 
     function hideScoreModal() {
@@ -4147,6 +4208,18 @@
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
+    document.getElementById("musicStop").addEventListener("click", () => {
+      stopMusic();
+      renderPowderModal();
+    });
+    document.getElementById("musicNext").addEventListener("click", () => {
+      nextTrack();
+    });
+    document.getElementById("musicLoop").addEventListener("click", () => {
+      state.loopCurrentTrack = !state.loopCurrentTrack;
+      ensureMusicPlaying();
+      renderPowderModal();
+    });
     document.getElementById("coachButton").addEventListener("click", () => {
       state.coachMode = state.coachMode === "OFF" ? "ON" : "OFF";
       render();
@@ -4243,7 +4316,7 @@
       if (state.loadingDismissed) return;
       const bgMusic = document.getElementById("bgMusic");
       if (bgMusic) {
-        bgMusic.play().catch(() => {});
+        ensureMusicPlaying();
       }
       if (event.target === loadingEmoji) {
         finalizeLoading();
@@ -4272,6 +4345,14 @@
       handleKeyMove(event);
     });
     startLoadingSequence();
+    const bgMusic = document.getElementById("bgMusic");
+    if (bgMusic) {
+      bgMusic.addEventListener("ended", () => {
+        if (!state.loopCurrentTrack) {
+          nextTrack();
+        }
+      });
+    }
     state.allTimeHighScore = loadAllTimeHighScore();
     const skyToggle = document.getElementById("skyToggle");
     updateSkyIndicator();
