@@ -735,6 +735,123 @@
     .sky-toggle:hover {
       background: transparent;
     }
+    .weather-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .coach-button {
+      background: transparent;
+      border: none;
+      padding: 0;
+      font-size: clamp(36px, 5vw, 52px);
+      cursor: pointer;
+      display: none;
+      line-height: 1;
+    }
+    .first-person-enabled .coach-button {
+      display: inline-flex;
+    }
+    .coach-panel {
+      display: none;
+      justify-content: center;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+    .coach-panel.active {
+      display: flex;
+    }
+    .coach-card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid #1e2430;
+      border-radius: 18px;
+      padding: 10px 14px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      font-weight: 600;
+      position: relative;
+    }
+    body.night-skiing .coach-card {
+      background: rgba(15, 23, 42, 0.9);
+      color: #e2e8f0;
+      border-color: rgba(226, 232, 240, 0.6);
+    }
+    .coach-card::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: rgba(30, 36, 48, 0.9) transparent transparent;
+    }
+    body.night-skiing .coach-card::after {
+      border-color: rgba(226, 232, 240, 0.6) transparent transparent;
+    }
+    .coach-summary {
+      display: grid;
+      gap: 4px;
+    }
+    .coach-summary strong {
+      font-size: 16px;
+    }
+    .coach-bubble {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #ffffff;
+      border: 2px solid #1e2430;
+      border-radius: 16px;
+      padding: 8px 10px;
+      width: 180px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+      z-index: 2;
+    }
+    .coach-bubble.left {
+      left: -200px;
+    }
+    .coach-bubble.right {
+      right: -200px;
+    }
+    .coach-bubble::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+    }
+    .coach-bubble.left::after {
+      right: -16px;
+      border-left-color: #1e2430;
+      transform: translateY(-50%);
+    }
+    .coach-bubble.right::after {
+      left: -16px;
+      border-right-color: #1e2430;
+      transform: translateY(-50%);
+    }
+    .coach-bubble .bubble-text {
+      color: #1e2430;
+    }
+    body.night-skiing .coach-bubble {
+      background: #0f172a;
+      border-color: rgba(226, 232, 240, 0.6);
+    }
+    body.night-skiing .coach-bubble .bubble-text {
+      color: #e2e8f0;
+    }
+    body.night-skiing .coach-bubble.left::after {
+      border-left-color: rgba(226, 232, 240, 0.6);
+    }
+    body.night-skiing .coach-bubble.right::after {
+      border-right-color: rgba(226, 232, 240, 0.6);
+    }
     .ambient-snow {
       position: fixed;
       inset: 0;
@@ -900,6 +1017,7 @@
     body.night-skiing .score-modal .modal-card,
     body.night-skiing .schedule-modal .modal-card,
     body.night-skiing .powder-modal .modal-card,
+    body.night-skiing .coach-modal .modal-card,
     body.night-skiing .high-score-modal .modal-card {
       background: #111827;
       color: #e5e7eb;
@@ -1065,6 +1183,31 @@
       display: grid;
       gap: 12px;
     }
+    .coach-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 26;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .coach-modal.active {
+      display: flex;
+    }
+    .coach-modal .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(460px, 92vw);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      display: grid;
+      gap: 12px;
+    }
+    body.night-skiing .coach-modal .modal-card {
+      background: #111827;
+      color: #e5e7eb;
+    }
     .powder-grid {
       display: grid;
       gap: 10px;
@@ -1198,6 +1341,25 @@
       </div>
     </div>
   </div>
+  <div id="coachModal" class="coach-modal" aria-live="polite">
+    <div class="modal-card">
+      <h2>Coach Settings</h2>
+      <div class="powder-grid">
+        <div class="powder-item">
+          <strong>Coach mode</strong>
+          <div id="coachCurrent" class="powder-current"></div>
+          <div class="powder-options">
+            <button type="button" class="secondary" data-coach-mode="ON">On</button>
+            <button type="button" class="secondary" data-coach-mode="CRUISE">Cruising</button>
+            <button type="button" class="secondary" data-coach-mode="OFF">Off</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="coachClose" class="secondary">Close</button>
+      </div>
+    </div>
+  </div>
   <div id="highScoreModal" class="high-score-modal" aria-live="polite">
     <div class="modal-card">
       <div class="modal-header">
@@ -1240,13 +1402,17 @@
           <button id="peakButton" class="mode-button" type="button" aria-label="Select peak">
             <span id="peakIcon">🏔️¹</span>
           </button>
-          <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
+          <div class="weather-stack">
+            <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
+            <button id="coachButton" class="coach-button" type="button" aria-label="Coach settings">🗣️</button>
+          </div>
         </div>
       </div>
       <div id="mountain" class="mountain"></div>
       <div id="finishZone" class="finish-zone" aria-label="Finished skiers">
         <div id="finishTokens" class="finish-zone-tokens"></div>
       </div>
+      <div id="coachPanel" class="coach-panel" aria-live="polite"></div>
       <div class="tram-controls" aria-label="Lift zone controls">
         <button id="tramLeftButton" class="secondary" type="button" aria-label="Move left">👈</button>
         <button id="tramCycleButton" class="secondary" type="button" aria-label="Cycle lift zone">🚡</button>
@@ -1410,7 +1576,8 @@
       rowSizes: [...PEAKS.PEAK_1.rows],
       currentAutoModeForRun: null,
       lastRunToken: null,
-      firstPersonView: false,
+      firstPersonView: true,
+      coachMode: "ON",
       usedCrowdCount: 0,
       skierCounter: 0
     };
@@ -2044,6 +2211,8 @@
       state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
       state.autoCancelled = false;
       state.lastRunToken = null;
+      state.firstPersonView = true;
+      state.coachMode = "ON";
       if (!state.allTimeHighScore) {
         state.allTimeHighScore = loadAllTimeHighScore();
       }
@@ -2162,6 +2331,31 @@
       const slot = state.mountain[slotId];
       const card = slot.conditionCardId ? state.cards[slot.conditionCardId] : null;
       return { slot, card };
+    }
+
+    function getCoachOutcomeText(slot, card, skierCard) {
+      if (!slot) return "No path.";
+      if (slot.isLiftZone) {
+        return "Lift zone (no score).";
+      }
+      if (!card) {
+        return slot.lastResult ? "Cleared path." : "No condition.";
+      }
+      if (!skierCard) {
+        return `Approach ${card.rank}${getSymbol(card).icon}.`;
+      }
+      if (card.type === "SPECIAL") {
+        return `Triggers ${card.rank} ${card.specialEmoji || ""}.`.trim();
+      }
+      const symbol = getSymbol(card).icon;
+      const canCollect = card.difficultyRank <= skierCard.difficultyRank;
+      if (canCollect) {
+        return `Collects ${card.rank}${symbol}${card.bonusEmoji ? ` ${card.bonusEmoji}` : ""}.`;
+      }
+      if (slot.bonusEmoji) {
+        return `Leaves ${card.rank}${symbol} (upgrades bonus).`;
+      }
+      return `Leaves ${card.rank}${symbol} on the mountain.`;
     }
 
     function getBonusCounts() {
@@ -2635,6 +2829,7 @@
     function render() {
       renderMountain();
       renderFinishZone();
+      renderCoachPanel();
       renderSidebar();
       const fullAutoButton = document.getElementById("fullAutoButton");
       if (fullAutoButton) {
@@ -2642,6 +2837,32 @@
         fullAutoButton.textContent = state.fullAuto ? "Stop auto" : "Full auto";
       }
       updateFirstPersonToggle();
+      const coachModal = document.getElementById("coachModal");
+      if (coachModal?.classList.contains("active")) {
+        renderCoachModal();
+      }
+    }
+
+    function renderCoachPanel() {
+      const coachPanel = document.getElementById("coachPanel");
+      if (!coachPanel) return;
+      const isActive = state.firstPersonView && state.coachMode !== "OFF";
+      coachPanel.classList.toggle("active", isActive);
+      if (!isActive) {
+        coachPanel.innerHTML = "";
+        return;
+      }
+      const turnText = getTurnCounterText();
+      const statusText = state.message || "Pick a direction to begin.";
+      coachPanel.innerHTML = `
+        <div class="coach-card">
+          <div class="coach-summary">
+            <strong>🗣️ Coach</strong>
+            <div>${turnText}</div>
+            <div>${statusText}</div>
+          </div>
+        </div>
+      `;
     }
 
     function renderFinishZone() {
@@ -2755,6 +2976,7 @@
       wrapper.appendChild(skierRow);
       const optionsRow = document.createElement("div");
       optionsRow.className = "first-person-options";
+      const coachActive = state.coachMode === "ON";
       optionIds.forEach((slotIdValue) => {
         const { slot, card } = getSlotData(slotIdValue);
         const button = document.createElement("button");
@@ -2791,7 +3013,12 @@
           const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
           label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
         }
+        const coachText = coachActive
+          ? getCoachOutcomeText(slot, card, state.activeRun ? getSkierCard(state.activeRun.leadSkierId) : getSkierCard(getNextAvailableSkierId()))
+          : "";
+        const bubbleSide = optionIds.length > 1 && slotIdValue === optionIds[0] ? "left" : "right";
         button.innerHTML = `
+          ${coachActive ? `<div class="coach-bubble ${bubbleSide}"><div class="bubble-text">${coachText}</div></div>` : ""}
           <div class="card-label">${label}</div>
           ${indicator ? `<div class="first-person-indicator">${indicator}</div>` : ""}
         `;
@@ -2844,6 +3071,7 @@
       const toggle = document.getElementById("firstPersonToggle");
       if (!toggle) return;
       toggle.setAttribute("aria-pressed", state.firstPersonView ? "true" : "false");
+      document.body.classList.toggle("first-person-enabled", state.firstPersonView);
     }
 
     function updateTramControls() {
@@ -2931,6 +3159,18 @@
       }
     }
 
+    function getTurnCounterText() {
+      const totalTurns = state.rowSizes.length;
+      let remainingTurns = totalTurns;
+      if (state.activeRun) {
+        const { row } = rowIdxFromSlotId(state.activeRun.currentSlotId);
+        remainingTurns = Math.max(1, totalTurns - row + 1);
+      } else if (state.gameEnded) {
+        remainingTurns = 0;
+      }
+      return `${remainingTurns}/${totalTurns} turns left`;
+    }
+
     function renderSidebar() {
       const statusEl = document.getElementById("status");
       const actionsEl = document.getElementById("actions");
@@ -2967,15 +3207,7 @@
         activeSkierEl.textContent = "No active skier";
       }
       if (turnCounterEl) {
-        const totalTurns = state.rowSizes.length;
-        let remainingTurns = totalTurns;
-        if (state.activeRun) {
-          const { row } = rowIdxFromSlotId(state.activeRun.currentSlotId);
-          remainingTurns = Math.max(1, totalTurns - row + 1);
-        } else if (state.gameEnded) {
-          remainingTurns = 0;
-        }
-        turnCounterEl.textContent = `${remainingTurns}/${totalTurns} turns left`;
+        turnCounterEl.textContent = getTurnCounterText();
       }
 
       const autoGrid = autoModesEl.querySelector(".auto-grid");
@@ -3203,6 +3435,15 @@
       }
     }
 
+    function showCoachModal(show) {
+      const modal = document.getElementById("coachModal");
+      if (!modal) return;
+      modal.classList.toggle("active", show);
+      if (show) {
+        renderCoachModal();
+      }
+    }
+
     function renderPowderModal() {
       const overlayToggle = document.getElementById("powderOverlayToggle");
       if (overlayToggle) {
@@ -3232,6 +3473,23 @@
       handButtons.forEach((button) => {
         const handKey = button.dataset.handEmoji;
         button.classList.toggle("active", handKey === state.handEmojiPreference);
+      });
+    }
+
+    function renderCoachModal() {
+      const coachCurrent = document.getElementById("coachCurrent");
+      if (coachCurrent) {
+        const labelMap = {
+          ON: "On",
+          CRUISE: "Cruising",
+          OFF: "Off"
+        };
+        coachCurrent.textContent = `Current: ${labelMap[state.coachMode] || "On"}`;
+      }
+      const buttons = document.querySelectorAll("[data-coach-mode]");
+      buttons.forEach((button) => {
+        const mode = button.dataset.coachMode;
+        button.classList.toggle("active", mode === state.coachMode);
       });
     }
 
@@ -3677,6 +3935,8 @@
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
+    document.getElementById("coachButton").addEventListener("click", () => showCoachModal(true));
+    document.getElementById("coachClose").addEventListener("click", () => showCoachModal(false));
     document.getElementById("highScoreButton").addEventListener("click", () => showHighScoreModal(true));
     document.getElementById("highScoreClose").addEventListener("click", () => showHighScoreModal(false));
     document.getElementById("openHighScoreFromScore").addEventListener("click", () => {
@@ -3703,6 +3963,13 @@
         state.handEmojiPreference = button.dataset.handEmoji;
         renderPowderModal();
         updateTramControls();
+      });
+    });
+    document.querySelectorAll("[data-coach-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.coachMode = button.dataset.coachMode;
+        renderCoachModal();
+        render();
       });
     });
     document.querySelectorAll("[data-score-mode]").forEach((button) => {
@@ -3732,9 +3999,6 @@
       document.body.classList.toggle("hide-coords");
       const debugEnabled = !document.body.classList.contains("hide-coords");
       document.body.classList.toggle("debug-enabled", debugEnabled);
-      if (!debugEnabled) {
-        state.firstPersonView = false;
-      }
       toggleDebugButton.textContent = document.body.classList.contains("hide-coords")
         ? "Show debug"
         : "Hide debug";
