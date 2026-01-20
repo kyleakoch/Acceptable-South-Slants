@@ -370,6 +370,25 @@
       font-size: 14px;
       margin-top: -2px;
     }
+    .slot .token .token-type {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.8;
+      line-height: 1.1;
+    }
+    .slot .token .token-emoji {
+      font-size: 16px;
+      line-height: 1;
+    }
+    .slot .token.collected .token-type,
+    .slot .token.collected .token-emoji {
+      display: none;
+    }
+    .slot .token.collected .token-rank {
+      font-size: 12px;
+      line-height: 1.2;
+    }
     .slot .token .token-rank {
       font-size: 15px;
       line-height: 1;
@@ -415,6 +434,19 @@
     .card-label {
       color: #111827;
       font-weight: 600;
+    }
+    .card-label .card-line {
+      display: block;
+    }
+    .card-label .card-type {
+      display: block;
+      font-size: 12px;
+      opacity: 0.75;
+    }
+    .card-label .card-emoji {
+      display: block;
+      font-size: 16px;
+      line-height: 1;
     }
     .result-badge {
       font-size: 13px;
@@ -1143,14 +1175,23 @@
       return SYMBOLS.find((symbol) => symbol.key === card.symbol);
     }
 
+    function getRiderLabel(card) {
+      return card.riderType === "SNOWBOARDER" ? "Boarder" : "Skier";
+    }
+
     function getCardLabel(card) {
       const symbol = getSymbol(card);
       if (card.type === "SKIER") {
         const riderIcon =
           card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
-        return `${riderIcon} ${card.rank} ${symbol.icon}`;
+        const riderLabel = getRiderLabel(card);
+        return `
+          <span class="card-line">${card.rank}${symbol.icon}</span>
+          <span class="card-type">${riderLabel}</span>
+          <span class="card-emoji">${riderIcon}</span>
+        `;
       }
-      return `${symbol.icon} ${card.rank}`;
+      return `<span class="card-line">${card.rank}${symbol.icon}</span>`;
     }
 
     function getHiddenConditionLabel(card) {
@@ -1174,10 +1215,20 @@
       const symbol = getSymbol(card);
       const riderIcon =
         card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
+      const riderLabel = getRiderLabel(card);
       const variantClass = variant ? ` ${variant}` : "";
       return `<div class="token${variantClass}" aria-hidden="true">
-        <div class="token-rank">${card.rank}</div>
-        <div class="token-suit">${riderIcon} ${symbol.icon}</div>
+        <div class="token-rank">${card.rank}${symbol.icon}</div>
+        <div class="token-type">${riderLabel}</div>
+        <div class="token-emoji">${riderIcon}</div>
+      </div>`;
+    }
+
+    function getCollectedTokenMarkup(collectedRanks = [], variant = "") {
+      const variantClass = variant ? ` ${variant}` : "";
+      const rankLabel = collectedRanks.length ? collectedRanks.join(" ") : "0";
+      return `<div class="token collected${variantClass}" aria-hidden="true">
+        <div class="token-rank">${rankLabel}</div>
       </div>`;
     }
 
@@ -1346,12 +1397,13 @@
           state.mountain[skier.pausedPos].occupiedBySkierId = null;
         }
         skier.status = "available";
-      state.activeRun = {
-        playerId: player.id,
-        leadSkierId: pausedSkierId,
-        currentSlotId: skier.pausedPos,
-        resumed: true,
-        collectedScore: 0
+        state.activeRun = {
+          playerId: player.id,
+          leadSkierId: pausedSkierId,
+          currentSlotId: skier.pausedPos,
+          resumed: true,
+          collectedScore: 0,
+          collectedRanks: []
       };
       state.currentAutoModeForRun = getActiveAutoModeForSkier(pausedSkierId);
         state.message = "Resuming paused skier. Choose your next step.";
@@ -1400,7 +1452,8 @@
         leadSkierId: nextSkierId,
         currentSlotId: slotIdChoice,
         resumed: false,
-        collectedScore: 0
+        collectedScore: 0,
+        collectedRanks: []
       };
       state.currentAutoModeForRun = getActiveAutoModeForSkier(nextSkierId);
       state.awaitingStartChoice = false;
@@ -1598,6 +1651,9 @@
         const run = state.activeRun;
         if (run) {
           run.collectedScore = (run.collectedScore || 0) + Number(card.rank) + bonusValue;
+          if (run.collectedRanks) {
+            run.collectedRanks.push(card.rank);
+          }
         }
         if (bonusEmoji) {
           spawnEmojiRain(bonusEmoji, 8);
@@ -1631,7 +1687,8 @@
       state.lastRunToken = {
         slotId: run.currentSlotId,
         skierId: run.leadSkierId,
-        clicksRemaining: 2
+        clicksRemaining: 2,
+        collectedRanks: run.collectedRanks || []
       };
       if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
         const skierCardId = state.cards[run.leadSkierId].cardId;
@@ -1841,7 +1898,10 @@
             tokenMarkup = getSkierTokenMarkup(state.activeRun.leadSkierId, getTokenVariantForRow(slot.row));
           } else if (state.lastRunToken && state.lastRunToken.clicksRemaining > 0) {
             if (state.lastRunToken.slotId === id) {
-              tokenMarkup = getSkierTokenMarkup(state.lastRunToken.skierId, getTokenVariantForRow(slot.row));
+              tokenMarkup = getCollectedTokenMarkup(
+                state.lastRunToken.collectedRanks,
+                getTokenVariantForRow(slot.row)
+              );
             }
           }
           button.innerHTML = `
