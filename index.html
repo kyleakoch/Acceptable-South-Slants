@@ -1965,7 +1965,8 @@
       return card.riderType === "SNOWBOARDER" ? "Boarder" : "Skier";
     }
 
-    function getCardLabel(card) {
+    function getCardLabel(card, options = {}) {
+      const { showType = true } = options;
       if (card.type === "SPECIAL") {
         return `
           <span class="card-line">${card.specialEmoji} ${card.specialName}</span>
@@ -1975,10 +1976,9 @@
       if (card.type === "SKIER") {
         const riderIcon =
           card.riderType === "SNOWBOARDER" ? "🏂" : '<span class="flip">⛷️</span>';
-        const riderLabel = getRiderLabel(card);
         return `
           <span class="card-line">${card.rank}${symbol.icon}</span>
-          <span class="card-type">${riderLabel}</span>
+          ${showType ? `<span class="card-type">${getRiderLabel(card)}</span>` : ""}
           <span class="card-emoji">${riderIcon}</span>
         `;
       }
@@ -3368,7 +3368,7 @@
           div.classList.add("used");
         }
         const statusLabel = skierId === activeSkierId ? "active" : skierState.status;
-        div.innerHTML = `${getCardLabel(card)} - ${statusLabel}`;
+        div.innerHTML = `${getCardLabel(card, { showType: false })} - ${statusLabel}`;
         queueEl.appendChild(div);
       });
 
@@ -3762,7 +3762,9 @@
       const allTimeEl = document.getElementById("allTimeHighScore");
       const summary = computeScore();
       const bestRun = state.bestRun;
-      const bestRunLabel = bestRun ? getCardLabel(state.cards[bestRun.skierCardId]) : "None yet";
+      const bestRunLabel = bestRun
+        ? getCardLabel(state.cards[bestRun.skierCardId], { showType: false })
+        : "None yet";
       summaryEl.innerHTML = `
         <div class="status">Base total: <strong>${formatNumber(summary.baseTotal)}</strong></div>
         <div class="status">Multiplier: <strong>${summary.mult}×</strong></div>
