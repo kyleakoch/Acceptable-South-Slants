@@ -1107,9 +1107,14 @@
           const current = slotId(row, idx);
           if (row < state.rowSizes.length) {
             if (nextSize >= size) {
-              const left = slotId(row + 1, idx);
-              const right = slotId(row + 1, idx + 1);
-              neighbors[current].push(left, right);
+              const leftIdx = Math.min(idx, nextSize - 1);
+              const rightIdx = Math.min(idx + 1, nextSize - 1);
+              const left = slotId(row + 1, leftIdx);
+              const right = slotId(row + 1, rightIdx);
+              neighbors[current].push(left);
+              if (right !== left) {
+                neighbors[current].push(right);
+              }
             } else {
               const offset = Math.floor((size - nextSize) / 2);
               const base = idx - offset;
