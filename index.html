@@ -1394,7 +1394,7 @@
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
-  <audio id="bgMusic" preload="auto" loop>
+  <audio id="bgMusic" preload="auto" loop autoplay>
     <source src="https://www.dropbox.com/scl/fi/o2xmqc8ejn2pn7izoiqtc/PowderKeg001.mp3?rlkey=o5lgl0v6pwg4wsqyq7y2il8xt&st=rbubemwx&dl=1" type="audio/mpeg" />
   </audio>
   <div id="scoreModal" class="score-modal" aria-live="polite">
@@ -4039,8 +4039,8 @@
       snowstorm.classList.add("active");
       if (bgMusic) {
         bgMusic.volume = 0.6;
-        bgMusic.play().catch(() => {});
       }
+      ensureMusicPlaying();
 
       const showStep = () => {
         if (state.loadingDismissed) return;
