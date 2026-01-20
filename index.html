@@ -932,6 +932,13 @@
       border-radius: 12px;
       padding: 12px;
     }
+    .score-mode-current {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
     .score-mode-buttons {
       display: flex;
       flex-wrap: wrap;
@@ -954,6 +961,24 @@
     .high-score-grid {
       display: grid;
       gap: 8px;
+    }
+    .section-emoji {
+      font-size: clamp(44px, 6vw, 60px);
+      margin: 0;
+    }
+    .lift-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .lift-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .lift-details.collapsed {
+      display: none;
     }
     .podium-row {
       display: grid;
@@ -1153,12 +1178,13 @@
       <div class="score-mode-panel">
         <strong>Scoring Mode</strong>
         <div class="score-mode-buttons">
-          <button type="button" class="secondary" data-score-mode="COSMIC">Cosmic</button>
           <button type="button" class="secondary" data-score-mode="LADDER">Default (Ladder)</button>
           <button type="button" class="secondary" data-score-mode="DECIMAL_LADDER">Spicy (Decimal Ladder)</button>
           <button type="button" class="secondary" data-score-mode="NORMALIZED_EXP">Normalized Exponential</button>
           <button type="button" class="secondary" data-score-mode="COMPETITIVE">Competitive</button>
+          <button type="button" class="secondary" data-score-mode="COSMIC">Cosmic</button>
         </div>
+        <div id="scoreModeCurrent" class="score-mode-current"></div>
         <p id="scoreModeDescription" class="status"></p>
         <div id="scoreModeFormula" class="score-mode-formula"></div>
       </div>
@@ -1215,17 +1241,23 @@
       </div>
     </section>
     <section class="panel">
-      <h2>Run Controls</h2>
+      <h2 class="section-emoji">📺</h2>
+      <div id="turnCounter" class="status"></div>
       <div class="status" id="status"></div>
       <div class="actions" id="actions"></div>
       <h3>Active Skier</h3>
       <div id="activeSkier" class="tag"></div>
-      <div class="queue-header">
-        <h3>Lift Zone</h3>
+      <div class="lift-header">
+        <button id="liftToggle" class="secondary lift-toggle" type="button" aria-expanded="true">
+          <span id="liftChevron">▾</span>
+          Lift Zone
+        </button>
         <div id="crowdCounter" class="tag"></div>
       </div>
-      <div id="bonusTracker" class="status"></div>
-      <div id="skierQueue" class="pile"></div>
+      <div id="liftDetails" class="lift-details">
+        <div id="bonusTracker" class="status"></div>
+        <div id="skierQueue" class="pile"></div>
+      </div>
       <div id="score" class="status"></div>
       <h3>Scoreboard</h3>
       <div id="scoreHistory" class="status"></div>
@@ -1338,7 +1370,8 @@
       emojiOverlayEnabled: true,
       emojiRainMode: "REAL",
       handEmojiPreference: "DEFAULT",
-      scoringMode: "COSMIC",
+      scoringMode: "LADDER",
+      liftDetailsOpen: true,
       scheduleMode: "TYPE",
       scheduleConfig: {
         type: { SKIER: "MATCH", SNOWBOARDER: "MATCH" },
@@ -1400,7 +1433,7 @@
         key: "COSMIC",
         label: "Cosmic Scoring",
         description:
-          "Cosmic Scoring is the current score system. Runs add up a base total from collected ranks and bonuses, then apply a multiplier based on your most-collected rank. The end-of-day score is the final score raised to the combo exponent (based on bonus goals met), with a π boost when every bonus goal is satisfied.",
+          "Cosmic Scoring is the original, first digitally designed scoring system. Runs add up a base total from collected ranks and bonuses, then apply a multiplier based on your most-collected rank. The end-of-day score is the final score raised to the combo exponent (based on bonus goals met), with a π boost when every bonus goal is satisfied.",
         formula:
           "final_score = base_total * multiplier\nend_of_day_score = final_score ^ exponent\nif all goals met: end_of_day_score *= π"
       },
@@ -2827,8 +2860,17 @@
       const deckStatusEl = document.getElementById("deckStatus");
       const crowdCounterEl = document.getElementById("crowdCounter");
       const legendEl = document.getElementById("legend");
+      const turnCounterEl = document.getElementById("turnCounter");
+      const liftDetailsEl = document.getElementById("liftDetails");
+      const liftChevronEl = document.getElementById("liftChevron");
 
       updateTramControls();
+      if (liftDetailsEl) {
+        liftDetailsEl.classList.toggle("collapsed", !state.liftDetailsOpen);
+      }
+      if (liftChevronEl) {
+        liftChevronEl.textContent = state.liftDetailsOpen ? "▾" : "▸";
+      }
       statusEl.textContent = state.message;
       actionsEl.innerHTML = "";
       if (state.activeRun) {
@@ -2837,6 +2879,17 @@
         activeSkierEl.innerHTML = `Lead: ${getCardLabel(card)} (${getSymbol(card).label})`;
       } else {
         activeSkierEl.textContent = "No active skier";
+      }
+      if (turnCounterEl) {
+        const totalTurns = state.rowSizes.length;
+        let remainingTurns = totalTurns;
+        if (state.activeRun) {
+          const { row } = rowIdxFromSlotId(state.activeRun.currentSlotId);
+          remainingTurns = Math.max(1, totalTurns - row + 1);
+        } else if (state.gameEnded) {
+          remainingTurns = 0;
+        }
+        turnCounterEl.textContent = `${remainingTurns}/${totalTurns} turns left`;
       }
 
       const autoGrid = autoModesEl.querySelector(".auto-grid");
@@ -3122,6 +3175,7 @@
       const modeHighScore = scoredRuns.length ? scoredRuns[0].computedEndDayScore : 0;
       const scoreModeDescription = document.getElementById("scoreModeDescription");
       const scoreModeFormula = document.getElementById("scoreModeFormula");
+      const scoreModeCurrent = document.getElementById("scoreModeCurrent");
       const scoreModeButtons = document.querySelectorAll("[data-score-mode]");
       if (scoreModeDescription) {
         scoreModeDescription.textContent = modeInfo.description;
@@ -3131,6 +3185,9 @@
           .replaceAll("N", `${SCORING_TUNING.normalizedN}`)
           .replaceAll("M", `${SCORING_TUNING.normalizedM}`)
           .replaceAll("gamma", `${SCORING_TUNING.competitiveGamma}`);
+      }
+      if (scoreModeCurrent) {
+        scoreModeCurrent.textContent = `Current: ${modeInfo.label}`;
       }
       scoreModeButtons.forEach((button) => {
         const modeKey = button.dataset.scoreMode;
@@ -3568,6 +3625,10 @@
         render();
         renderHighScoreModal();
       });
+    });
+    document.getElementById("liftToggle").addEventListener("click", () => {
+      state.liftDetailsOpen = !state.liftDetailsOpen;
+      render();
     });
     document.getElementById("modalPlayAgain").addEventListener("click", () => {
       hideScoreModal();
