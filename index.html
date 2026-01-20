@@ -1087,6 +1087,8 @@
       padding: 18px;
       font-weight: 600;
       z-index: 2;
+      gap: 12px;
+      flex-direction: column;
     }
     .score-tip.active {
       display: flex;
@@ -1414,7 +1416,10 @@
         <button id="modalMode" class="secondary">Mode</button>
       </div>
     </div>
-    <div id="scoreTip" class="score-tip"></div>
+    <div id="scoreTip" class="score-tip">
+      <div id="scoreTipText"></div>
+      <button id="scoreTipOk" class="secondary" type="button">OK</button>
+    </div>
   </div>
   <div id="emojiRain" class="emoji-rain" aria-hidden="true"></div>
   <div id="ambientSnow" class="ambient-snow snowstorm" aria-hidden="true"></div>
@@ -3842,6 +3847,7 @@
       const todayEl = document.getElementById("todayHighScore");
       const allTimeEl = document.getElementById("allTimeHighScore");
       const scoreTipEl = document.getElementById("scoreTip");
+      const scoreTipText = document.getElementById("scoreTipText");
       const summary = computeScore();
       const bestRun = state.bestRun;
       const bestRunLabel = bestRun
@@ -3870,17 +3876,24 @@
         snowstorm.classList.add("active");
       }
       modal.classList.add("active");
-      if (scoreTipEl) {
+      if (scoreTipEl && scoreTipText) {
         if (!state.endTipShown) {
-          scoreTipEl.textContent =
+          scoreTipText.textContent =
             "Nice run! You can re-play single tram mode as much as you want, or try full load of 8 trams by going to the Mountain Peak select screen.";
           scoreTipEl.classList.add("active");
           state.endTipShown = true;
         } else {
           scoreTipEl.classList.remove("active");
-          scoreTipEl.textContent = "";
+          scoreTipText.textContent = "";
         }
       }
+    }
+
+    function ensureMusicPlaying() {
+      const bgMusic = document.getElementById("bgMusic");
+      if (!bgMusic) return;
+      if (!bgMusic.paused) return;
+      bgMusic.play().catch(() => {});
     }
 
     function hideScoreModal() {
@@ -4064,6 +4077,7 @@
       showIntroOverlay(false);
       beginGame();
       showCoachTipOnce();
+      ensureMusicPlaying();
     }
 
     function setPeak(peakKey) {
@@ -4204,6 +4218,12 @@
     document.getElementById("introSkip").addEventListener("click", () => {
       showIntroOverlay(false);
       showModeOverlay(true);
+    });
+    document.getElementById("scoreTipOk").addEventListener("click", () => {
+      const scoreTipEl = document.getElementById("scoreTip");
+      const scoreTipText = document.getElementById("scoreTipText");
+      if (scoreTipEl) scoreTipEl.classList.remove("active");
+      if (scoreTipText) scoreTipText.textContent = "";
     });
     const toggleDebugButton = document.getElementById("toggleDebug");
     document.body.classList.add("hide-coords");
