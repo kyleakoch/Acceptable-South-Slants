@@ -381,16 +381,9 @@
     .lift-zone {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 10px;
+      justify-content: flex-end;
+      gap: 12px;
       width: 100%;
-    }
-    .lift-zone-content {
-      display: grid;
-      gap: 6px;
-    }
-    .lift-zone-title {
-      font-weight: 700;
     }
     .lift-zone-tokens {
       display: flex;
@@ -1818,10 +1811,7 @@
               .join("");
             label = `
               <div class="lift-zone">
-                <div class="lift-zone-content">
-                  <div class="lift-zone-title">Lift Zone</div>
-                  <div class="lift-zone-tokens">${liftTokens}</div>
-                </div>
+                <div class="lift-zone-tokens">${liftTokens}</div>
                 <div class="lift-zone-tram">🚡</div>
               </div>
             `;
