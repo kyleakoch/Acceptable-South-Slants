@@ -1708,6 +1708,14 @@
             <button type="button" class="secondary" data-coach-trusted="OFF">Off</button>
           </div>
         </div>
+        <div class="powder-item">
+          <strong>Animation Speed</strong>
+          <div class="powder-current">Controls how tokens glide between slots.</div>
+          <div class="powder-options">
+            <button type="button" class="secondary" data-animation-speed="TURTLE">🐢</button>
+            <button type="button" class="secondary" data-animation-speed="RABBIT">🐇</button>
+          </div>
+        </div>
         <div class="powder-item" id="frameUiSetting" style="display: none;">
           <strong>Frame UI 🖼️</strong>
           <div class="powder-current">Keep controls pinned while panning the mountain.</div>
@@ -1967,6 +1975,8 @@
       lastGlide: null,
       coachTrusted: false,
       frameUiEnabled: false,
+      animationSpeed: "TURTLE",
+      autoFreeUp: false,
       curling: null,
       usedCrowdCount: 0,
       skierCounter: 0
@@ -2060,7 +2070,8 @@
     const AUTO_STRATEGIES = [
       { key: "RANDOM", label: "🎲 x ∞" },
       { key: "MANUAL", label: "🎮 x ∞" },
-      { key: "SCHEDULED", label: "🗓️ x ∞" }
+      { key: "SCHEDULED", label: "🗓️ x ∞" },
+      { key: "FREE_UP", label: "🆓 🆙" }
     ];
     const NIGHT_PHASES = ["🌕", "🌖", "🌗", "🌘", "🌑", "🌒", "🌓", "🌔"];
     const DAY_ICONS = ["☀️", "🌤️", "⛅️", "🌥️", "☁️", "🌨️"];
@@ -2651,8 +2662,8 @@
           firelineDirection: null,
           lastMoveDirection: null,
           multiplierBonus: 0
-      };
-      state.currentAutoModeForRun = getActiveAutoModeForSkier(pausedSkierId);
+        };
+        state.currentAutoModeForRun = getActiveAutoModeForSkier(pausedSkierId);
         state.message = "Resuming paused skier. Choose your next step.";
       } else if (!state.activeRun) {
         let nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
@@ -2660,26 +2671,26 @@
           dealSkiers(player, 4);
           nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
         }
-      if (!nextSkierId) {
-        state.message = "All skiers used. Game over!";
-        state.gameEnded = true;
-        showScoreModal();
-        if (state.fullAuto) {
-          if (state.fullAutoTimeoutId) {
-            clearTimeout(state.fullAutoTimeoutId);
-          }
-          state.fullAutoTimeoutId = setTimeout(() => {
-            state.fullAutoGames += 1;
-            if (state.fullAutoGames % 2 === 0) {
-              setNightSkiing(!state.nightSkiing);
+        if (!nextSkierId) {
+          state.message = "All skiers used. Game over!";
+          state.gameEnded = true;
+          showScoreModal();
+          if (state.fullAuto) {
+            if (state.fullAutoTimeoutId) {
+              clearTimeout(state.fullAutoTimeoutId);
             }
-            beginGame();
-            runFullAutoLoop();
-          }, 3000);
+            state.fullAutoTimeoutId = setTimeout(() => {
+              state.fullAutoGames += 1;
+              if (state.fullAutoGames % 2 === 0) {
+                setNightSkiing(!state.nightSkiing);
+              }
+              beginGame();
+              runFullAutoLoop();
+            }, 3000);
+          }
+          render();
+          return;
         }
-        render();
-        return;
-      }
         const startSlots = getStartSlots();
         state.awaitingStartChoice = true;
         if (startSlots.length === 1) {
@@ -2689,6 +2700,18 @@
         }
       }
       render();
+      if (state.autoFreeUp) {
+        setTimeout(() => {
+          if (state.awaitingStartChoice && !state.gameEnded) {
+            const startSlots = getStartSlots();
+            if (startSlots.length) {
+              startRunAt(startSlots[0]);
+              runFullAutoLoop();
+              render();
+            }
+          }
+        }, 300);
+      }
     }
 
     function startRunAt(slotIdChoice) {
@@ -3285,24 +3308,26 @@
       token.style.left = `${startX}px`;
       token.style.top = `${startY}px`;
       mountainEl.appendChild(token);
+      const isRabbit = state.animationSpeed === "RABBIT";
+      const duration = isRabbit ? 700 : 1400;
       token.animate(
         [
           { transform: "translate(-50%, -50%)", opacity: 0.9 },
           { transform: "translate(-50%, -50%)", opacity: 0.2, offset: 0.9 },
           { transform: "translate(-50%, -50%)", opacity: 0 }
         ],
-        { duration: 1400, easing: "ease-in-out", fill: "forwards" }
+        { duration, easing: "ease-in-out", fill: "forwards" }
       );
       token.animate(
         [
           { left: `${startX}px`, top: `${startY}px` },
           { left: `${endX}px`, top: `${endY}px` }
         ],
-        { duration: 1400, easing: "ease-in-out", fill: "forwards" }
+        { duration, easing: "ease-in-out", fill: "forwards" }
       );
       setTimeout(() => {
         token.remove();
-      }, 1500);
+      }, duration + 100);
     }
 
     function renderCoachPanel() {
@@ -3946,6 +3971,11 @@
               return;
             }
             state.autoStrategy = strategy.key;
+            if (strategy.key === "FREE_UP") {
+              state.autoFreeUp = true;
+            } else {
+              state.autoFreeUp = false;
+            }
             state.fullAuto = true;
             runFullAutoLoop();
             render();
@@ -4198,6 +4228,11 @@
           (mode === "ON" && state.coachTrusted) || (mode === "OFF" && !state.coachTrusted)
         );
       });
+      const animationButtons = document.querySelectorAll("[data-animation-speed]");
+      animationButtons.forEach((button) => {
+        const speed = button.dataset.animationSpeed;
+        button.classList.toggle("active", speed === state.animationSpeed);
+      });
     }
 
     function showHighScoreModal(show) {
@@ -4353,6 +4388,9 @@
 
     function getActiveAutoModeForSkier(skierId) {
       if (state.autoStrategy === "MANUAL") {
+        return state.autoMode || "MATCH";
+      }
+      if (state.autoStrategy === "FREE_UP") {
         return state.autoMode || "MATCH";
       }
       if (state.autoStrategy === "SCHEDULED") {
@@ -4811,6 +4849,12 @@
       button.addEventListener("click", () => {
         state.coachTrusted = button.dataset.coachTrusted === "ON";
         render();
+        renderPowderModal();
+      });
+    });
+    document.querySelectorAll("[data-animation-speed]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.animationSpeed = button.dataset.animationSpeed;
         renderPowderModal();
       });
     });
