@@ -399,6 +399,7 @@
       gap: 16px;
       justify-items: center;
       padding: 12px 0;
+      min-height: 520px;
     }
     .first-person-skier {
       display: flex;
@@ -414,6 +415,39 @@
       min-width: 420px;
       min-height: 320px;
     }
+    .first-person-now {
+      text-align: center;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      font-size: 12px;
+      opacity: 0.5;
+    }
+    .first-person-lanes {
+      display: grid;
+      gap: 6px;
+    }
+    .first-person-tier {
+      padding: 6px;
+      border-radius: 12px;
+      border: 2px solid rgba(148, 163, 184, 0.25);
+      background: rgba(255, 255, 255, 0.65);
+    }
+    .first-person-tier.next-tier {
+      background: rgba(148, 163, 184, 0.16);
+    }
+    .first-person-tier.later-tier {
+      background: rgba(148, 163, 184, 0.08);
+    }
+    body.night-skiing .first-person-tier {
+      background: rgba(15, 23, 42, 0.65);
+      border-color: rgba(226, 232, 240, 0.2);
+    }
+    body.night-skiing .first-person-tier.next-tier {
+      background: rgba(30, 41, 59, 0.65);
+    }
+    body.night-skiing .first-person-tier.later-tier {
+      background: rgba(15, 23, 42, 0.4);
+    }
     @media (max-width: 760px) {
       .first-person-view {
         padding: 6px 0;
@@ -428,6 +462,10 @@
         width: 48vw;
         min-height: 320px;
         padding: 6px;
+      }
+      .first-person-now {
+        letter-spacing: 0.2em;
+        font-size: 11px;
       }
       .first-person-next {
         flex-direction: column;
@@ -3352,11 +3390,18 @@
       wrapper.appendChild(skierRow);
       const optionsRow = document.createElement("div");
       optionsRow.className = "first-person-options";
+      const nowMarker = document.createElement("div");
+      nowMarker.className = "first-person-now";
+      nowMarker.textContent = "⏱️ NOW";
       const coachActive = state.coachMode === "ON";
       optionIds.forEach((slotIdValue) => {
         const { slot, card } = getSlotData(slotIdValue);
         const button = document.createElement("button");
         button.className = "slot first-person-option";
+        const lane = document.createElement("div");
+        lane.className = "first-person-lanes";
+        const nowTier = document.createElement("div");
+        nowTier.className = "first-person-tier now-tier";
         let label = "Empty";
         let indicator = "";
         if (slot.isLiftZone) {
@@ -3393,11 +3438,15 @@
           ? getCoachOutcomeText(slot, card, state.activeRun ? getSkierCard(state.activeRun.leadSkierId) : getSkierCard(getNextAvailableSkierId()))
           : "";
         const bubbleSide = optionIds.length > 1 && slotIdValue === optionIds[0] ? "left" : "right";
-        button.innerHTML = `
-          ${coachActive ? `<div class="coach-bubble ${bubbleSide}"><div class="bubble-text">${coachText}</div></div>` : ""}
+        const bubbleHtml = coachActive
+          ? `<div class="coach-bubble ${bubbleSide}"><div class="bubble-text">${coachText}</div></div>`
+          : "";
+        nowTier.innerHTML = `
+          ${bubbleHtml}
           <div class="card-label">${label}</div>
           ${indicator ? `<div class="first-person-indicator">${indicator}</div>` : ""}
         `;
+        lane.appendChild(nowTier);
         button.addEventListener("click", () => handleSlotClick(slotIdValue));
         if (visibilityDepth > 1) {
           let currentLevel = [slotIdValue];
@@ -3433,12 +3482,17 @@
               `;
               nextRow.appendChild(nextBadge);
             });
-            button.appendChild(nextRow);
+            const tier = document.createElement("div");
+            tier.className = `first-person-tier ${depth === 1 ? "next-tier" : "later-tier"}`;
+            tier.appendChild(nextRow);
+            lane.appendChild(tier);
             currentLevel = nextLevel;
           }
         }
+        button.appendChild(lane);
         optionsRow.appendChild(button);
       });
+      wrapper.appendChild(nowMarker);
       wrapper.appendChild(optionsRow);
       mountainEl.appendChild(wrapper);
     }
