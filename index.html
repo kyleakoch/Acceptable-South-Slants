@@ -5086,7 +5086,9 @@
       renderPowderModal();
     };
     syncDebugButtons();
-    toggleDebugButton.addEventListener("click", toggleDebugMode);
+    if (toggleDebugButton) {
+      toggleDebugButton.addEventListener("click", toggleDebugMode);
+    }
     if (powderDebugToggle) {
       powderDebugToggle.addEventListener("click", toggleDebugMode);
     });
