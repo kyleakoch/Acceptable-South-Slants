@@ -1737,6 +1737,12 @@
           <button type="button" class="secondary" data-score-mode="COMPETITIVE">Competitive</button>
           <button type="button" class="secondary" data-score-mode="COSMIC">Cosmic</button>
         </div>
+        <div id="cosmicNotationPanel" class="score-mode-buttons" style="display: none;">
+          <button type="button" class="secondary" data-cosmic-notation="SCIENTIFIC">
+            Scientific notation
+          </button>
+          <button type="button" class="secondary" data-cosmic-notation="FULL">Full number</button>
+        </div>
         <div id="scoreModeCurrent" class="score-mode-current"></div>
         <p id="scoreModeDescription" class="status"></p>
         <div id="scoreModeFormula" class="score-mode-formula"></div>
@@ -1973,6 +1979,7 @@
       frameUiEnabled: false,
       animationSpeed: "TURTLE",
       glideAnimationEnabled: true,
+      cosmicNotation: "SCIENTIFIC",
       autoFreeUp: false,
       curling: null,
       usedCrowdCount: 0,
@@ -2464,6 +2471,17 @@
         return value.toExponential(2);
       }
       return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    }
+
+    function formatExpandedNumber(value) {
+      if (!Number.isFinite(value)) return "∞";
+      const isNegative = value < 0;
+      const absValue = Math.abs(value);
+      const hasFraction = Math.abs(absValue - Math.round(absValue)) > 1e-6;
+      const fixedValue = absValue.toFixed(hasFraction ? 2 : 0);
+      const [integerPart, fractionPart] = fixedValue.split(".");
+      const withCommas = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      return `${isNegative ? "-" : ""}${withCommas}${fractionPart ? `.${fractionPart}` : ""}`;
     }
 
     function getScoringMode() {
@@ -4292,6 +4310,14 @@
       const scoreModeFormula = document.getElementById("scoreModeFormula");
       const scoreModeCurrent = document.getElementById("scoreModeCurrent");
       const scoreModeButtons = document.querySelectorAll("[data-score-mode]");
+      const cosmicNotationPanel = document.getElementById("cosmicNotationPanel");
+      const cosmicNotationButtons = document.querySelectorAll("[data-cosmic-notation]");
+      const formatScore = (value) => {
+        if (modeInfo.key === "COSMIC" && state.cosmicNotation === "FULL") {
+          return formatExpandedNumber(value);
+        }
+        return formatNumber(value);
+      };
       if (scoreModeDescription) {
         scoreModeDescription.textContent = modeInfo.description;
       }
@@ -4308,10 +4334,20 @@
         const modeKey = button.dataset.scoreMode;
         button.classList.toggle("active", modeKey === modeInfo.key);
       });
+      if (cosmicNotationPanel) {
+        cosmicNotationPanel.style.display = modeInfo.key === "COSMIC" ? "" : "none";
+      }
+      cosmicNotationButtons.forEach((button) => {
+        const modeKey = button.dataset.cosmicNotation;
+        button.classList.toggle(
+          "active",
+          modeInfo.key === "COSMIC" && modeKey === state.cosmicNotation
+        );
+      });
       if (summaryEl) {
         summaryEl.innerHTML = `
-          High Score (mode): <strong>${formatNumber(modeHighScore)}</strong><br />
-          Current End of Day Score: <strong>${formatNumber(summaryEndDay)}</strong>
+          High Score (mode): <strong>${formatScore(modeHighScore)}</strong><br />
+          Current End of Day Score: <strong>${formatScore(summaryEndDay)}</strong>
         `;
       }
       if (listEl) {
@@ -4324,7 +4360,7 @@
         } else {
           topScores.forEach((entry, index) => {
             const li = document.createElement("li");
-            li.textContent = `#${index + 1} · ${formatNumber(entry.computedEndDayScore)} (final ${formatNumber(
+            li.textContent = `#${index + 1} · ${formatScore(entry.computedEndDayScore)} (final ${formatScore(
               entry.finalScore
             )}, ${entry.exponent}x)`;
             listEl.appendChild(li);
@@ -4335,9 +4371,9 @@
         const lastRun = state.lastRunScore;
         const lastRunEndDay = lastRun ? getEndOfDayScoreForMode(lastRun, modeInfo.key) : 0;
         lastRunEl.innerHTML = lastRun
-          ? `Last run: base ${formatNumber(lastRun.baseTotal)}, mult ${lastRun.mult}×, final ${formatNumber(
+          ? `Last run: base ${formatScore(lastRun.baseTotal)}, mult ${lastRun.mult}×, final ${formatScore(
               lastRun.finalScore
-            )}, end-day ${formatNumber(lastRunEndDay)}`
+            )}, end-day ${formatScore(lastRunEndDay)}`
           : "Last run: none yet.";
       }
       if (podiumEl) {
@@ -4892,6 +4928,12 @@
       button.addEventListener("click", () => {
         state.scoringMode = button.dataset.scoreMode;
         render();
+        renderHighScoreModal();
+      });
+    });
+    document.querySelectorAll("[data-cosmic-notation]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.cosmicNotation = button.dataset.cosmicNotation;
         renderHighScoreModal();
       });
     });
