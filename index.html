@@ -10,6 +10,8 @@
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       --slot-min: 70px;
       --slot-gap: 8px;
+      --sidebar-width: 0px;
+      --sidebar-gap: 0px;
     }
     body.night-skiing {
       background: #0b1220;
@@ -238,6 +240,12 @@
     @media (max-width: 900px) {
       main {
         grid-template-columns: 1fr;
+      }
+    }
+    @media (min-width: 900px) {
+      :root {
+        --sidebar-width: 360px;
+        --sidebar-gap: 20px;
       }
     }
     @media (max-width: 600px) {
@@ -884,18 +892,18 @@
     }
     .frame-ui-enabled .mountain-header {
       top: 8px;
-      left: 50%;
+      left: calc(50% - (var(--sidebar-width) + var(--sidebar-gap)) / 2);
       transform: translateX(-50%);
-      width: min(960px, calc(100% - 24px));
+      width: min(960px, calc(100% - 24px - var(--sidebar-width) - var(--sidebar-gap)));
     }
     .frame-ui-enabled .mountain-panel {
       padding-top: 72px;
     }
     .frame-ui-enabled .tram-controls {
       bottom: 8px;
-      left: 50%;
+      left: calc(50% - (var(--sidebar-width) + var(--sidebar-gap)) / 2);
       transform: translateX(-50%);
-      width: min(520px, calc(100% - 24px));
+      width: min(520px, calc(100% - 24px - var(--sidebar-width) - var(--sidebar-gap)));
     }
     body.night-skiing.frame-ui-enabled .mountain-header,
     body.night-skiing.frame-ui-enabled .tram-controls {
