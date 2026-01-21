@@ -538,7 +538,7 @@
     }
     .glide-token {
       position: absolute;
-      z-index: 5;
+      z-index: 1;
       pointer-events: none;
     }
     .curling-board {
@@ -911,11 +911,16 @@
       display: inline-flex;
       align-items: center;
     }
-    .goggles-button {
+    .debug-toggle-stack {
       position: absolute;
       left: 50%;
       top: 0;
       transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .debug-toggle-stack .goggles-button {
       border: none;
       background: transparent;
       font-size: 28px;
@@ -924,7 +929,7 @@
       padding: 0;
       line-height: 1;
     }
-    .debug-enabled .goggles-button {
+    .debug-enabled .debug-toggle-stack .goggles-button {
       display: inline-flex;
     }
     .debug-enabled .auto-modes {
@@ -1210,7 +1215,7 @@
     .score-modal {
       position: fixed;
       inset: 0;
-      z-index: 25;
+      z-index: 60;
       display: none;
       align-items: center;
       justify-content: center;
@@ -1229,6 +1234,8 @@
       z-index: 2;
       display: grid;
       gap: 12px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .modal-header {
       display: flex;
@@ -1322,7 +1329,7 @@
     .schedule-modal {
       position: fixed;
       inset: 0;
-      z-index: 26;
+      z-index: 60;
       display: none;
       align-items: center;
       justify-content: center;
@@ -1339,11 +1346,13 @@
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
       display: grid;
       gap: 12px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .high-score-modal {
       position: fixed;
       inset: 0;
-      z-index: 26;
+      z-index: 60;
       display: none;
       align-items: center;
       justify-content: center;
@@ -1360,6 +1369,8 @@
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
       display: grid;
       gap: 12px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .score-mode-panel {
       display: grid;
@@ -1454,7 +1465,7 @@
     .powder-modal {
       position: fixed;
       inset: 0;
-      z-index: 26;
+      z-index: 60;
       display: none;
       align-items: center;
       justify-content: center;
@@ -1768,7 +1779,26 @@
           <button id="powderButton" class="title-button" type="button" aria-label="Powder settings">❄️</button>
           <button id="highScoreButton" class="title-button" type="button" aria-label="High scores">👑</button>
         </h2>
-        <button id="firstPersonToggle" class="goggles-button" type="button" aria-label="Toggle first person view" aria-pressed="false">🥽</button>
+        <div class="debug-toggle-stack">
+          <button
+            id="firstPersonToggle"
+            class="goggles-button"
+            type="button"
+            aria-label="Toggle first person view"
+            aria-pressed="false"
+          >
+            🥽
+          </button>
+          <button
+            id="frameUiToggle"
+            class="goggles-button"
+            type="button"
+            aria-label="Toggle frame UI"
+            aria-pressed="false"
+          >
+            🖼️
+          </button>
+        </div>
         <div class="mountain-actions">
           <button id="peakButton" class="mode-button" type="button" aria-label="Select peak">
             <span id="peakIcon">🏔️¹</span>
@@ -3302,6 +3332,7 @@
         fullAutoButton.textContent = state.fullAuto ? "Stop auto" : "Full auto";
       }
       updateFirstPersonToggle();
+      updateFrameUiToggle();
     }
 
     function runGlideAnimation() {
@@ -3792,6 +3823,13 @@
       if (!toggle) return;
       toggle.setAttribute("aria-pressed", state.firstPersonView ? "true" : "false");
       document.body.classList.toggle("first-person-enabled", state.firstPersonView);
+    }
+
+    function updateFrameUiToggle() {
+      const toggle = document.getElementById("frameUiToggle");
+      if (!toggle) return;
+      toggle.setAttribute("aria-pressed", state.frameUiEnabled ? "true" : "false");
+      toggle.classList.toggle("active", state.frameUiEnabled);
     }
 
     function updateTramControls() {
@@ -4886,6 +4924,12 @@
       if (!document.body.classList.contains("debug-enabled")) return;
       state.firstPersonView = !state.firstPersonView;
       render();
+    });
+    document.getElementById("frameUiToggle").addEventListener("click", () => {
+      if (!document.body.classList.contains("debug-enabled")) return;
+      state.frameUiEnabled = !state.frameUiEnabled;
+      render();
+      renderPowderModal();
     });
     document.getElementById("powderOverlayToggle").addEventListener("click", () => {
       state.emojiOverlayEnabled = !state.emojiOverlayEnabled;
