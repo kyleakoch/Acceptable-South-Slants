@@ -1690,6 +1690,14 @@
             <button type="button" class="secondary" data-coach-mode="OFF">Off</button>
           </div>
         </div>
+        <div class="powder-item">
+          <strong>Trusted Coach</strong>
+          <div class="powder-current">Allow full card details in coach tips.</div>
+          <div class="powder-options">
+            <button type="button" class="secondary" data-coach-trusted="ON">On</button>
+            <button type="button" class="secondary" data-coach-trusted="OFF">Off</button>
+          </div>
+        </div>
         <div class="powder-item" id="frameUiSetting" style="display: none;">
           <strong>Frame UI 🖼️</strong>
           <div class="powder-current">Keep controls pinned while panning the mountain.</div>
@@ -1947,6 +1955,7 @@
       musicIndex: 0,
       loopCurrentTrack: false,
       lastGlide: null,
+      coachTrusted: false,
       frameUiEnabled: false,
       curling: null,
       usedCrowdCount: 0,
@@ -2726,6 +2735,10 @@
       }
       if (!card) {
         return slot.lastResult ? "Cleared path." : "No condition.";
+      }
+      if (!state.coachTrusted && !slot.isFaceUp && card.type === "CONDITION") {
+        const symbol = getSymbol(card).icon;
+        return `Reveal this ${symbol} run.`;
       }
       if (!skierCard) {
         return `Approach ${card.rank}${getSymbol(card).icon}.`;
@@ -4167,6 +4180,14 @@
         const mode = button.dataset.coachMode;
         button.classList.toggle("active", mode === state.coachMode);
       });
+      const trustedButtons = document.querySelectorAll("[data-coach-trusted]");
+      trustedButtons.forEach((button) => {
+        const mode = button.dataset.coachTrusted;
+        button.classList.toggle(
+          "active",
+          (mode === "ON" && state.coachTrusted) || (mode === "OFF" && !state.coachTrusted)
+        );
+      });
     }
 
     function showHighScoreModal(show) {
@@ -4772,6 +4793,13 @@
     document.querySelectorAll("[data-coach-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         state.coachMode = button.dataset.coachMode;
+        render();
+        renderPowderModal();
+      });
+    });
+    document.querySelectorAll("[data-coach-trusted]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.coachTrusted = button.dataset.coachTrusted === "ON";
         render();
         renderPowderModal();
       });
