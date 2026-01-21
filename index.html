@@ -861,6 +861,27 @@
       margin-bottom: 4px;
       position: relative;
     }
+    .frame-ui-enabled .mountain-header,
+    .frame-ui-enabled .tram-controls {
+      position: sticky;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(6px);
+      border-radius: 14px;
+      padding: 6px 10px;
+      border: 2px solid rgba(15, 23, 42, 0.12);
+    }
+    .frame-ui-enabled .mountain-header {
+      top: 8px;
+    }
+    .frame-ui-enabled .tram-controls {
+      bottom: 8px;
+    }
+    body.night-skiing.frame-ui-enabled .mountain-header,
+    body.night-skiing.frame-ui-enabled .tram-controls {
+      background: rgba(15, 23, 42, 0.88);
+      border-color: rgba(226, 232, 240, 0.2);
+    }
     .mountain-header h2 {
       margin: 0;
     }
@@ -1669,6 +1690,14 @@
             <button type="button" class="secondary" data-coach-mode="OFF">Off</button>
           </div>
         </div>
+        <div class="powder-item" id="frameUiSetting" style="display: none;">
+          <strong>Frame UI 🖼️</strong>
+          <div class="powder-current">Keep controls pinned while panning the mountain.</div>
+          <div class="powder-options">
+            <button type="button" class="secondary" data-frame-ui="ON">On</button>
+            <button type="button" class="secondary" data-frame-ui="OFF">Off</button>
+          </div>
+        </div>
       </div>
       <div class="modal-actions">
         <button id="powderClose" class="secondary">Close</button>
@@ -1918,6 +1947,7 @@
       musicIndex: 0,
       loopCurrentTrack: false,
       lastGlide: null,
+      frameUiEnabled: false,
       curling: null,
       usedCrowdCount: 0,
       skierCounter: 0
@@ -3190,6 +3220,7 @@
       renderFinishZone();
       renderCoachPanel();
       renderSidebar();
+      document.body.classList.toggle("frame-ui-enabled", state.frameUiEnabled);
       const coachButton = document.getElementById("coachButton");
       if (coachButton) {
         coachButton.classList.toggle("active", state.coachMode !== "OFF");
@@ -4075,6 +4106,18 @@
       if (overlayToggle) {
         overlayToggle.textContent = state.emojiOverlayEnabled ? "On" : "Off";
       }
+      const frameSetting = document.getElementById("frameUiSetting");
+      if (frameSetting) {
+        frameSetting.style.display = document.body.classList.contains("debug-enabled") ? "grid" : "none";
+      }
+      const frameButtons = document.querySelectorAll("[data-frame-ui]");
+      frameButtons.forEach((button) => {
+        const mode = button.dataset.frameUi;
+        button.classList.toggle(
+          "active",
+          (mode === "ON" && state.frameUiEnabled) || (mode === "OFF" && !state.frameUiEnabled)
+        );
+      });
       const musicTitle = document.getElementById("musicTitle");
       if (musicTitle) {
         const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
@@ -4733,6 +4776,13 @@
         renderPowderModal();
       });
     });
+    document.querySelectorAll("[data-frame-ui]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.frameUiEnabled = button.dataset.frameUi === "ON";
+        render();
+        renderPowderModal();
+      });
+    });
     document.querySelectorAll("[data-score-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         state.scoringMode = button.dataset.scoreMode;
@@ -4779,6 +4829,9 @@
       document.body.classList.toggle("hide-coords");
       const debugEnabled = !document.body.classList.contains("hide-coords");
       document.body.classList.toggle("debug-enabled", debugEnabled);
+      if (!debugEnabled) {
+        state.frameUiEnabled = false;
+      }
       toggleDebugButton.textContent = document.body.classList.contains("hide-coords")
         ? "Show debug"
         : "Hide debug";
