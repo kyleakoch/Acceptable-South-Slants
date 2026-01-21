@@ -156,6 +156,8 @@
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
       display: grid;
       gap: 16px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .mode-grid {
       display: grid;
@@ -863,8 +865,8 @@
     }
     .frame-ui-enabled .mountain-header,
     .frame-ui-enabled .tram-controls {
-      position: sticky;
-      z-index: 20;
+      position: fixed;
+      z-index: 30;
       background: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(6px);
       border-radius: 14px;
@@ -873,9 +875,15 @@
     }
     .frame-ui-enabled .mountain-header {
       top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(960px, calc(100% - 24px));
     }
     .frame-ui-enabled .tram-controls {
       bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(520px, calc(100% - 24px));
     }
     body.night-skiing.frame-ui-enabled .mountain-header,
     body.night-skiing.frame-ui-enabled .tram-controls {
@@ -1460,6 +1468,8 @@
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
       display: grid;
       gap: 12px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .powder-grid {
       display: grid;
@@ -4891,6 +4901,15 @@
       showModeOverlay(true);
     });
     document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        hideScoreModal();
+        closeScheduleModal();
+        showHighScoreModal(false);
+        showPowderModal(false);
+        showModeOverlay(false);
+        showIntroOverlay(false);
+        return;
+      }
       if (!state.loadingDismissed) {
         finalizeLoading();
         showIntroOverlay(false);
