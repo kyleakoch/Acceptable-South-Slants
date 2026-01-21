@@ -1064,6 +1064,13 @@
       color: #e2e8f0;
       border-color: rgba(226, 232, 240, 0.6);
     }
+    .coach-timing {
+      margin-top: 6px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
     .coach-card::after {
       content: "";
       position: absolute;
@@ -1076,6 +1083,43 @@
     }
     body.night-skiing .coach-card::after {
       border-color: rgba(226, 232, 240, 0.6) transparent transparent;
+    }
+    .input-buffer {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 6px 0;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .input-buffer.active {
+      display: flex;
+    }
+    .input-buffer .buffer-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #0f172a;
+      font-size: 16px;
+      letter-spacing: normal;
+      text-transform: none;
+    }
+    body.night-skiing .input-buffer {
+      color: #94a3b8;
+    }
+    body.night-skiing .input-buffer .buffer-pill {
+      background: rgba(148, 163, 184, 0.15);
+      border-color: rgba(148, 163, 184, 0.35);
+      color: #e2e8f0;
     }
     .coach-summary {
       display: grid;
@@ -1732,6 +1776,14 @@
           </div>
         </div>
         <div class="powder-item">
+          <strong>Arcade Mode (beta)</strong>
+          <div class="powder-current">Buffer up to 3 moves and score timing.</div>
+          <div class="powder-options">
+            <button type="button" class="secondary" data-arcade-mode="ON">On</button>
+            <button type="button" class="secondary" data-arcade-mode="OFF">Off</button>
+          </div>
+        </div>
+        <div class="powder-item">
           <strong>Trusted Coach</strong>
           <div class="powder-current">Allow full card details in coach tips.</div>
           <div class="powder-options">
@@ -1832,6 +1884,7 @@
         <div id="finishTokens" class="finish-zone-tokens"></div>
       </div>
       <div id="coachPanel" class="coach-panel" aria-live="polite"></div>
+      <div id="inputBuffer" class="input-buffer" aria-live="polite"></div>
       <div class="tram-controls" aria-label="Lift zone controls">
         <button id="tramLeftButton" class="secondary" type="button" aria-label="Move left">👈</button>
         <button id="tramCycleButton" class="secondary" type="button" aria-label="Cycle lift zone">🚡</button>
@@ -2030,6 +2083,12 @@
       animationSpeed: "TURTLE",
       glideAnimationEnabled: true,
       cosmicNotation: "SCIENTIFIC",
+      arcadeMode: false,
+      inputBuffer: [],
+      lastMoveAt: null,
+      lastTiming: null,
+      lastInputAt: null,
+      bufferRunning: false,
       autoFreeUp: false,
       curling: null,
       usedCrowdCount: 0,
@@ -2069,6 +2128,11 @@
       { key: "TURTLE", label: "🐢" },
       { key: "RABBIT", label: "🐇" }
     ];
+    const ARCADE_BUFFER_LIMIT = 3;
+    const ARCADE_TARGET_INTERVAL_MS = 700;
+    const ARCADE_PERFECT_WINDOW_MS = 150;
+    const ARCADE_OK_WINDOW_MS = 320;
+    const ARCADE_EXECUTION_DELAY_MS = 260;
     const HAND_EMOJI_OPTIONS = [
       { key: "DEFAULT", label: "👈👉", left: "👈", right: "👉" },
       { key: "LIGHT", label: "👈🏻👉🏻", left: "👈🏻", right: "👉🏻" },
@@ -2689,6 +2753,10 @@
       state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
       state.autoCancelled = false;
       state.lastRunToken = null;
+      state.inputBuffer = [];
+      state.lastInputAt = null;
+      state.lastTiming = null;
+      state.bufferRunning = false;
       state.coachMode = "ON";
       state.coachTipShown = state.coachTipShown || false;
       state.endTipShown = state.endTipShown || false;
@@ -3333,6 +3401,7 @@
       runGlideAnimation();
       renderFinishZone();
       renderCoachPanel();
+      renderInputBuffer();
       renderSidebar();
       document.body.classList.toggle("frame-ui-enabled", state.frameUiEnabled);
       const coachButton = document.getElementById("coachButton");
@@ -3411,15 +3480,41 @@
       const turnText = getTurnCounterText();
       const statusText = state.message || "Pick a direction to begin.";
       const coachLabel = state.coachMode === "CRUISE" ? "Cruising" : "Coach";
+      const timingText =
+        state.arcadeMode && state.lastTiming ? `<div class="coach-timing">Timing: ${state.lastTiming}</div>` : "";
       coachPanel.innerHTML = `
         <div class="coach-card">
           <div class="coach-summary">
             <strong>🗣️ ${coachLabel}</strong>
             <div>${turnText}</div>
             <div>${statusText}</div>
+            ${timingText}
           </div>
         </div>
       `;
+    }
+
+    function renderInputBuffer() {
+      const bufferEl = document.getElementById("inputBuffer");
+      if (!bufferEl) return;
+      const isActive =
+        state.arcadeMode
+        && state.firstPersonView
+        && state.mode !== "CURLING"
+        && !state.gameEnded;
+      bufferEl.classList.toggle("active", isActive);
+      if (!isActive) {
+        bufferEl.innerHTML = "";
+        return;
+      }
+      const labelMap = {
+        LEFT: "⬅️",
+        RIGHT: "➡️"
+      };
+      const bufferPills = state.inputBuffer
+        .map((entry) => `<span class="buffer-pill">${labelMap[entry] || "•"}</span>`)
+        .join("");
+      bufferEl.innerHTML = `Buffer ${bufferPills || "—"}`;
     }
 
     function renderFinishZone() {
@@ -3860,7 +3955,42 @@
       }
     }
 
-    function handleDirectionalMove(direction) {
+    function getTimingQuality(now) {
+      if (!state.lastInputAt) return "Ready";
+      const delta = now - state.lastInputAt;
+      const diff = Math.abs(delta - ARCADE_TARGET_INTERVAL_MS);
+      if (diff <= ARCADE_PERFECT_WINDOW_MS) return "Perfect";
+      if (diff <= ARCADE_OK_WINDOW_MS) return "Good";
+      return delta < ARCADE_TARGET_INTERVAL_MS ? "Early" : "Late";
+    }
+
+    function processNextArcadeMove() {
+      if (!state.inputBuffer.length) {
+        state.bufferRunning = false;
+        renderInputBuffer();
+        return;
+      }
+      state.bufferRunning = true;
+      const direction = state.inputBuffer.shift();
+      renderInputBuffer();
+      executeDirectionalMove(direction);
+      render();
+      setTimeout(processNextArcadeMove, ARCADE_EXECUTION_DELAY_MS);
+    }
+
+    function enqueueArcadeMove(direction) {
+      if (state.inputBuffer.length >= ARCADE_BUFFER_LIMIT) return;
+      const now = Date.now();
+      state.lastTiming = getTimingQuality(now);
+      state.lastInputAt = now;
+      state.inputBuffer.push(direction);
+      renderInputBuffer();
+      if (!state.bufferRunning) {
+        processNextArcadeMove();
+      }
+    }
+
+    function executeDirectionalMove(direction) {
       if (!state.gameStarted || state.gameEnded) return;
       if (state.awaitingStartChoice) {
         const startSlots = getStartSlots();
@@ -3882,6 +4012,14 @@
       } else {
         moveTo(options[options.length - 1]);
       }
+    }
+
+    function handleDirectionalMove(direction) {
+      if (state.arcadeMode && state.firstPersonView) {
+        enqueueArcadeMove(direction);
+        return;
+      }
+      executeDirectionalMove(direction);
     }
 
     function isSelectableSlot(id) {
@@ -4328,6 +4466,14 @@
       coachButtons.forEach((button) => {
         const mode = button.dataset.coachMode;
         button.classList.toggle("active", mode === state.coachMode);
+      });
+      const arcadeButtons = document.querySelectorAll("[data-arcade-mode]");
+      arcadeButtons.forEach((button) => {
+        const mode = button.dataset.arcadeMode;
+        button.classList.toggle(
+          "active",
+          (mode === "ON" && state.arcadeMode) || (mode === "OFF" && !state.arcadeMode)
+        );
       });
       const trustedButtons = document.querySelectorAll("[data-coach-trusted]");
       trustedButtons.forEach((button) => {
@@ -4969,6 +5115,19 @@
     document.querySelectorAll("[data-coach-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         state.coachMode = button.dataset.coachMode;
+        render();
+        renderPowderModal();
+      });
+    });
+    document.querySelectorAll("[data-arcade-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.arcadeMode = button.dataset.arcadeMode === "ON";
+        if (!state.arcadeMode) {
+          state.inputBuffer = [];
+          state.lastInputAt = null;
+          state.lastTiming = null;
+          state.bufferRunning = false;
+        }
         render();
         renderPowderModal();
       });
