@@ -1708,14 +1708,6 @@
             <button type="button" class="secondary" data-coach-trusted="OFF">Off</button>
           </div>
         </div>
-        <div class="powder-item">
-          <strong>Animation Speed</strong>
-          <div class="powder-current">Controls how tokens glide between slots.</div>
-          <div class="powder-options">
-            <button type="button" class="secondary" data-animation-speed="TURTLE">🐢</button>
-            <button type="button" class="secondary" data-animation-speed="RABBIT">🐇</button>
-          </div>
-        </div>
         <div class="powder-item" id="frameUiSetting" style="display: none;">
           <strong>Frame UI 🖼️</strong>
           <div class="powder-current">Keep controls pinned while panning the mountain.</div>
@@ -1803,6 +1795,10 @@
         <div class="auto-speed">
           <div class="footer-note">Auto speed</div>
           <div class="speed-grid"></div>
+        </div>
+        <div class="auto-speed glide-animation">
+          <div class="footer-note" id="glideAnimationStatus">Glide animation: Off</div>
+          <div class="speed-grid glide-grid"></div>
         </div>
       </div>
     </section>
@@ -1976,6 +1972,7 @@
       coachTrusted: false,
       frameUiEnabled: false,
       animationSpeed: "TURTLE",
+      glideAnimationEnabled: true,
       autoFreeUp: false,
       curling: null,
       usedCrowdCount: 0,
@@ -2010,6 +2007,10 @@
       { key: "ONE_X", label: "1x", delay: 1000 },
       { key: "TWO_X", label: "2X", delay: 250 },
       { key: "INSTANT", label: "Instant", delay: 0 }
+    ];
+    const GLIDE_SPEEDS = [
+      { key: "TURTLE", label: "🐢" },
+      { key: "RABBIT", label: "🐇" }
     ];
     const HAND_EMOJI_OPTIONS = [
       { key: "DEFAULT", label: "👈👉", left: "👈", right: "👉" },
@@ -3286,7 +3287,7 @@
     function runGlideAnimation() {
       if (state.mode === "CURLING") return;
       if (state.firstPersonView) return;
-      if (state.autoSpeed !== "TURTLE") return;
+      if (!state.glideAnimationEnabled) return;
       if (!state.lastGlide || !state.activeRun) return;
       const { from, to } = state.lastGlide;
       state.lastGlide = null;
@@ -4004,6 +4005,39 @@
         });
         speedGrid.appendChild(button);
       });
+      const glideGrid = autoModesEl.querySelector(".glide-grid");
+      const glideStatus = document.getElementById("glideAnimationStatus");
+      if (glideGrid) {
+        glideGrid.innerHTML = "";
+        GLIDE_SPEEDS.forEach((speed) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = speed.label;
+          if (state.glideAnimationEnabled && state.animationSpeed === speed.key) {
+            button.classList.add("active");
+          }
+          button.addEventListener("click", () => {
+            if (state.glideAnimationEnabled && state.animationSpeed === speed.key) {
+              state.glideAnimationEnabled = false;
+              render();
+              return;
+            }
+            state.animationSpeed = speed.key;
+            state.glideAnimationEnabled = true;
+            render();
+          });
+          glideGrid.appendChild(button);
+        });
+      }
+      if (glideStatus) {
+        if (state.glideAnimationEnabled) {
+          const speedLabel =
+            GLIDE_SPEEDS.find((speed) => speed.key === state.animationSpeed)?.label || "🐢";
+          glideStatus.textContent = `Glide animation: ${speedLabel}`;
+        } else {
+          glideStatus.textContent = "Glide animation: Off";
+        }
+      }
 
       queueEl.innerHTML = "";
       const activeSkierId = state.activeRun?.leadSkierId || null;
@@ -4227,11 +4261,6 @@
           "active",
           (mode === "ON" && state.coachTrusted) || (mode === "OFF" && !state.coachTrusted)
         );
-      });
-      const animationButtons = document.querySelectorAll("[data-animation-speed]");
-      animationButtons.forEach((button) => {
-        const speed = button.dataset.animationSpeed;
-        button.classList.toggle("active", speed === state.animationSpeed);
       });
     }
 
@@ -4849,12 +4878,6 @@
       button.addEventListener("click", () => {
         state.coachTrusted = button.dataset.coachTrusted === "ON";
         render();
-        renderPowderModal();
-      });
-    });
-    document.querySelectorAll("[data-animation-speed]").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.animationSpeed = button.dataset.animationSpeed;
         renderPowderModal();
       });
     });
