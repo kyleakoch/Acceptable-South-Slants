@@ -415,14 +415,27 @@
       min-height: 320px;
     }
     @media (max-width: 760px) {
+      .first-person-view {
+        padding: 6px 0;
+      }
       .first-person-options {
-        flex-direction: column;
-        align-items: center;
+        flex-wrap: nowrap;
+        gap: 10px;
+        align-items: stretch;
       }
       .first-person-option {
         min-width: 0;
-        width: min(92vw, 420px);
-        min-height: 260px;
+        width: 48vw;
+        min-height: 320px;
+        padding: 6px;
+      }
+      .first-person-next {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      .first-person-next .next-card {
+        width: 100%;
       }
       .coach-bubble {
         position: static;
