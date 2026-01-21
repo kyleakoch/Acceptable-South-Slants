@@ -879,6 +879,9 @@
       transform: translateX(-50%);
       width: min(960px, calc(100% - 24px));
     }
+    .frame-ui-enabled .mountain-panel {
+      padding-top: 72px;
+    }
     .frame-ui-enabled .tram-controls {
       bottom: 8px;
       left: 50%;
@@ -2639,7 +2642,6 @@
       state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
       state.autoCancelled = false;
       state.lastRunToken = null;
-      state.firstPersonView = true;
       state.coachMode = "ON";
       state.coachTipShown = state.coachTipShown || false;
       state.endTipShown = state.endTipShown || false;
