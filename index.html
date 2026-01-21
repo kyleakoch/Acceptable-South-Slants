@@ -10,6 +10,8 @@
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       --slot-min: 70px;
       --slot-gap: 8px;
+      --sidebar-width: 0px;
+      --sidebar-gap: 0px;
     }
     body.night-skiing {
       background: #0b1220;
@@ -238,6 +240,12 @@
     @media (max-width: 900px) {
       main {
         grid-template-columns: 1fr;
+      }
+    }
+    @media (min-width: 900px) {
+      :root {
+        --sidebar-width: 360px;
+        --sidebar-gap: 20px;
       }
     }
     @media (max-width: 600px) {
@@ -884,18 +892,18 @@
     }
     .frame-ui-enabled .mountain-header {
       top: 8px;
-      left: 50%;
+      left: calc(50% - (var(--sidebar-width) + var(--sidebar-gap)) / 2);
       transform: translateX(-50%);
-      width: min(960px, calc(100% - 24px));
+      width: min(960px, calc(100% - 24px - var(--sidebar-width) - var(--sidebar-gap)));
     }
     .frame-ui-enabled .mountain-panel {
       padding-top: 72px;
     }
     .frame-ui-enabled .tram-controls {
       bottom: 8px;
-      left: 50%;
+      left: calc(50% - (var(--sidebar-width) + var(--sidebar-gap)) / 2);
       transform: translateX(-50%);
-      width: min(520px, calc(100% - 24px));
+      width: min(520px, calc(100% - 24px - var(--sidebar-width) - var(--sidebar-gap)));
     }
     body.night-skiing.frame-ui-enabled .mountain-header,
     body.night-skiing.frame-ui-enabled .tram-controls {
@@ -1262,6 +1270,17 @@
       cursor: pointer;
       padding: 0;
       line-height: 1;
+    }
+    .modal-icon-button {
+      border: none;
+      background: transparent;
+      font-size: 26px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    .modal-icon-button.active {
+      filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
     }
     .score-modal .score-hero {
       font-size: clamp(28px, 5vw, 40px);
@@ -1677,7 +1696,18 @@
   </div>
   <div id="powderModal" class="powder-modal" aria-live="polite">
     <div class="modal-card">
-      <h2>Powder Settings</h2>
+      <div class="modal-header">
+        <h2>Powder Settings</h2>
+        <button
+          id="powderDebugToggle"
+          class="modal-icon-button"
+          type="button"
+          aria-label="Toggle debug mode"
+          aria-pressed="false"
+        >
+          🐞
+        </button>
+      </div>
       <div class="powder-grid">
         <div class="powder-item">
           <strong>Now playing</strong>
@@ -4260,6 +4290,12 @@
       if (overlayToggle) {
         overlayToggle.textContent = state.emojiOverlayEnabled ? "On" : "Off";
       }
+      const powderDebugToggle = document.getElementById("powderDebugToggle");
+      if (powderDebugToggle) {
+        const debugEnabled = document.body.classList.contains("debug-enabled");
+        powderDebugToggle.classList.toggle("active", debugEnabled);
+        powderDebugToggle.setAttribute("aria-pressed", debugEnabled ? "true" : "false");
+      }
       const frameSetting = document.getElementById("frameUiSetting");
       if (frameSetting) {
         frameSetting.style.display = document.body.classList.contains("debug-enabled") ? "grid" : "none";
@@ -5025,19 +5061,34 @@
       if (scoreTipText) scoreTipText.textContent = "";
     });
     const toggleDebugButton = document.getElementById("toggleDebug");
+    const powderDebugToggle = document.getElementById("powderDebugToggle");
     document.body.classList.add("hide-coords");
     document.body.classList.toggle("debug-enabled", false);
-    toggleDebugButton.addEventListener("click", () => {
+    const syncDebugButtons = () => {
+      const debugEnabled = document.body.classList.contains("debug-enabled");
+      if (toggleDebugButton) {
+        toggleDebugButton.textContent = debugEnabled ? "Hide debug" : "Show debug";
+      }
+      if (powderDebugToggle) {
+        powderDebugToggle.classList.toggle("active", debugEnabled);
+        powderDebugToggle.setAttribute("aria-pressed", debugEnabled ? "true" : "false");
+      }
+    };
+    const toggleDebugMode = () => {
       document.body.classList.toggle("hide-coords");
       const debugEnabled = !document.body.classList.contains("hide-coords");
       document.body.classList.toggle("debug-enabled", debugEnabled);
       if (!debugEnabled) {
         state.frameUiEnabled = false;
       }
-      toggleDebugButton.textContent = document.body.classList.contains("hide-coords")
-        ? "Show debug"
-        : "Hide debug";
+      syncDebugButtons();
       render();
+      renderPowderModal();
+    };
+    syncDebugButtons();
+    toggleDebugButton.addEventListener("click", toggleDebugMode);
+    if (powderDebugToggle) {
+      powderDebugToggle.addEventListener("click", toggleDebugMode);
     });
     const loadingScreen = document.getElementById("loadingScreen");
     const loadingEmoji = document.getElementById("loadingEmoji");
@@ -5056,7 +5107,7 @@
         setPeak("PEAK_1");
         document.body.classList.remove("hide-coords");
         document.body.classList.add("debug-enabled");
-        toggleDebugButton.textContent = "Hide debug";
+        syncDebugButtons();
         startFullAuto();
         return;
       }
