@@ -1121,6 +1121,40 @@
       border-color: rgba(148, 163, 184, 0.35);
       color: #e2e8f0;
     }
+    .arcade-hud {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #475569;
+    }
+    .arcade-hud.active {
+      display: flex;
+    }
+    .momentum-bar {
+      width: min(220px, 90%);
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.35);
+      overflow: hidden;
+    }
+    .momentum-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #22c55e);
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+    body.night-skiing .arcade-hud {
+      color: #94a3b8;
+    }
+    body.night-skiing .momentum-bar {
+      background: rgba(148, 163, 184, 0.25);
+    }
     .coach-summary {
       display: grid;
       gap: 4px;
@@ -2087,6 +2121,8 @@
       arcadeBlueprints: [],
       arcadeBlueprintIndex: 0,
       arcadeCurrentBlueprint: null,
+      arcadeStreak: 0,
+      arcadeMomentum: 0,
       inputBuffer: [],
       lastMoveAt: null,
       lastTiming: null,
@@ -2759,6 +2795,8 @@
       state.lastRunToken = null;
       state.arcadeBlueprintIndex = 0;
       state.arcadeCurrentBlueprint = null;
+      state.arcadeStreak = 0;
+      state.arcadeMomentum = 0;
       state.inputBuffer = [];
       state.lastInputAt = null;
       state.lastTiming = null;
@@ -3536,6 +3574,16 @@
       const coachLabel = state.coachMode === "CRUISE" ? "Cruising" : "Coach";
       const timingText =
         state.arcadeMode && state.lastTiming ? `<div class="coach-timing">Timing: ${state.lastTiming}</div>` : "";
+      const arcadeHud = state.arcadeMode
+        ? `
+          <div class="arcade-hud ${state.arcadeMode ? "active" : ""}">
+            <div>Streak: ${state.arcadeStreak}</div>
+            <div class="momentum-bar"><div class="momentum-fill" style="width: ${Math.min(
+              100,
+              state.arcadeMomentum
+            )}%"></div></div>
+          </div>`
+        : "";
       coachPanel.innerHTML = `
         <div class="coach-card">
           <div class="coach-summary">
@@ -3543,6 +3591,7 @@
             <div>${turnText}</div>
             <div>${statusText}</div>
             ${timingText}
+            ${arcadeHud}
           </div>
         </div>
       `;
@@ -4018,6 +4067,22 @@
       return delta < ARCADE_TARGET_INTERVAL_MS ? "Early" : "Late";
     }
 
+    function updateArcadeStats(timing) {
+      if (!state.arcadeMode) return;
+      if (timing === "Perfect") {
+        state.arcadeStreak += 1;
+        state.arcadeMomentum = Math.min(100, state.arcadeMomentum + 12);
+      } else if (timing === "Good") {
+        state.arcadeStreak += 1;
+        state.arcadeMomentum = Math.min(100, state.arcadeMomentum + 6);
+      } else if (timing === "Ready") {
+        state.arcadeMomentum = Math.max(0, state.arcadeMomentum - 4);
+      } else {
+        state.arcadeStreak = 0;
+        state.arcadeMomentum = Math.max(0, state.arcadeMomentum - 18);
+      }
+    }
+
     function processNextArcadeMove() {
       if (!state.inputBuffer.length) {
         state.bufferRunning = false;
@@ -4039,6 +4104,7 @@
       const timing = getTimingQuality(now);
       state.lastTiming = timing;
       state.lastInputAt = now;
+      updateArcadeStats(timing);
       state.inputBuffer.push({ direction, timing });
       renderInputBuffer();
       if (!state.bufferRunning) {
@@ -5188,6 +5254,8 @@
           state.lastInputAt = null;
           state.lastTiming = null;
           state.bufferRunning = false;
+          state.arcadeStreak = 0;
+          state.arcadeMomentum = 0;
         }
         render();
         renderPowderModal();
