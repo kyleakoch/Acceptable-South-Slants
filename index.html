@@ -2080,6 +2080,8 @@
       bestRun: null,
       todayHighScore: 0,
       allTimeHighScore: 0,
+      todayHighScores: {},
+      allTimeHighScores: {},
       nightSkiing: false,
       nightPhaseIndex: 0,
       dayIcon: "☀️",
@@ -2805,9 +2807,10 @@
       state.coachTipShown = state.coachTipShown || false;
       state.endTipShown = state.endTipShown || false;
       state.curling = null;
-      if (!state.allTimeHighScore) {
-        state.allTimeHighScore = loadAllTimeHighScore();
+      if (!Object.keys(state.allTimeHighScores).length) {
+        state.allTimeHighScores = loadAllTimeHighScores();
       }
+      state.allTimeHighScore = getAllTimeHighScore(state.scoringMode);
       updateSkyIndicator();
       updateTurn();
     }
@@ -3446,7 +3449,8 @@
     }
 
     function recordScore() {
-      const summary = computeScore();
+      const modeKey = state.scoringMode;
+      const summary = computeScore(modeKey);
       const run = state.activeRun;
       const runSkierCardId = run ? state.cards[run.leadSkierId]?.cardId : null;
       const runEmojis = run ? Array.from(run.collectedEmojis || []) : [];
@@ -3464,10 +3468,12 @@
       });
       state.scoreHistory.sort((a, b) => b.endDayScore - a.endDayScore);
       state.scoreHistory = state.scoreHistory.slice(0, 5);
-      state.todayHighScore = Math.max(state.todayHighScore || 0, summary.endDayScore || 0);
-      const allTime = loadAllTimeHighScore();
+      const todayScore = state.todayHighScores[modeKey] || 0;
+      state.todayHighScores[modeKey] = Math.max(todayScore, summary.endDayScore || 0);
+      state.todayHighScore = state.todayHighScores[modeKey];
+      const allTime = getAllTimeHighScore(modeKey);
       if (summary.endDayScore > allTime) {
-        saveAllTimeHighScore(summary.endDayScore);
+        saveAllTimeHighScore(modeKey, summary.endDayScore);
         state.allTimeHighScore = summary.endDayScore;
       } else {
         state.allTimeHighScore = allTime;
@@ -5031,14 +5037,33 @@
       });
     }
 
-    function loadAllTimeHighScore() {
-      const stored = localStorage.getItem("powderCrownHighScore");
-      const value = stored ? Number(stored) : 0;
-      return Number.isFinite(value) ? value : 0;
+    function loadAllTimeHighScores() {
+      const storedMap = localStorage.getItem("powderCrownHighScores");
+      if (storedMap) {
+        try {
+          const parsed = JSON.parse(storedMap);
+          if (parsed && typeof parsed === "object") {
+            return parsed;
+          }
+        } catch (error) {
+          return {};
+        }
+      }
+      const legacy = localStorage.getItem("powderCrownHighScore");
+      const legacyValue = legacy ? Number(legacy) : 0;
+      if (Number.isFinite(legacyValue) && legacyValue > 0) {
+        return { LADDER: legacyValue };
+      }
+      return {};
     }
 
-    function saveAllTimeHighScore(value) {
-      localStorage.setItem("powderCrownHighScore", String(value));
+    function getAllTimeHighScore(modeKey) {
+      return state.allTimeHighScores[modeKey] || 0;
+    }
+
+    function saveAllTimeHighScore(modeKey, value) {
+      state.allTimeHighScores[modeKey] = value;
+      localStorage.setItem("powderCrownHighScores", JSON.stringify(state.allTimeHighScores));
     }
 
     function createSnowstorm(target = document.getElementById("snowstorm"), count = 60) {
@@ -5279,6 +5304,8 @@
     document.querySelectorAll("[data-score-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         state.scoringMode = button.dataset.scoreMode;
+        state.todayHighScore = state.todayHighScores[state.scoringMode] || 0;
+        state.allTimeHighScore = getAllTimeHighScore(state.scoringMode);
         render();
         renderHighScoreModal();
       });
@@ -5389,7 +5416,8 @@
         }
       });
     }
-    state.allTimeHighScore = loadAllTimeHighScore();
+    state.allTimeHighScores = loadAllTimeHighScores();
+    state.allTimeHighScore = getAllTimeHighScore(state.scoringMode);
     const skyToggle = document.getElementById("skyToggle");
     updateSkyIndicator();
     if (skyToggle) {
