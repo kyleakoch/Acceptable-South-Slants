@@ -2076,7 +2076,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35b — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35c — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2812,8 +2812,21 @@
       return Object.values(state.rpg.progress).every((entry) => entry.completed);
     }
 
+    function recycleRpgConditionCards(player) {
+      if (!state.rpg) return;
+      const collectedConditions = player.collectedPile
+        .map((entry) => state.cards[entry.cardId])
+        .filter((card) => card?.type === "CONDITION")
+        .map((card) => card.id);
+      if (collectedConditions.length) {
+        state.memoriesPile.push(...collectedConditions);
+      }
+      player.collectedPile = [];
+    }
+
     function resetRpgRound(player) {
       if (!state.rpg) return;
+      recycleRpgConditionCards(player);
       player.skierQueue.forEach((skierId) => {
         const skier = state.cards[skierId];
         skier.status = "available";
