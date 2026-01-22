@@ -1213,6 +1213,26 @@
     .coach-summary strong {
       font-size: 16px;
     }
+    .coach-rpg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .coach-rpg-button {
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 14px;
+      background: #eef2ff;
+      color: #1e2430;
+      border: 1px solid rgba(15, 23, 42, 0.2);
+      cursor: pointer;
+    }
+    .coach-rpg-button:hover {
+      background: #e0e7ff;
+    }
     .coach-bubble {
       position: absolute;
       top: 50%;
@@ -2083,6 +2103,14 @@
           <button id="startFreePlay">Start One Tram</button>
         </div>
         <div class="mode-option">
+          <strong>🧭 RPG Expedition</strong>
+          <span class="footer-note">Guide 4 humans from 🟢 to ◆◆ with unique rank collections.</span>
+          <div class="mode-grid">
+            <button id="startRpgSkiers">Start RPG (Skiers)</button>
+            <button id="startRpgSnowboarders">Start RPG (Snowboarders)</button>
+          </div>
+        </div>
+        <div class="mode-option">
           <strong>Full Tram (8x 4 Humans)</strong>
           <span class="footer-note">Play through all 32 skiers and recycle memories.</span>
           <button id="startFullCrowd">Start Full Tram</button>
@@ -2216,7 +2244,9 @@
       autoFreeUp: false,
       curling: null,
       usedCrowdCount: 0,
-      skierCounter: 0
+      skierCounter: 0,
+      rpg: null,
+      rpgRiderType: "SKIER"
     };
 
     const BONUS_EMOJIS = {
@@ -2694,6 +2724,103 @@
       return direction === "RIGHT" ? option.right : option.left;
     }
 
+    function formatDuration(ms) {
+      if (!Number.isFinite(ms)) return "0:00";
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    function initRpgState(riderType) {
+      state.rpg = {
+        riderType,
+        rounds: 0,
+        startTime: Date.now(),
+        elapsedMs: 0,
+        progress: {}
+      };
+    }
+
+    function setupRpgRoster(player) {
+      if (!state.rpg) return;
+      player.skierQueue.forEach((skierId) => {
+        const skierState = state.cards[skierId];
+        const card = state.cards[skierState.cardId];
+        const baseSymbol = SYMBOLS[0];
+        card.symbol = baseSymbol.key;
+        card.difficultyRank = baseSymbol.difficultyRank;
+        state.rpg.progress[skierId] = {
+          symbolIndex: 0,
+          collectedRanks: new Set(),
+          completed: false
+        };
+      });
+    }
+
+    function getRpgProgress(skierId) {
+      return state.rpg?.progress?.[skierId] || null;
+    }
+
+    function updateRpgProgress(skierId, card) {
+      if (state.mode !== "RPG" || !state.rpg || !card || card.type !== "CONDITION") return null;
+      const progress = getRpgProgress(skierId);
+      if (!progress || progress.completed) return null;
+      const currentSymbol = SYMBOLS[progress.symbolIndex];
+      if (!currentSymbol || card.symbol !== currentSymbol.key) return null;
+      progress.collectedRanks.add(card.rank);
+      if (progress.collectedRanks.size < 7) return null;
+      const nextIndex = Math.min(SYMBOLS.length - 1, progress.symbolIndex + 1);
+      progress.symbolIndex = nextIndex;
+      progress.collectedRanks = new Set();
+      if (progress.symbolIndex >= SYMBOLS.length - 1) {
+        progress.completed = true;
+      }
+      const skierState = state.cards[skierId];
+      const skierCard = state.cards[skierState.cardId];
+      const nextSymbol = SYMBOLS[progress.symbolIndex];
+      skierCard.symbol = nextSymbol.key;
+      skierCard.difficultyRank = nextSymbol.difficultyRank;
+      return nextSymbol;
+    }
+
+    function getRpgElapsedMs() {
+      if (!state.rpg) return 0;
+      if (state.gameEnded && state.rpg.elapsedMs) return state.rpg.elapsedMs;
+      return Date.now() - state.rpg.startTime;
+    }
+
+    function getRpgRoundText() {
+      if (!state.rpg) return "";
+      return `Round ${state.rpg.rounds + 1}`;
+    }
+
+    function getRpgProgressText(skierId) {
+      const progress = getRpgProgress(skierId);
+      if (!progress) return "";
+      const symbol = SYMBOLS[progress.symbolIndex];
+      const count = progress.collectedRanks.size;
+      if (progress.completed) {
+        return `${symbol.icon} complete`;
+      }
+      return `${symbol.icon} ${count}/7`;
+    }
+
+    function isRpgComplete() {
+      if (!state.rpg) return false;
+      return Object.values(state.rpg.progress).every((entry) => entry.completed);
+    }
+
+    function resetRpgRound(player) {
+      if (!state.rpg) return;
+      player.skierQueue.forEach((skierId) => {
+        const skier = state.cards[skierId];
+        skier.status = "available";
+        skier.pausedPos = null;
+      });
+      state.rpg.rounds += 1;
+    }
+
     function getVisibilityDepth(skierCard) {
       if (!skierCard) return 1;
       return Math.max(1, Math.min(4, skierCard.difficultyRank));
@@ -2855,7 +2982,15 @@
       deckBundle.allCards.forEach((card) => {
         state.cards[card.id] = card;
       });
-      state.crowdDeck = shuffle([...deckBundle.crowd]);
+      state.rpg = null;
+      if (state.mode === "RPG") {
+        initRpgState(state.rpgRiderType);
+        state.crowdDeck = shuffle(
+          deckBundle.crowd.filter((card) => card.riderType === state.rpgRiderType)
+        );
+      } else {
+        state.crowdDeck = shuffle([...deckBundle.crowd]);
+      }
       state.cloudDeck = faceShuffleCloud(deckBundle.cloud);
       setPeak(state.peak);
       state.mountain = dealMountain();
@@ -2865,9 +3000,14 @@
       const player = { id: "P1", skierQueue: [], collectedPile: [] };
       state.players = [player];
       dealSkiers(player, 4);
+      if (state.mode === "RPG") {
+        setupRpgRoster(player);
+      }
       state.activeRun = null;
       state.gameEnded = false;
-      state.message = "Game ready. Start your first run!";
+      state.message = state.mode === "RPG"
+        ? "RPG expedition ready. Guide your squad to ◆◆!"
+        : "Game ready. Start your first run!";
       state.scoreHistory = [];
       state.lastRunScore = null;
       state.memoriesPile = [];
@@ -2933,6 +3073,22 @@
         state.message = "Resuming paused skier. Choose your next step.";
       } else if (!state.activeRun) {
         let nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+        if (!nextSkierId && state.mode === "RPG") {
+          if (isRpgComplete()) {
+            state.gameEnded = true;
+            if (state.rpg) {
+              state.rpg.elapsedMs = getRpgElapsedMs();
+            }
+            state.message = `RPG complete! ${state.rpg?.rounds ?? 0} rounds in ${formatDuration(
+              getRpgElapsedMs()
+            )}.`;
+            render();
+            return;
+          }
+          resetRpgRound(player);
+          state.message = `Round ${state.rpg?.rounds ?? 1} complete. Next descent!`;
+          nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+        }
         if (!nextSkierId && state.mode === "FULL" && state.crowdDeck.length > 0) {
           dealSkiers(player, 4);
           nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
@@ -3368,6 +3524,10 @@
         state.message = bonusValue
           ? `Condition collected with bonus +${bonusValue}!`
           : "Condition collected!";
+        const nextSymbol = updateRpgProgress(skierId, card);
+        if (nextSymbol) {
+          state.message = `Rank up! ${nextSymbol.icon} unlocked.`;
+        }
       } else {
         slot.lastResult = { cardId: card.id, outcome: "missed" };
         state.message = "Condition too difficult. It remains on the mountain.";
@@ -3674,6 +3834,23 @@
             )}%"></div></div>
           </div>`
         : "";
+      const rpgStatus = state.mode === "RPG" && state.rpg
+        ? `
+          <div class="coach-rpg">
+            <span>🧭 RPG · ${getRpgRoundText()}</span>
+            <span>Time: ${formatDuration(getRpgElapsedMs())}</span>
+          </div>
+        `
+        : "";
+      const rpgButton = state.mode === "RPG"
+        ? ""
+        : `
+          <div class="coach-rpg">
+            <button id="coachRpgButton" class="coach-rpg-button" type="button" aria-label="Start RPG mode">
+              🧭 Start RPG
+            </button>
+          </div>
+        `;
       coachPanel.innerHTML = `
         <div class="coach-card">
           <div class="coach-summary">
@@ -3682,9 +3859,17 @@
             <div>${statusText}</div>
             ${timingText}
             ${arcadeHud}
+            ${rpgStatus}
+            ${rpgButton}
           </div>
         </div>
       `;
+      const rpgButtonEl = coachPanel.querySelector("#coachRpgButton");
+      if (rpgButtonEl) {
+        rpgButtonEl.addEventListener("click", () => {
+          startRpgMode(state.rpgRiderType);
+        });
+      }
     }
 
     function renderInputBuffer() {
@@ -4385,7 +4570,15 @@
       if (liftChevronEl) {
         liftChevronEl.textContent = state.liftDetailsOpen ? "▾" : "▸";
       }
-      statusEl.textContent = state.message;
+      if (state.mode === "RPG" && state.rpg) {
+        statusEl.innerHTML = `
+          <strong>🧭 RPG Mode</strong><br />
+          ${state.message}<br />
+          ${getRpgRoundText()} · Time ${formatDuration(getRpgElapsedMs())}
+        `;
+      } else {
+        statusEl.textContent = state.message;
+      }
       actionsEl.innerHTML = "";
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
@@ -4535,7 +4728,9 @@
           div.classList.add("used");
         }
         const statusLabel = skierId === activeSkierId ? "active" : skierState.status;
-        div.innerHTML = `${getCardLabel(card, { showType: false })} - ${statusLabel}`;
+        const rpgProgress = state.mode === "RPG" ? getRpgProgressText(skierId) : "";
+        const progressLabel = rpgProgress ? ` · ${rpgProgress}` : "";
+        div.innerHTML = `${getCardLabel(card, { showType: false })} - ${statusLabel}${progressLabel}`;
         queueEl.appendChild(div);
       });
 
@@ -4576,60 +4771,77 @@
       }
       collectedEl.appendChild(rows);
 
-      const modeInfo = getScoringMode();
-      const { baseTotal, mult, finalScore, counts, bonusCounts, exponent, goalCount } = computeScore();
-      const endDayScore = getEndOfDayScoreForMode(
-        { baseTotal, mult, finalScore, counts, bonusCounts, exponent, goalCount },
-        modeInfo.key
-      );
-      const histogram = Object.entries(counts)
-        .map(([rank, count]) => `${rank}: ${count}`)
-        .join(", ");
-      const bonusSummary = Object.entries(BONUS_TARGETS)
-        .map(([emoji, target]) => `${emoji} ${bonusCounts[emoji] || 0}/${target}`)
-        .join(" · ");
-      scoreEl.innerHTML = `Base total: <strong>${formatNumber(baseTotal)}</strong><br />
-        Multiplier: <strong>${mult}×</strong><br />
-        Final score: <strong>${formatNumber(finalScore)}</strong><br />
-        End of day score: <strong>${formatNumber(endDayScore)}</strong><br />
-        <span class="footer-note">Exponent: ${exponent} (goals met: ${goalCount})</span><br />
-        <span class="footer-note">Ranks collected: ${histogram || "None"}</span>`;
       const bonusTrackerEl = document.getElementById("bonusTracker");
-      bonusTrackerEl.innerHTML = `<span class="footer-note">Bonus goals: ${bonusSummary}</span>`;
+      if (state.mode === "RPG") {
+        scoreEl.innerHTML = `
+          <strong>RPG Progress</strong><br />
+          ${getRpgRoundText()} · Time ${formatDuration(getRpgElapsedMs())}
+        `;
+        if (bonusTrackerEl) {
+          bonusTrackerEl.innerHTML = "<span class=\"footer-note\">Collect 7 unique ranks per tier to level up.</span>";
+        }
+      } else {
+        const modeInfo = getScoringMode();
+        const { baseTotal, mult, finalScore, counts, bonusCounts, exponent, goalCount } = computeScore();
+        const endDayScore = getEndOfDayScoreForMode(
+          { baseTotal, mult, finalScore, counts, bonusCounts, exponent, goalCount },
+          modeInfo.key
+        );
+        const histogram = Object.entries(counts)
+          .map(([rank, count]) => `${rank}: ${count}`)
+          .join(", ");
+        const bonusSummary = Object.entries(BONUS_TARGETS)
+          .map(([emoji, target]) => `${emoji} ${bonusCounts[emoji] || 0}/${target}`)
+          .join(" · ");
+        scoreEl.innerHTML = `Base total: <strong>${formatNumber(baseTotal)}</strong><br />
+          Multiplier: <strong>${mult}×</strong><br />
+          Final score: <strong>${formatNumber(finalScore)}</strong><br />
+          End of day score: <strong>${formatNumber(endDayScore)}</strong><br />
+          <span class="footer-note">Exponent: ${exponent} (goals met: ${goalCount})</span><br />
+          <span class="footer-note">Ranks collected: ${histogram || "None"}</span>`;
+        if (bonusTrackerEl) {
+          bonusTrackerEl.innerHTML = `<span class="footer-note">Bonus goals: ${bonusSummary}</span>`;
+        }
+      }
 
-      const lastRun = state.lastRunScore;
-      const topScores = state.scoreHistory;
-      const formatCollected = (entries) =>
-        entries.length
-          ? entries
+      if (state.mode === "RPG") {
+        scoreHistoryEl.innerHTML = "<p>Finish all four humans at ◆◆ to complete the RPG expedition.</p>";
+      } else {
+        const modeInfo = getScoringMode();
+        const lastRun = state.lastRunScore;
+        const topScores = state.scoreHistory;
+        const formatCollected = (entries) =>
+          entries.length
+            ? entries
+                .map((entry) => {
+                  const card = state.cards[entry.cardId];
+                  return `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}`;
+                })
+                .join(", ")
+            : "None";
+        const lastRunEndDay = lastRun ? getEndOfDayScoreForMode(lastRun, modeInfo.key) : 0;
+        const lastRunText = lastRun
+          ? `Last run — base ${formatNumber(lastRun.baseTotal)}, mult ${lastRun.mult}×, final ${formatNumber(
+              lastRun.finalScore
+            )}, end-day ${formatNumber(lastRunEndDay)}<br />
+          <span class="footer-note">Collected: ${formatCollected(lastRun.collected)}</span><br />`
+          : "Last run — none yet";
+        const topList = topScores.length
+          ? `<ol>${topScores
               .map((entry) => {
-                const card = state.cards[entry.cardId];
-                return `${getCardLabel(card)}${entry.bonusEmoji ? ` ${entry.bonusEmoji}` : ""}`;
+                const modeScore = getEndOfDayScoreForMode(entry, modeInfo.key);
+                return `<li>${formatNumber(modeScore)} (final ${formatNumber(entry.finalScore)}, ${entry.exponent}x)</li>`;
               })
-              .join(", ")
-          : "None";
-      const lastRunEndDay = lastRun ? getEndOfDayScoreForMode(lastRun, modeInfo.key) : 0;
-      const lastRunText = lastRun
-        ? `Last run — base ${formatNumber(lastRun.baseTotal)}, mult ${lastRun.mult}×, final ${formatNumber(
-            lastRun.finalScore
-          )}, end-day ${formatNumber(lastRunEndDay)}<br />
-        <span class="footer-note">Collected: ${formatCollected(lastRun.collected)}</span><br />`
-        : "Last run — none yet";
-      const topList = topScores.length
-        ? `<ol>${topScores
-            .map((entry) => {
-              const modeScore = getEndOfDayScoreForMode(entry, modeInfo.key);
-              return `<li>${formatNumber(modeScore)} (final ${formatNumber(entry.finalScore)}, ${entry.exponent}x)</li>`;
-            })
-            .join("")}</ol>`
-        : "<p>No top scores yet.</p>";
-      scoreHistoryEl.innerHTML = `${lastRunText}${topList}`;
+              .join("")}</ol>`
+          : "<p>No top scores yet.</p>";
+        scoreHistoryEl.innerHTML = `${lastRunText}${topList}`;
 
-      const modeHighScore = topScores.length
-        ? Math.max(...topScores.map((entry) => getEndOfDayScoreForMode(entry, modeInfo.key)))
-        : 0;
-      const modeLine = `High Score (mode): <strong>${formatNumber(modeHighScore)}</strong>`;
-      scoreHistoryEl.innerHTML += `<p>${modeLine}</p>`;
+        const modeHighScore = topScores.length
+          ? Math.max(...topScores.map((entry) => getEndOfDayScoreForMode(entry, modeInfo.key)))
+          : 0;
+        const modeLine = `High Score (mode): <strong>${formatNumber(modeHighScore)}</strong>`;
+        scoreHistoryEl.innerHTML += `<p>${modeLine}</p>`;
+      }
 
       deckStatusEl.innerHTML = `Crowd deck remaining: ${state.crowdDeck.length}<br />
         Cloud deck remaining: ${state.cloudDeck.length}<br />
@@ -5303,6 +5515,13 @@
       showCoachTipOnce();
     }
 
+    function startRpgMode(riderType) {
+      state.rpgRiderType = riderType;
+      state.firstPersonView = true;
+      state.coachMode = "ON";
+      startMode("RPG");
+    }
+
     function setPeak(peakKey) {
       const peak = PEAKS[peakKey] || PEAKS.PEAK_1;
       state.peak = peakKey;
@@ -5362,6 +5581,8 @@
     }
 
     document.getElementById("startFreePlay").addEventListener("click", () => startMode("FREE"));
+    document.getElementById("startRpgSkiers").addEventListener("click", () => startRpgMode("SKIER"));
+    document.getElementById("startRpgSnowboarders").addEventListener("click", () => startRpgMode("SNOWBOARDER"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
     document.getElementById("startCurling").addEventListener("click", () => startMode("CURLING"));
     document.getElementById("peak1").addEventListener("click", () => setPeak("PEAK_1"));
