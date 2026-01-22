@@ -4925,7 +4925,7 @@
       }
     }
 
-    function ensureMusicPlaying() {
+    function ensureMusicPlaying({ forceRestart = false } = {}) {
       const bgMusic = document.getElementById("bgMusic");
       if (!bgMusic) return;
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
@@ -4933,7 +4933,10 @@
         bgMusic.src = track.url;
       }
       bgMusic.loop = state.loopCurrentTrack;
-      if (!bgMusic.paused) return;
+      if (!bgMusic.paused && !forceRestart) return;
+      if (forceRestart) {
+        bgMusic.currentTime = 0;
+      }
       bgMusic.play().catch(() => {});
     }
 
@@ -4951,6 +4954,15 @@
       document.addEventListener("keydown", tryPlay, { once: true });
     }
 
+    function attachMusicUnlockHandlers() {
+      const unlock = () => {
+        ensureMusicPlaying({ forceRestart: true });
+      };
+      ["pointerdown", "touchstart", "click"].forEach((eventName) => {
+        document.addEventListener(eventName, unlock, { once: true, passive: true });
+      });
+    }
+
     function stopMusic() {
       const bgMusic = document.getElementById("bgMusic");
       if (!bgMusic) return;
@@ -4958,14 +4970,16 @@
       bgMusic.currentTime = 0;
     }
 
-    function nextTrack() {
+    function nextTrack({ userInitiated = true } = {}) {
       const bgMusic = document.getElementById("bgMusic");
       if (!bgMusic) return;
       state.musicIndex = (state.musicIndex + 1) % MUSIC_PLAYLIST.length;
       const track = MUSIC_PLAYLIST[state.musicIndex];
       bgMusic.src = track.url;
       bgMusic.loop = state.loopCurrentTrack;
-      bgMusic.play().catch(() => {});
+      if (userInitiated) {
+        bgMusic.play().catch(() => {});
+      }
       renderPowderModal();
     }
 
@@ -5057,9 +5071,19 @@
     }
 
     function dropSampleEmojiRain() {
+      if (!state.emojiOverlayEnabled) return;
       Object.keys(BONUS_TARGETS).forEach((emoji) => {
         spawnEmojiRain(emoji, 6);
       });
+    }
+
+    function queueInitialEmojiRain() {
+      const run = () => dropSampleEmojiRain();
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(run, { timeout: 1200 });
+      } else {
+        setTimeout(run, 600);
+      }
     }
 
     function loadAllTimeHighScores() {
@@ -5132,7 +5156,7 @@
       if (bgMusic) {
         bgMusic.volume = 0.6;
       }
-      ensureMusicPlaying();
+      ensureMusicPlaying({ forceRestart: true });
 
       const showStep = () => {
         if (state.loadingDismissed) return;
@@ -5245,11 +5269,11 @@
       renderPowderModal();
     });
     document.getElementById("musicNext").addEventListener("click", () => {
-      nextTrack();
+      nextTrack({ userInitiated: true });
     });
     document.getElementById("musicLoop").addEventListener("click", () => {
       state.loopCurrentTrack = !state.loopCurrentTrack;
-      ensureMusicPlaying();
+      ensureMusicPlaying({ forceRestart: true });
       renderPowderModal();
     });
     document.getElementById("coachButton").addEventListener("click", () => {
@@ -5433,6 +5457,8 @@
     });
     startLoadingSequence();
     enableMusicOnInteraction();
+    attachMusicUnlockHandlers();
+    queueInitialEmojiRain();
     const bgMusic = document.getElementById("bgMusic");
     if (bgMusic) {
       bgMusic.addEventListener("ended", () => {
