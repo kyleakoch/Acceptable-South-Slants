@@ -2084,6 +2084,9 @@
       glideAnimationEnabled: true,
       cosmicNotation: "SCIENTIFIC",
       arcadeMode: false,
+      arcadeBlueprints: [],
+      arcadeBlueprintIndex: 0,
+      arcadeCurrentBlueprint: null,
       inputBuffer: [],
       lastMoveAt: null,
       lastTiming: null,
@@ -2193,7 +2196,8 @@
       { key: "RANDOM", label: "🎲 x ∞" },
       { key: "MANUAL", label: "🎮 x ∞" },
       { key: "SCHEDULED", label: "🗓️ x ∞" },
-      { key: "FREE_UP", label: "🆓 🆙" }
+      { key: "FREE_UP", label: "🆓 🆙" },
+      { key: "BLUEPRINT", label: "👻 Replay" }
     ];
     const NIGHT_PHASES = ["🌕", "🌖", "🌗", "🌘", "🌑", "🌒", "🌓", "🌔"];
     const DAY_ICONS = ["☀️", "🌤️", "⛅️", "🌥️", "☁️", "🌨️"];
@@ -2753,6 +2757,8 @@
       state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
       state.autoCancelled = false;
       state.lastRunToken = null;
+      state.arcadeBlueprintIndex = 0;
+      state.arcadeCurrentBlueprint = null;
       state.inputBuffer = [];
       state.lastInputAt = null;
       state.lastTiming = null;
@@ -2867,6 +2873,16 @@
         lastMoveDirection: null,
         multiplierBonus: 0
       };
+      if (state.arcadeMode && state.firstPersonView) {
+        state.arcadeCurrentBlueprint = {
+          moves: [],
+          timings: [],
+          createdAt: Date.now()
+        };
+      }
+      if (state.autoStrategy === "BLUEPRINT") {
+        state.arcadeBlueprintIndex = 0;
+      }
       state.currentAutoModeForRun = getActiveAutoModeForSkier(nextSkierId);
       state.awaitingStartChoice = false;
       resolveSlot(slotIdChoice, nextSkierId);
@@ -3041,6 +3057,21 @@
       return best;
     }
 
+    function getBlueprintDirection() {
+      const blueprint = state.arcadeBlueprints[0];
+      if (!blueprint || !blueprint.moves.length) return null;
+      const direction = blueprint.moves[state.arcadeBlueprintIndex] || null;
+      state.arcadeBlueprintIndex += 1;
+      return direction;
+    }
+
+    function chooseBlueprintSlot(slotIds, fallbackSlot) {
+      const direction = getBlueprintDirection();
+      if (direction === "LEFT") return slotIds[0];
+      if (direction === "RIGHT") return slotIds[slotIds.length - 1];
+      return fallbackSlot;
+    }
+
     function wait(ms) {
       return new Promise((resolve) => setTimeout(resolve, ms));
     }
@@ -3068,7 +3099,14 @@
           const startSlots = getStartSlots();
           if (!startSlots.length) break;
           const skierCard = getSkierCard(getNextAvailableSkierId());
-          const choice = chooseAutoSlot(mode, startSlots, skierCard);
+          const autoChoice = chooseAutoSlot(mode, startSlots, skierCard);
+          if (state.autoStrategy === "BLUEPRINT") {
+            state.arcadeBlueprintIndex = 0;
+          }
+          const choice =
+            state.autoStrategy === "BLUEPRINT"
+              ? chooseBlueprintSlot(startSlots, autoChoice)
+              : autoChoice;
           consumeLastRunToken();
           startRunAt(choice);
           if (getAutoDelay() > 0) {
@@ -3081,7 +3119,11 @@
         const options = getMoveOptionsOrdered();
         if (!options.length) break;
         const skierCard = getSkierCard(state.activeRun.leadSkierId);
-        const choice = chooseAutoSlot(mode, options, skierCard);
+        const autoChoice = chooseAutoSlot(mode, options, skierCard);
+        const choice =
+          state.autoStrategy === "BLUEPRINT"
+            ? chooseBlueprintSlot(options, autoChoice)
+            : autoChoice;
         consumeLastRunToken();
         moveTo(choice);
         if (getAutoDelay() > 0) {
@@ -3228,6 +3270,13 @@
       render();
     }
 
+    function recordArcadeBlueprintMove(direction, timing) {
+      if (!state.arcadeMode || !state.firstPersonView) return;
+      if (!state.arcadeCurrentBlueprint) return;
+      state.arcadeCurrentBlueprint.moves.push(direction);
+      state.arcadeCurrentBlueprint.timings.push(timing || null);
+    }
+
     function finishRun() {
       const run = state.activeRun;
       const skierState = state.cards[run.leadSkierId];
@@ -3259,6 +3308,11 @@
       }
       recordScore();
       applyMissUpgrades();
+      if (state.arcadeCurrentBlueprint && state.arcadeCurrentBlueprint.moves.length) {
+        state.arcadeBlueprints.unshift(state.arcadeCurrentBlueprint);
+        state.arcadeBlueprints = state.arcadeBlueprints.slice(0, 5);
+      }
+      state.arcadeCurrentBlueprint = null;
       state.message = "Run complete! Mountain is refilling.";
       refillMountain();
       updateTurn();
@@ -3512,7 +3566,7 @@
         RIGHT: "➡️"
       };
       const bufferPills = state.inputBuffer
-        .map((entry) => `<span class="buffer-pill">${labelMap[entry] || "•"}</span>`)
+        .map((entry) => `<span class="buffer-pill">${labelMap[entry?.direction] || "•"}</span>`)
         .join("");
       bufferEl.innerHTML = `Buffer ${bufferPills || "—"}`;
     }
@@ -3971,9 +4025,10 @@
         return;
       }
       state.bufferRunning = true;
-      const direction = state.inputBuffer.shift();
+      const entry = state.inputBuffer.shift();
+      const direction = entry?.direction;
       renderInputBuffer();
-      executeDirectionalMove(direction);
+      executeDirectionalMove(direction, entry?.timing || null);
       render();
       setTimeout(processNextArcadeMove, ARCADE_EXECUTION_DELAY_MS);
     }
@@ -3981,16 +4036,17 @@
     function enqueueArcadeMove(direction) {
       if (state.inputBuffer.length >= ARCADE_BUFFER_LIMIT) return;
       const now = Date.now();
-      state.lastTiming = getTimingQuality(now);
+      const timing = getTimingQuality(now);
+      state.lastTiming = timing;
       state.lastInputAt = now;
-      state.inputBuffer.push(direction);
+      state.inputBuffer.push({ direction, timing });
       renderInputBuffer();
       if (!state.bufferRunning) {
         processNextArcadeMove();
       }
     }
 
-    function executeDirectionalMove(direction) {
+    function executeDirectionalMove(direction, timing) {
       if (!state.gameStarted || state.gameEnded) return;
       if (state.awaitingStartChoice) {
         const startSlots = getStartSlots();
@@ -4001,6 +4057,7 @@
         } else {
           startRunAt(startSlots[startSlots.length - 1]);
         }
+        recordArcadeBlueprintMove(direction, timing);
         return;
       }
       if (!state.activeRun) return;
@@ -4012,6 +4069,7 @@
       } else {
         moveTo(options[options.length - 1]);
       }
+      recordArcadeBlueprintMove(direction, timing);
     }
 
     function handleDirectionalMove(direction) {
@@ -4659,6 +4717,9 @@
         return state.autoMode || "MATCH";
       }
       if (state.autoStrategy === "FREE_UP") {
+        return state.autoMode || "MATCH";
+      }
+      if (state.autoStrategy === "BLUEPRINT") {
         return state.autoMode || "MATCH";
       }
       if (state.autoStrategy === "SCHEDULED") {
