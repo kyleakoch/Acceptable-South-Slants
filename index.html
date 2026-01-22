@@ -3147,6 +3147,7 @@
               : autoChoice;
           consumeLastRunToken();
           startRunAt(choice);
+          render();
           if (getAutoDelay() > 0) {
             await wait(getAutoDelay());
           }
