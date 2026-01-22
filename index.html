@@ -5191,9 +5191,9 @@
       state.mode = mode;
       showModeOverlay(false);
       showIntroOverlay(false);
+      ensureMusicPlaying({ forceRestart: true });
       beginGame();
       showCoachTipOnce();
-      ensureMusicPlaying();
     }
 
     function setPeak(peakKey) {
