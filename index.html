@@ -420,6 +420,38 @@
       justify-content: center;
       margin-top: 24px;
     }
+    .first-person-coach-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 960px;
+      margin-top: 6px;
+    }
+    .first-person-coach-row .first-person-skier {
+      margin-top: 0;
+    }
+    .first-person-coach-slot {
+      display: flex;
+      min-height: 1px;
+    }
+    .first-person-coach-center {
+      display: flex;
+      justify-content: center;
+    }
+    .first-person-coach-slot.left {
+      justify-content: flex-end;
+    }
+    .first-person-coach-slot.right {
+      justify-content: flex-start;
+    }
+    .first-person-coach-row .coach-bubble {
+      position: static;
+      transform: none;
+      width: min(220px, 42vw);
+      margin: 0;
+    }
     .first-person-options {
       display: flex;
       gap: 32px;
@@ -989,6 +1021,13 @@
       align-items: center;
       gap: 6px;
     }
+    .coach-toggle-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+    }
     .coach-button {
       background: transparent;
       border: none;
@@ -1006,9 +1045,9 @@
     }
     .coach-tip {
       position: absolute;
-      right: calc(100% + 12px);
-      top: 50%;
-      transform: translateY(-50%);
+      left: 50%;
+      bottom: calc(100% + 10px);
+      transform: translateX(-50%);
       background: #ffffff;
       border: 2px solid #1e2430;
       border-radius: 12px;
@@ -1020,6 +1059,7 @@
       pointer-events: none;
       transition: opacity 0.4s ease;
       box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+      z-index: 6;
     }
     .coach-tip.active {
       opacity: 1;
@@ -1032,33 +1072,18 @@
     .coach-tip::after {
       content: "";
       position: absolute;
-      top: 50%;
-      right: -12px;
+      top: 100%;
+      left: 50%;
       border: 6px solid transparent;
-      border-left-color: #1e2430;
-      transform: translateY(-50%);
+      border-top-color: #1e2430;
+      transform: translateX(-50%);
     }
     body.night-skiing .coach-tip::after {
-      border-left-color: rgba(226, 232, 240, 0.6);
+      border-top-color: rgba(226, 232, 240, 0.6);
     }
     @media (max-width: 700px) {
       .coach-tip {
-        right: auto;
-        left: 50%;
-        top: calc(100% + 8px);
-        transform: translateX(-50%);
         width: min(220px, 80vw);
-      }
-      .coach-tip::after {
-        top: -6px;
-        right: 50%;
-        border-width: 0 6px 6px 6px;
-        border-left-color: transparent;
-        border-top-color: #1e2430;
-        transform: translateX(50%);
-      }
-      body.night-skiing .coach-tip::after {
-        border-top-color: rgba(226, 232, 240, 0.6);
       }
     }
     .coach-panel {
@@ -1917,6 +1942,10 @@
   <main>
     <section class="panel mountain-panel">
       <div class="mountain-header">
+        <div class="coach-toggle-stack">
+          <button id="coachButton" class="coach-button" type="button" aria-label="Toggle coach mode">🗣️</button>
+          <div id="coachTip" class="coach-tip">You can toggle coach mode by tapping 🗣️</div>
+        </div>
         <h2 class="title-emoji">
           <button id="powderButton" class="title-button" type="button" aria-label="Powder settings">❄️</button>
           <button id="highScoreButton" class="title-button" type="button" aria-label="High scores">👑</button>
@@ -1947,8 +1976,6 @@
           </button>
           <div class="weather-stack">
             <button id="skyToggle" class="sky-toggle" aria-label="Toggle day or night mode"></button>
-            <button id="coachButton" class="coach-button" type="button" aria-label="Toggle coach mode">🗣️</button>
-            <div id="coachTip" class="coach-tip">You can toggle coach mode by tapping 🗣️</div>
           </div>
         </div>
       </div>
@@ -3779,13 +3806,27 @@
       } else {
         skierRow.innerHTML = "<span class=\"footer-note\">Select a start slot to begin.</span>";
       }
-      wrapper.appendChild(skierRow);
+      const coachRow = document.createElement("div");
+      coachRow.className = "first-person-coach-row";
+      const leftCoachSlot = document.createElement("div");
+      leftCoachSlot.className = "first-person-coach-slot left";
+      const rightCoachSlot = document.createElement("div");
+      rightCoachSlot.className = "first-person-coach-slot right";
+      const centerCoachSlot = document.createElement("div");
+      centerCoachSlot.className = "first-person-coach-center";
+      centerCoachSlot.appendChild(skierRow);
+      coachRow.appendChild(leftCoachSlot);
+      coachRow.appendChild(centerCoachSlot);
+      coachRow.appendChild(rightCoachSlot);
+      wrapper.appendChild(coachRow);
       const optionsRow = document.createElement("div");
       optionsRow.className = "first-person-options";
       const nowMarker = document.createElement("div");
       nowMarker.className = "first-person-now";
       nowMarker.textContent = "⏱️ NOW";
       const coachActive = state.coachMode === "ON";
+      let leftCoachHtml = "";
+      let rightCoachHtml = "";
       optionIds.forEach((slotIdValue) => {
         const { slot, card } = getSlotData(slotIdValue);
         const button = document.createElement("button");
@@ -3833,8 +3874,14 @@
         const bubbleHtml = coachActive
           ? `<div class="coach-bubble ${bubbleSide}"><div class="bubble-text">${coachText}</div></div>`
           : "";
+        if (bubbleHtml) {
+          if (bubbleSide === "left") {
+            leftCoachHtml = bubbleHtml;
+          } else {
+            rightCoachHtml = bubbleHtml;
+          }
+        }
         nowTier.innerHTML = `
-          ${bubbleHtml}
           <div class="card-label">${label}</div>
           ${indicator ? `<div class="first-person-indicator">${indicator}</div>` : ""}
         `;
@@ -3884,6 +3931,8 @@
         button.appendChild(lane);
         optionsRow.appendChild(button);
       });
+      leftCoachSlot.innerHTML = leftCoachHtml;
+      rightCoachSlot.innerHTML = rightCoachHtml;
       wrapper.appendChild(nowMarker);
       wrapper.appendChild(optionsRow);
       mountainEl.appendChild(wrapper);
