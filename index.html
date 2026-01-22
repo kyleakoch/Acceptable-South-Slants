@@ -1614,6 +1614,15 @@
       flex-wrap: wrap;
       gap: 8px;
     }
+    .powder-controls .music-start {
+      flex: 1 1 100%;
+      background: #22c55e;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .powder-controls .music-start:hover {
+      background: #16a34a;
+    }
     .powder-item {
       display: grid;
       gap: 6px;
@@ -1794,6 +1803,9 @@
           <strong>Now playing</strong>
           <div id="musicTitle" class="powder-current"></div>
           <div class="powder-controls">
+            <button id="musicStart" class="music-start" type="button" aria-label="Start music">
+              Start Music
+            </button>
             <button id="musicStop" class="secondary" type="button">Stop</button>
             <button id="musicNext" class="secondary" type="button">Next track</button>
             <button id="musicLoop" class="secondary" type="button">Loop track</button>
@@ -5264,6 +5276,9 @@
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
+    document.getElementById("musicStart").addEventListener("click", () => {
+      ensureMusicPlaying({ forceRestart: true });
+    });
     document.getElementById("musicStop").addEventListener("click", () => {
       stopMusic();
       renderPowderModal();
