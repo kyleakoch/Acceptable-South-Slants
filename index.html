@@ -417,6 +417,7 @@
     .first-person-skier {
       display: flex;
       justify-content: center;
+      margin-top: 24px;
     }
     .first-person-options {
       display: flex;
@@ -1039,11 +1040,35 @@
     body.night-skiing .coach-tip::after {
       border-left-color: rgba(226, 232, 240, 0.6);
     }
+    @media (max-width: 700px) {
+      .coach-tip {
+        right: auto;
+        left: 50%;
+        top: calc(100% + 8px);
+        transform: translateX(-50%);
+        width: min(220px, 80vw);
+      }
+      .coach-tip::after {
+        top: -6px;
+        right: 50%;
+        border-width: 0 6px 6px 6px;
+        border-left-color: transparent;
+        border-top-color: #1e2430;
+        transform: translateX(50%);
+      }
+      body.night-skiing .coach-tip::after {
+        border-top-color: rgba(226, 232, 240, 0.6);
+      }
+    }
     .coach-panel {
       display: none;
       justify-content: center;
       margin-top: 12px;
       margin-bottom: 6px;
+    }
+    .first-person-enabled .coach-panel {
+      margin-top: 6px;
+      margin-bottom: 12px;
     }
     .coach-panel.active {
       display: flex;
@@ -1913,12 +1938,12 @@
           </div>
         </div>
       </div>
+      <div id="coachPanel" class="coach-panel" aria-live="polite"></div>
+      <div id="inputBuffer" class="input-buffer" aria-live="polite"></div>
       <div id="mountain" class="mountain"></div>
       <div id="finishZone" class="finish-zone" aria-label="Finished skiers">
         <div id="finishTokens" class="finish-zone-tokens"></div>
       </div>
-      <div id="coachPanel" class="coach-panel" aria-live="polite"></div>
-      <div id="inputBuffer" class="input-buffer" aria-live="polite"></div>
       <div class="tram-controls" aria-label="Lift zone controls">
         <button id="tramLeftButton" class="secondary" type="button" aria-label="Move left">👈</button>
         <button id="tramCycleButton" class="secondary" type="button" aria-label="Cycle lift zone">🚡</button>
