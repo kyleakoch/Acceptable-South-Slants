@@ -1624,6 +1624,33 @@
     .powder-controls .music-start:hover {
       background: #16a34a;
     }
+    .custom-music-inputs {
+      display: grid;
+      gap: 6px;
+    }
+    .custom-music-inputs input,
+    .custom-music-inputs textarea {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #cbd5f5;
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    .custom-music-inputs textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+    .custom-music-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .custom-music-status.error {
+      color: #b91c1c;
+      opacity: 1;
+    }
     .powder-item {
       display: grid;
       gap: 6px;
@@ -1811,6 +1838,27 @@
             <button id="musicStop" class="secondary" type="button">Stop</button>
             <button id="musicNext" class="secondary" type="button">Next track</button>
             <button id="musicLoop" class="secondary" type="button">Loop track</button>
+          </div>
+        </div>
+        <div class="powder-item">
+          <strong>Custom base64 music</strong>
+          <div id="customMusicStatus" class="powder-current custom-music-status"></div>
+          <div class="custom-music-inputs">
+            <input
+              id="customMusicTitle"
+              type="text"
+              placeholder="Track title (optional)"
+              maxlength="60"
+              autocomplete="off"
+            />
+            <textarea
+              id="customMusicBase64"
+              placeholder="Paste base64 audio (data:audio/...;base64, or raw base64)"
+            ></textarea>
+          </div>
+          <div class="custom-music-actions">
+            <button id="customMusicSave" type="button">Use base64 track</button>
+            <button id="customMusicClear" class="secondary" type="button">Clear custom track</button>
           </div>
         </div>
         <div class="powder-item">
@@ -2077,7 +2125,24 @@
       { key: "DONUT", name: "Donut Roll", emoji: "🍩", effect: "CONFETTI" },
       { key: "FRIES", name: "Fry Scatter", emoji: "🍟", effect: "CONFETTI" }
     ];
+    const CUSTOM_TRACK_STORAGE_KEY = "powderCrownCustomTrack";
+
+    function loadCustomTrackFromStorage() {
+      const stored = localStorage.getItem(CUSTOM_TRACK_STORAGE_KEY);
+      if (!stored) return null;
+      try {
+        const parsed = JSON.parse(stored);
+        if (!parsed || typeof parsed !== "object") return null;
+        if (typeof parsed.url !== "string" || typeof parsed.title !== "string") return null;
+        return { title: parsed.title, url: parsed.url, custom: true };
+      } catch (error) {
+        return null;
+      }
+    }
+
+    const storedCustomTrack = loadCustomTrackFromStorage();
     const MUSIC_PLAYLIST = [
+      ...(storedCustomTrack ? [storedCustomTrack] : []),
       {
         title: "PowderKeg001",
         url: "https://www.dropbox.com/scl/fi/o2xmqc8ejn2pn7izoiqtc/PowderKeg001.mp3?rlkey=o5lgl0v6pwg4wsqyq7y2il8xt&st=rbubemwx&dl=1"
@@ -2152,6 +2217,7 @@
       endTipShown: false,
       musicIndex: 0,
       loopCurrentTrack: false,
+      customTrack: storedCustomTrack,
       lastGlide: null,
       coachTrusted: false,
       frameUiEnabled: false,
@@ -4598,6 +4664,19 @@
         loopButton.classList.toggle("active", state.loopCurrentTrack);
         loopButton.textContent = state.loopCurrentTrack ? "Looping" : "Loop track";
       }
+      const customTitleInput = document.getElementById("customMusicTitle");
+      if (customTitleInput && document.activeElement !== customTitleInput) {
+        customTitleInput.value = state.customTrack?.title || "Custom Base64 Track";
+      }
+      if (state.customTrack) {
+        setCustomMusicStatus(`Custom track loaded: ${state.customTrack.title}`);
+      } else {
+        setCustomMusicStatus("No custom base64 track set yet.");
+      }
+      const customClearButton = document.getElementById("customMusicClear");
+      if (customClearButton) {
+        customClearButton.disabled = !state.customTrack;
+      }
       const powderCurrent = document.getElementById("powderCurrent");
       if (powderCurrent) {
         const labelMap = {
@@ -4886,6 +4965,52 @@
         clearTimeout(state.fullAutoTimeoutId);
         state.fullAutoTimeoutId = null;
       }
+    }
+
+    function normalizeBase64Audio(input) {
+      const trimmed = (input || "").trim();
+      if (!trimmed) return "";
+      const compacted = trimmed.replace(/\s+/g, "");
+      if (compacted.startsWith("data:audio")) {
+        return compacted;
+      }
+      if (compacted.startsWith("data:")) {
+        return compacted;
+      }
+      return `data:audio/mpeg;base64,${compacted}`;
+    }
+
+    function setCustomTrack(track) {
+      const existingIndex = MUSIC_PLAYLIST.findIndex((entry) => entry.custom);
+      if (track) {
+        if (existingIndex >= 0) {
+          MUSIC_PLAYLIST[existingIndex] = track;
+        } else {
+          MUSIC_PLAYLIST.unshift(track);
+        }
+        state.customTrack = track;
+        state.musicIndex = existingIndex >= 0 ? existingIndex : 0;
+        localStorage.setItem(
+          CUSTOM_TRACK_STORAGE_KEY,
+          JSON.stringify({ title: track.title, url: track.url })
+        );
+        return;
+      }
+      if (existingIndex >= 0) {
+        MUSIC_PLAYLIST.splice(existingIndex, 1);
+        if (state.musicIndex >= existingIndex) {
+          state.musicIndex = Math.max(0, state.musicIndex - 1);
+        }
+      }
+      state.customTrack = null;
+      localStorage.removeItem(CUSTOM_TRACK_STORAGE_KEY);
+    }
+
+    function setCustomMusicStatus(message, isError = false) {
+      const status = document.getElementById("customMusicStatus");
+      if (!status) return;
+      status.textContent = message;
+      status.classList.toggle("error", isError);
     }
 
     function showScoreModal() {
@@ -5291,6 +5416,29 @@
     document.getElementById("musicLoop").addEventListener("click", () => {
       state.loopCurrentTrack = !state.loopCurrentTrack;
       ensureMusicPlaying({ forceRestart: true });
+      renderPowderModal();
+    });
+    document.getElementById("customMusicSave").addEventListener("click", () => {
+      const base64Input = document.getElementById("customMusicBase64");
+      const titleInput = document.getElementById("customMusicTitle");
+      const normalized = normalizeBase64Audio(base64Input?.value);
+      if (!normalized) {
+        setCustomMusicStatus("Paste base64 audio to use a custom track.", true);
+        return;
+      }
+      const title = titleInput?.value?.trim() || "Custom Base64 Track";
+      const track = { title, url: normalized, custom: true };
+      setCustomTrack(track);
+      if (base64Input) {
+        base64Input.value = "";
+      }
+      setCustomMusicStatus(`Custom track loaded: ${track.title}`);
+      ensureMusicPlaying({ forceRestart: true });
+      renderPowderModal();
+    });
+    document.getElementById("customMusicClear").addEventListener("click", () => {
+      setCustomTrack(null);
+      setCustomMusicStatus("Custom base64 track cleared.");
       renderPowderModal();
     });
     document.getElementById("coachButton").addEventListener("click", () => {
