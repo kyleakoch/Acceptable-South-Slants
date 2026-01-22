@@ -2160,7 +2160,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35d — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35f — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2891,29 +2891,8 @@
       return `${symbol.icon} ${count}/7`;
     }
 
-    function buildRpgRecyclePool() {
-      const pool = new Map();
-      state.memoriesPile.forEach((cardId) => {
-        pool.set(cardId, state.cards[cardId]);
-      });
-      getPlayer().collectedPile.forEach((entry) => {
-        const card = state.cards[entry.cardId];
-        if (card?.type === "CONDITION") {
-          pool.set(card.id, card);
-        }
-      });
-      state.mountain.forEach((slot) => {
-        if (slot.isLiftZone || !slot.conditionCardId) return;
-        const card = state.cards[slot.conditionCardId];
-        if (card?.type === "CONDITION") {
-          pool.set(card.id, card);
-        }
-      });
-      return [...pool.values()];
-    }
-
     function resetRpgCloudDeck() {
-      const cards = buildRpgRecyclePool();
+      const cards = Object.values(state.cards).filter((card) => card?.type === "CONDITION");
       if (!cards.length) return false;
       state.memoriesPile = [];
       state.cloudDeck = faceShuffleCloud(cards);
@@ -3756,7 +3735,7 @@
           slot.bonusEmoji = null;
         });
       }
-      const emptySlots = state.mountain.filter((slot) => slot.conditionCardId === null);
+      let emptySlots = state.mountain.filter((slot) => slot.conditionCardId === null);
       let available = state.cloudDeck.length;
       if (available < emptySlots.length && state.memoriesPile.length) {
         replenishCloudFromMemories();
@@ -3773,6 +3752,7 @@
             slot.missCount = 0;
             slot.bonusEmoji = null;
           });
+          emptySlots = state.mountain.filter((slot) => slot.conditionCardId === null);
           available = state.cloudDeck.length;
         }
       }
