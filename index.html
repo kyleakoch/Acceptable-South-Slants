@@ -1801,6 +1801,78 @@
     .intro-next:hover {
       background: #1e40af;
     }
+    .error-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.98));
+      color: #f8fafc;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      padding: 24px;
+      text-align: center;
+    }
+    .error-overlay.active {
+      display: flex;
+    }
+    .error-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid rgba(248, 250, 252, 0.2);
+      border-radius: 18px;
+      padding: 24px;
+      display: grid;
+      gap: 12px;
+      max-width: 520px;
+      width: 100%;
+    }
+    .ski-free-stage {
+      position: relative;
+      height: 120px;
+      overflow: hidden;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(148, 163, 184, 0.2), rgba(15, 23, 42, 0.6));
+    }
+    .ski-free-snow {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 70%);
+      opacity: 0.7;
+    }
+    .ski-free-skier,
+    .ski-free-dino {
+      position: absolute;
+      bottom: 18px;
+      font-size: 42px;
+      animation-duration: 4s;
+      animation-iteration-count: infinite;
+      animation-timing-function: linear;
+    }
+    .ski-free-skier {
+      left: -10%;
+      animation-name: skier-run;
+    }
+    .ski-free-dino {
+      left: -30%;
+      animation-name: dino-run;
+      animation-delay: 0.6s;
+    }
+    @keyframes skier-run {
+      0% {
+        transform: translateX(-10%);
+      }
+      100% {
+        transform: translateX(130%);
+      }
+    }
+    @keyframes dino-run {
+      0% {
+        transform: translateX(-30%) scaleX(-1);
+      }
+      100% {
+        transform: translateX(150%) scaleX(-1);
+      }
+    }
   </style>
 </head>
 <body>
@@ -1843,6 +1915,18 @@
         <button id="introNext" class="intro-next" type="button">Next</button>
         <button id="introSkip" class="intro-skip" type="button">🟢 🟦 ◆ ◆◆ Skip to Mode</button>
       </div>
+    </div>
+  </div>
+  <div id="errorOverlay" class="error-overlay" aria-live="assertive">
+    <div class="error-card">
+      <h2>⛷️💥 Yeti Alert!</h2>
+      <p id="errorMessage">The mountain ran out of safe lines.</p>
+      <div class="ski-free-stage" aria-hidden="true">
+        <div class="ski-free-snow"></div>
+        <div class="ski-free-skier">⛷️</div>
+        <div class="ski-free-dino">🦖</div>
+      </div>
+      <button id="errorReset" class="secondary">Back to mode select</button>
     </div>
   </div>
   <div id="scheduleModal" class="schedule-modal" aria-live="polite">
@@ -2076,7 +2160,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35c — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35d — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2805,6 +2889,36 @@
         return `${symbol.icon} complete`;
       }
       return `${symbol.icon} ${count}/7`;
+    }
+
+    function buildRpgRecyclePool() {
+      const pool = new Map();
+      state.memoriesPile.forEach((cardId) => {
+        pool.set(cardId, state.cards[cardId]);
+      });
+      getPlayer().collectedPile.forEach((entry) => {
+        const card = state.cards[entry.cardId];
+        if (card?.type === "CONDITION") {
+          pool.set(card.id, card);
+        }
+      });
+      state.mountain.forEach((slot) => {
+        if (slot.isLiftZone || !slot.conditionCardId) return;
+        const card = state.cards[slot.conditionCardId];
+        if (card?.type === "CONDITION") {
+          pool.set(card.id, card);
+        }
+      });
+      return [...pool.values()];
+    }
+
+    function resetRpgCloudDeck() {
+      const cards = buildRpgRecyclePool();
+      if (!cards.length) return false;
+      state.memoriesPile = [];
+      state.cloudDeck = faceShuffleCloud(cards);
+      getPlayer().collectedPile = [];
+      return true;
     }
 
     function isRpgComplete() {
@@ -3648,13 +3762,29 @@
         replenishCloudFromMemories();
         available = state.cloudDeck.length;
       }
+      if (state.mode === "RPG" && available < emptySlots.length) {
+        const reset = resetRpgCloudDeck();
+        if (reset) {
+          state.mountain.forEach((slot) => {
+            if (slot.isLiftZone) return;
+            slot.conditionCardId = null;
+            slot.isFaceUp = false;
+            slot.lastResult = null;
+            slot.missCount = 0;
+            slot.bonusEmoji = null;
+          });
+          available = state.cloudDeck.length;
+        }
+      }
       if (available < emptySlots.length) {
         state.gameEnded = true;
         state.message = "Cloud deck depleted. Game over!";
+        showErrorOverlay("The cloud deck froze solid. Head back to camp to pick a new mode.");
         render();
         return;
       }
-      emptySlots.forEach((slot) => {
+      const slotsToFill = state.mountain.filter((slot) => slot.conditionCardId === null);
+      slotsToFill.forEach((slot) => {
         const draw = drawCloudCard();
         slot.conditionCardId = draw.cardId;
         slot.isFaceUp = draw.isFaceUp;
@@ -4904,6 +5034,20 @@
       }
     }
 
+    function showErrorOverlay(message) {
+      const overlay = document.getElementById("errorOverlay");
+      const messageEl = document.getElementById("errorMessage");
+      if (!overlay || !messageEl) return;
+      messageEl.textContent = message;
+      overlay.classList.add("active");
+    }
+
+    function hideErrorOverlay() {
+      const overlay = document.getElementById("errorOverlay");
+      if (!overlay) return;
+      overlay.classList.remove("active");
+    }
+
     function renderPowderModal() {
       const overlayToggle = document.getElementById("powderOverlayToggle");
       if (overlayToggle) {
@@ -5536,6 +5680,7 @@
       state.autoStrategy = "MANUAL";
       state.autoMode = null;
       state.mode = mode;
+      hideErrorOverlay();
       showModeOverlay(false);
       showIntroOverlay(false);
       ensureMusicPlaying({ forceRestart: true });
@@ -5737,6 +5882,10 @@
       showModeOverlay(true);
     });
     document.getElementById("returnToGame").addEventListener("click", () => showModeOverlay(false));
+    document.getElementById("errorReset").addEventListener("click", () => {
+      hideErrorOverlay();
+      showModeOverlay(true);
+    });
     document.getElementById("introNext").addEventListener("click", () => {
       state.introStep += 1;
       if (state.introStep >= INTRO_STEPS.length) {
