@@ -1226,6 +1226,8 @@
       font-weight: 600;
       box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
       z-index: 2;
+      appearance: none;
+      cursor: pointer;
     }
     .coach-bubble.left {
       left: -200px;
@@ -1241,6 +1243,10 @@
       height: 0;
       border: 8px solid transparent;
     }
+    .coach-bubble:focus-visible {
+      outline: 2px solid #38bdf8;
+      outline-offset: 2px;
+    }
     .coach-bubble.left::after {
       right: -16px;
       border-left-color: #1e2430;
@@ -1253,6 +1259,17 @@
     }
     .coach-bubble .bubble-text {
       color: #1e2430;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .coach-bubble.left .bubble-text {
+      justify-content: flex-end;
+      text-align: right;
+    }
+    .coach-bubble.right .bubble-text {
+      justify-content: flex-start;
+      text-align: left;
     }
     body.night-skiing .coach-bubble {
       background: #0f172a;
@@ -3825,8 +3842,10 @@
       nowMarker.className = "first-person-now";
       nowMarker.textContent = "⏱️ NOW";
       const coachActive = state.coachMode === "ON";
-      let leftCoachHtml = "";
-      let rightCoachHtml = "";
+      const leftHandEmoji = getHandEmoji("LEFT");
+      const rightHandEmoji = getHandEmoji("RIGHT");
+      let leftCoachBubble = null;
+      let rightCoachBubble = null;
       optionIds.forEach((slotIdValue) => {
         const { slot, card } = getSlotData(slotIdValue);
         const button = document.createElement("button");
@@ -3871,14 +3890,35 @@
           ? getCoachOutcomeText(slot, card, state.activeRun ? getSkierCard(state.activeRun.leadSkierId) : getSkierCard(getNextAvailableSkierId()))
           : "";
         const bubbleSide = optionIds.length > 1 && slotIdValue === optionIds[0] ? "left" : "right";
-        const bubbleHtml = coachActive
-          ? `<div class="coach-bubble ${bubbleSide}"><div class="bubble-text">${coachText}</div></div>`
-          : "";
-        if (bubbleHtml) {
+        if (coachActive) {
+          const bubbleEl = document.createElement("button");
+          bubbleEl.type = "button";
+          bubbleEl.className = `coach-bubble ${bubbleSide}`;
+          bubbleEl.setAttribute("aria-label", `Select ${bubbleSide} option`);
           if (bubbleSide === "left") {
-            leftCoachHtml = bubbleHtml;
+            bubbleEl.innerHTML = `
+              <div class="bubble-text">
+                <span class="bubble-copy">${coachText}</span>
+                <span class="bubble-emoji">${leftHandEmoji}</span>
+              </div>
+            `;
+            bubbleEl.addEventListener("click", (event) => {
+              event.stopPropagation();
+              handleSlotClick(slotIdValue);
+            });
+            leftCoachBubble = bubbleEl;
           } else {
-            rightCoachHtml = bubbleHtml;
+            bubbleEl.innerHTML = `
+              <div class="bubble-text">
+                <span class="bubble-emoji">${rightHandEmoji}</span>
+                <span class="bubble-copy">${coachText}</span>
+              </div>
+            `;
+            bubbleEl.addEventListener("click", (event) => {
+              event.stopPropagation();
+              handleSlotClick(slotIdValue);
+            });
+            rightCoachBubble = bubbleEl;
           }
         }
         nowTier.innerHTML = `
@@ -3931,8 +3971,12 @@
         button.appendChild(lane);
         optionsRow.appendChild(button);
       });
-      leftCoachSlot.innerHTML = leftCoachHtml;
-      rightCoachSlot.innerHTML = rightCoachHtml;
+      if (leftCoachBubble) {
+        leftCoachSlot.appendChild(leftCoachBubble);
+      }
+      if (rightCoachBubble) {
+        rightCoachSlot.appendChild(rightCoachBubble);
+      }
       wrapper.appendChild(nowMarker);
       wrapper.appendChild(optionsRow);
       mountainEl.appendChild(wrapper);
