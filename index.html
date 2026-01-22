@@ -2076,7 +2076,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35a — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35b — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2430,11 +2430,12 @@
       return { cards, nextId: idCounter };
     }
 
-    function buildDecksForPeak(peakKey) {
+    function buildDecksForPeak(peakKey, options = {}) {
       let idCounter = 1;
       const crowdDeck = buildCrowdDeck(idCounter);
       idCounter = crowdDeck.nextId;
-      const conditionDeckCount = peakKey === "PEAK_100" ? 10 : 2;
+      const conditionDeckCount = options.conditionDeckCount
+        ?? (peakKey === "PEAK_100" ? 10 : 2);
       const conditionDeck = buildConditionDeck(idCounter, conditionDeckCount);
       idCounter = conditionDeck.nextId;
       const specialDeck = peakKey === "PEAK_100" ? buildSpecialDeck(idCounter) : { cards: [], nextId: idCounter };
@@ -2978,7 +2979,8 @@
         render();
         return;
       }
-      const deckBundle = buildDecksForPeak(state.peak);
+      const conditionDeckCount = state.mode === "RPG" ? 5 : undefined;
+      const deckBundle = buildDecksForPeak(state.peak, { conditionDeckCount });
       deckBundle.allCards.forEach((card) => {
         state.cards[card.id] = card;
       });
@@ -3614,6 +3616,19 @@
     }
 
     function refillMountain() {
+      if (state.mode === "RPG") {
+        const occupied = state.mountain.filter(
+          (slot) => slot.conditionCardId !== null && !slot.isLiftZone
+        );
+        const clearCount = Math.floor(occupied.length / 2);
+        shuffle([...occupied]).slice(0, clearCount).forEach((slot) => {
+          slot.conditionCardId = null;
+          slot.isFaceUp = false;
+          slot.lastResult = null;
+          slot.missCount = 0;
+          slot.bonusEmoji = null;
+        });
+      }
       const emptySlots = state.mountain.filter((slot) => slot.conditionCardId === null);
       let available = state.cloudDeck.length;
       if (available < emptySlots.length && state.memoriesPile.length) {
