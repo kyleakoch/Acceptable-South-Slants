@@ -115,6 +115,8 @@
       opacity: 0;
       transition: opacity 0.6s ease;
       letter-spacing: 8px;
+      position: relative;
+      z-index: 2;
     }
     .loading-emoji.visible {
       opacity: 1;
@@ -126,6 +128,9 @@
       overflow: hidden;
       opacity: 0;
       transition: opacity 0.6s ease;
+    }
+    .loading-screen .snowstorm {
+      z-index: 1;
     }
     .snowstorm.active {
       opacity: 1;
@@ -1945,7 +1950,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">H</div>
+    <div class="loading-version">I</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
@@ -2235,7 +2240,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35h — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35i — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -3161,7 +3166,7 @@
         render();
         return;
       }
-      const conditionDeckCount = state.mode === "RPG" ? 5 : undefined;
+      const conditionDeckCount = state.mode === "RPG" ? 10 : undefined;
       const deckBundle = buildDecksForPeak(state.peak, { conditionDeckCount });
       deckBundle.allCards.forEach((card) => {
         state.cards[card.id] = card;
