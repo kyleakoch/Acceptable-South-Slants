@@ -161,6 +161,7 @@
       gap: 16px;
       max-height: 90vh;
       overflow-y: auto;
+      position: relative;
     }
     .mode-grid {
       display: grid;
@@ -971,6 +972,20 @@
       gap: 6px;
       align-items: center;
     }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .debug-toggle-stack .goggles-button {
       border: none;
       background: transparent;
@@ -1077,6 +1092,21 @@
       border: 6px solid transparent;
       border-top-color: #1e2430;
       transform: translateX(-50%);
+    }
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      border: none;
+      background: transparent;
+      font-size: 20px;
+      color: #ef4444;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-close:hover {
+      color: #dc2626;
+      background: transparent;
     }
     body.night-skiing .coach-tip::after {
       border-top-color: rgba(226, 232, 240, 0.6);
@@ -1531,6 +1561,7 @@
       gap: 12px;
       max-height: 90vh;
       overflow-y: auto;
+      position: relative;
     }
     .high-score-modal {
       position: fixed;
@@ -1554,6 +1585,7 @@
       gap: 12px;
       max-height: 90vh;
       overflow-y: auto;
+      position: relative;
     }
     .score-mode-panel {
       display: grid;
@@ -1667,6 +1699,27 @@
       gap: 12px;
       max-height: 90vh;
       overflow-y: auto;
+      position: relative;
+    }
+    .sidebar-panel {
+      position: relative;
+      padding-bottom: 56px;
+    }
+    .bug-toggle {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(15, 23, 42, 0.2);
+      background: rgba(255, 255, 255, 0.9);
+      font-size: 22px;
+      padding: 6px 10px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .bug-toggle.active {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
     }
     .powder-grid {
       display: grid;
@@ -1884,6 +1937,7 @@
   <div id="scoreModal" class="score-modal" aria-live="polite">
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
+      <button id="scoreModalClose" class="modal-close" type="button" aria-label="Close run summary">❌</button>
       <div class="modal-header">
         <button id="openHighScoreFromScore" class="modal-crown-button" type="button" aria-label="View high scores">👑</button>
         <h2>Run Summary</h2>
@@ -1931,6 +1985,7 @@
   </div>
   <div id="scheduleModal" class="schedule-modal" aria-live="polite">
     <div class="modal-card">
+      <button id="scheduleCloseTop" class="modal-close" type="button" aria-label="Close schedule">❌</button>
       <h2>Schedule Auto</h2>
       <div class="schedule-tabs">
         <button id="scheduleTypeTab" class="secondary">Type</button>
@@ -1945,6 +2000,7 @@
   </div>
   <div id="powderModal" class="powder-modal" aria-live="polite">
     <div class="modal-card">
+      <button id="powderCloseTop" class="modal-close" type="button" aria-label="Close powder settings">❌</button>
       <h2>Powder Settings</h2>
       <div class="powder-grid">
         <div class="powder-item">
@@ -2026,6 +2082,7 @@
   </div>
   <div id="highScoreModal" class="high-score-modal" aria-live="polite">
     <div class="modal-card">
+      <button id="highScoreCloseTop" class="modal-close" type="button" aria-label="Close high scores">❌</button>
       <div class="modal-header">
         <h2>High Scores</h2>
         <button id="highScoreClose" class="secondary">Close</button>
@@ -2063,14 +2120,16 @@
   <main>
     <section class="panel mountain-panel">
       <div class="mountain-header">
-        <div class="coach-toggle-stack">
-          <button id="coachButton" class="coach-button" type="button" aria-label="Toggle coach mode">🗣️</button>
-          <div id="coachTip" class="coach-tip">You can toggle coach mode by tapping 🗣️</div>
-        </div>
-        <h2 class="title-emoji">
+        <div class="header-left">
           <button id="powderButton" class="title-button" type="button" aria-label="Powder settings">❄️</button>
+          <div class="coach-toggle-stack">
+            <button id="coachButton" class="coach-button" type="button" aria-label="Toggle coach mode">🗣️</button>
+            <div id="coachTip" class="coach-tip">You can toggle coach mode by tapping 🗣️</div>
+          </div>
+        </div>
+        <div class="header-center">
           <button id="highScoreButton" class="title-button" type="button" aria-label="High scores">👑</button>
-        </h2>
+        </div>
         <div class="debug-toggle-stack">
           <button
             id="firstPersonToggle"
@@ -2132,7 +2191,7 @@
         </div>
       </div>
     </section>
-    <section class="panel">
+    <section class="panel sidebar-panel">
       <h2 class="section-emoji">📺</h2>
       <div id="turnCounter" class="status"></div>
       <div class="status" id="status"></div>
@@ -2157,10 +2216,11 @@
       <div class="status" id="deckStatus"></div>
       <h3>Difficulty Legend</h3>
       <div class="legend" id="legend"></div>
+      <button id="bugToggle" class="bug-toggle" type="button" aria-label="Toggle debug mode">🐞</button>
     </section>
   </main>
   <footer>
-    Prototype v0.35f — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35g — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2168,6 +2228,7 @@
   </footer>
   <div id="modeOverlay" class="mode-overlay">
     <div class="mode-card">
+      <button id="modeOverlayClose" class="modal-close" type="button" aria-label="Close mode select">❌</button>
       <h2>Select a Game Mode</h2>
       <p>Choose how you want to ski today. More modes are on the way!</p>
       <div class="mode-option">
@@ -2310,7 +2371,7 @@
       loopCurrentTrack: false,
       lastGlide: null,
       coachTrusted: false,
-      frameUiEnabled: false,
+      frameUiEnabled: true,
       animationSpeed: "TURTLE",
       glideAnimationEnabled: true,
       cosmicNotation: "SCIENTIFIC",
@@ -3891,6 +3952,12 @@
           "aria-pressed",
           state.coachMode !== "OFF" ? "true" : "false"
         );
+      }
+      const bugToggle = document.getElementById("bugToggle");
+      if (bugToggle) {
+        const debugEnabled = document.body.classList.contains("debug-enabled");
+        bugToggle.classList.toggle("active", debugEnabled);
+        bugToggle.setAttribute("aria-pressed", debugEnabled ? "true" : "false");
       }
       const fullAutoButton = document.getElementById("fullAutoButton");
       if (fullAutoButton) {
@@ -5857,11 +5924,18 @@
       hideScoreModal();
       beginGame();
     });
+    document.getElementById("scoreModalClose").addEventListener("click", () => {
+      hideScoreModal();
+    });
     document.getElementById("modalMode").addEventListener("click", () => {
       hideScoreModal();
       showModeOverlay(true);
     });
     document.getElementById("returnToGame").addEventListener("click", () => showModeOverlay(false));
+    document.getElementById("modeOverlayClose").addEventListener("click", () => showModeOverlay(false));
+    document.getElementById("scheduleCloseTop").addEventListener("click", () => closeScheduleModal());
+    document.getElementById("powderCloseTop").addEventListener("click", () => showPowderModal(false));
+    document.getElementById("highScoreCloseTop").addEventListener("click", () => showHighScoreModal(false));
     document.getElementById("errorReset").addEventListener("click", () => {
       hideErrorOverlay();
       showModeOverlay(true);
@@ -5886,6 +5960,7 @@
       if (scoreTipText) scoreTipText.textContent = "";
     });
     const toggleDebugButton = document.getElementById("toggleDebug");
+    const bugToggle = document.getElementById("bugToggle");
     document.body.classList.add("hide-coords");
     document.body.classList.toggle("debug-enabled", false);
     toggleDebugButton.addEventListener("click", () => {
@@ -5900,6 +5975,11 @@
         : "Hide debug";
       render();
     });
+    if (bugToggle) {
+      bugToggle.addEventListener("click", () => {
+        toggleDebugButton.click();
+      });
+    }
     const loadingScreen = document.getElementById("loadingScreen");
     const loadingEmoji = document.getElementById("loadingEmoji");
     loadingScreen.addEventListener("pointerdown", (event) => {
