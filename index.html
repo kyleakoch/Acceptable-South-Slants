@@ -1987,7 +1987,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">I</div>
+    <div class="loading-version">J</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
@@ -2291,7 +2291,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35i — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35j — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2957,7 +2957,8 @@
         elapsedMs: 0,
         progress: {},
         totalScore: 0,
-        awards: null
+        awards: null,
+        conditionPool: []
       };
     }
 
@@ -3048,7 +3049,12 @@
     }
 
     function resetRpgCloudDeck() {
-      const cards = Object.values(state.cards).filter((card) => card?.type === "CONDITION");
+      const poolIds = state.rpg?.conditionPool?.length
+        ? state.rpg.conditionPool
+        : Object.values(state.cards)
+          .filter((card) => card?.type === "CONDITION")
+          .map((card) => card.id);
+      const cards = poolIds.map((cardId) => state.cards[cardId]).filter(Boolean);
       if (!cards.length) return false;
       state.memoriesPile = [];
       state.cloudDeck = faceShuffleCloud(cards);
@@ -3252,6 +3258,11 @@
         state.crowdDeck = shuffle(
           deckBundle.crowd.filter((card) => card.riderType === state.rpgRiderType)
         );
+        if (state.rpg) {
+          state.rpg.conditionPool = deckBundle.cloud
+            .filter((card) => card.type === "CONDITION")
+            .map((card) => card.id);
+        }
       } else {
         state.crowdDeck = shuffle([...deckBundle.crowd]);
       }
@@ -3888,7 +3899,7 @@
         const occupied = state.mountain.filter(
           (slot) => slot.conditionCardId !== null && !slot.isLiftZone
         );
-        const clearCount = Math.floor(occupied.length / 2);
+        const clearCount = Math.max(1, Math.floor(occupied.length * 0.4));
         shuffle([...occupied]).slice(0, clearCount).forEach((slot) => {
           slot.conditionCardId = null;
           slot.isFaceUp = false;
