@@ -119,6 +119,111 @@
     .loading-emoji.visible {
       opacity: 1;
     }
+    .shuffle-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(12, 20, 38, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 18;
+      padding: 20px;
+    }
+    .shuffle-overlay.active {
+      display: flex;
+    }
+    .shuffle-card {
+      width: min(960px, 92vw);
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 18px;
+      padding: 20px 24px 28px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .shuffle-card h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      text-align: center;
+    }
+    .shuffle-stage {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .shuffle-column h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      text-align: center;
+    }
+    .shuffle-subtitle {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #64748b;
+      text-align: center;
+      margin: 8px 0 6px;
+    }
+    .shuffle-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+      gap: 6px;
+    }
+    .shuffle-chip {
+      background: #f1f5f9;
+      border-radius: 10px;
+      padding: 6px 4px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 12px;
+      display: grid;
+      gap: 2px;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.6);
+    }
+    .shuffle-chip .chip-rider {
+      font-size: 14px;
+    }
+    .shuffle-chip.special {
+      background: #e0f2fe;
+      color: #0f172a;
+    }
+    .shuffle-chip.cloud-card {
+      background: #e2e8f0;
+    }
+    .shuffle-flight {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .shuffle-fly-card {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      width: 32px;
+      height: 44px;
+      border-radius: 8px;
+      background: #f8fafc;
+      box-shadow: 0 6px 12px rgba(15, 23, 42, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      animation: shuffle-fly 1.6s ease-in-out forwards;
+      animation-delay: var(--delay);
+    }
+    @keyframes shuffle-fly {
+      0% {
+        transform: translate3d(0, 0, 0) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot));
+        opacity: 0;
+      }
+    }
     .snowstorm {
       position: absolute;
       inset: 0;
@@ -2002,8 +2107,27 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">M</div>
+    <div class="loading-version">N</div>
     <div id="snowstorm" class="snowstorm"></div>
+  </div>
+  <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
+    <div class="shuffle-card">
+      <h2>Shuffling decks…</h2>
+      <div class="shuffle-stage">
+        <div class="shuffle-column">
+          <h3>👥 Crowd Deck</h3>
+          <div class="shuffle-subtitle">Skiers</div>
+          <div id="shuffleCrowdSkiers" class="shuffle-grid"></div>
+          <div class="shuffle-subtitle">Snowboarders</div>
+          <div id="shuffleCrowdBoarders" class="shuffle-grid"></div>
+        </div>
+        <div class="shuffle-column">
+          <h3>☁️ Cloud Deck</h3>
+          <div id="shuffleCloud" class="shuffle-grid"></div>
+        </div>
+      </div>
+      <div id="shuffleFlight" class="shuffle-flight" aria-hidden="true"></div>
+    </div>
   </div>
   <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
   <div id="scoreModal" class="score-modal" aria-live="polite">
@@ -2306,7 +2430,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35m — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35n — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -3186,7 +3310,7 @@
       });
     }
 
-    function rebuildCloudDeckFromMountain() {
+    function rebuildCloudDeckFromMountain({ clearMountain = true } = {}) {
       const mountainCards = state.mountain
         .map((slot) => slot.conditionCardId)
         .filter((cardId) => Boolean(cardId));
@@ -3197,7 +3321,9 @@
       if (!cards.length) return false;
       state.memoriesPile = [];
       state.cloudDeck = faceShuffleCloud(cards);
-      clearMountainConditions();
+      if (clearMountain) {
+        clearMountainConditions();
+      }
       return true;
     }
 
@@ -4110,6 +4236,53 @@
       }
     }
 
+    function ensureOptionSlotsFilled(optionIds) {
+      const emptyOptionSlots = optionIds.filter((slotIdValue) => {
+        const slot = state.mountain[slotIdValue];
+        return slot && !slot.isLiftZone && slot.conditionCardId === null && !slot.lastResult;
+      });
+      if (!emptyOptionSlots.length) return false;
+      let attempts = 0;
+      while (attempts < 2) {
+        let needed = emptyOptionSlots.length;
+        if (state.cloudDeck.length < needed && state.memoriesPile.length) {
+          replenishCloudFromMemories();
+        }
+        if (state.mode !== "RPG" && state.cloudDeck.length < needed) {
+          rebuildCloudDeckFromMountain({ clearMountain: false });
+        }
+        if (state.mode === "RPG") {
+          ensureRpgDeckVariety();
+          if (state.cloudDeck.length < needed) {
+            resetRpgCloudDeck();
+          }
+        }
+        needed = emptyOptionSlots.length;
+        if (state.cloudDeck.length < needed) {
+          state.gameEnded = true;
+          state.message = "Cloud deck depleted. Game over!";
+          showErrorOverlay("The cloud deck froze solid. Head back to camp to pick a new mode.");
+          return false;
+        }
+        emptyOptionSlots.forEach((slotIdValue) => {
+          const slot = state.mountain[slotIdValue];
+          const draw = drawCloudCard();
+          if (!slot || !draw) return;
+          slot.conditionCardId = draw.cardId;
+          slot.isFaceUp = draw.isFaceUp;
+          slot.lastResult = null;
+          slot.missCount = 0;
+          slot.bonusEmoji = null;
+        });
+        if (state.mode === "RPG" && ensureRpgMountainVariety()) {
+          attempts += 1;
+          continue;
+        }
+        break;
+      }
+      return true;
+    }
+
     function waitForGroup() {
       if (!state.activeRun) return;
       const slotId = state.activeRun.currentSlotId;
@@ -4489,6 +4662,7 @@
         return;
       }
       const optionIds = options.length > 1 ? [options[0], options[options.length - 1]] : [options[0]];
+      ensureOptionSlotsFilled(optionIds);
       const wrapper = document.createElement("div");
       wrapper.className = "first-person-view";
       const skierRow = document.createElement("div");
@@ -6008,6 +6182,88 @@
       }, 600);
     }
 
+    function showShuffleOverlay(show) {
+      const overlay = document.getElementById("shuffleOverlay");
+      if (!overlay) return;
+      overlay.classList.toggle("active", show);
+    }
+
+    function renderShufflePreview() {
+      const skierGrid = document.getElementById("shuffleCrowdSkiers");
+      const boarderGrid = document.getElementById("shuffleCrowdBoarders");
+      const cloudGrid = document.getElementById("shuffleCloud");
+      const shuffleFlight = document.getElementById("shuffleFlight");
+      const shuffleCard = document.querySelector(".shuffle-card");
+      if (!skierGrid || !boarderGrid || !cloudGrid || !shuffleFlight || !shuffleCard) return;
+      const buildCrowd = (riderEmoji, container) => {
+        container.innerHTML = "";
+        const cards = SYMBOLS.flatMap((symbol) =>
+          SKIER_RANKS.map((rank) => ({
+            label: `${rank}${symbol.icon}`,
+            rider: riderEmoji
+          }))
+        );
+        shuffle(cards).forEach((card) => {
+          const chip = document.createElement("div");
+          chip.className = "shuffle-chip";
+          chip.innerHTML = `
+            <div class="chip-rank">${card.label}</div>
+            <div class="chip-rider">${card.rider}</div>
+          `;
+          container.appendChild(chip);
+        });
+      };
+      buildCrowd("⛷️", skierGrid);
+      buildCrowd("🏂", boarderGrid);
+      cloudGrid.innerHTML = "";
+      const cloudCards = [
+        ...SYMBOLS.flatMap((symbol) =>
+          CONDITION_RANKS.map((rank) => ({
+            label: `${rank}${symbol.icon}`,
+            className: "cloud-card"
+          }))
+        ),
+        ...SPECIAL_CARDS.map((card) => ({ label: card.emoji, className: "special" }))
+      ];
+      shuffle(cloudCards).forEach((card) => {
+        const chip = document.createElement("div");
+        chip.className = `shuffle-chip ${card.className || ""}`.trim();
+        chip.innerHTML = `<div class="chip-rank">${card.label}</div>`;
+        cloudGrid.appendChild(chip);
+      });
+      shuffleFlight.innerHTML = "";
+      const width = shuffleCard.clientWidth;
+      const height = shuffleCard.clientHeight;
+      for (let i = 0; i < 36; i += 1) {
+        const fly = document.createElement("div");
+        const x = Math.random() * (width * 0.7);
+        const y = Math.random() * (height * 0.6) + height * 0.2;
+        fly.className = "shuffle-fly-card";
+        fly.textContent = ["🟢", "🟦", "◆", "◆◆", "☁️", "⛷️", "🏂", "❄️"][i % 8];
+        fly.style.setProperty("--x", `${x}px`);
+        fly.style.setProperty("--y", `${y}px`);
+        fly.style.setProperty("--rot", `${-30 + Math.random() * 60}deg`);
+        fly.style.setProperty("--delay", `${Math.random() * 300}ms`);
+        shuffleFlight.appendChild(fly);
+      }
+    }
+
+    function runShufflePreview() {
+      return new Promise((resolve) => {
+        const overlay = document.getElementById("shuffleOverlay");
+        if (!overlay) {
+          resolve();
+          return;
+        }
+        renderShufflePreview();
+        showShuffleOverlay(true);
+        setTimeout(() => {
+          showShuffleOverlay(false);
+          resolve();
+        }, 2400);
+      });
+    }
+
     function startLoadingSequence() {
       const loadingScreen = document.getElementById("loadingScreen");
       const loadingEmoji = document.getElementById("loadingEmoji");
@@ -6032,7 +6288,9 @@
             setTimeout(() => {
               if (state.loadingDismissed) return;
               loadingScreen.style.display = "none";
-              showIntroOverlay(true);
+              runShufflePreview().then(() => {
+                showIntroOverlay(true);
+              });
             }, 700);
           }, 600);
           return;
