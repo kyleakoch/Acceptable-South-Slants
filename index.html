@@ -483,6 +483,21 @@
       letter-spacing: 0.3em;
       font-size: 12px;
       opacity: 0.5;
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      text-transform: uppercase;
+    }
+    .current-turn-label {
+      letter-spacing: 0.2em;
+    }
+    .current-turn-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      opacity: 0.85;
     }
     .first-person-lanes {
       display: grid;
@@ -1987,7 +2002,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">L</div>
+    <div class="loading-version">M</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
@@ -2291,7 +2306,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35l — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35m — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2796,6 +2811,47 @@
       }
     }
 
+    function ensureCoachStarterSkier(player) {
+      if (!player || !player.skierQueue.length) return;
+      if (state.coachMode === "OFF") return;
+      const wantsGreenSymbol = state.mode !== "RPG";
+      const targetInQueueIndex = player.skierQueue.findIndex((skierId) => {
+        const skierState = state.cards[skierId];
+        const card = state.cards[skierState.cardId];
+        if (!card) return false;
+        if (card.rank !== "J") return false;
+        if (!wantsGreenSymbol) return true;
+        return card.symbol === "GREEN";
+      });
+      if (targetInQueueIndex > 0) {
+        const [skierId] = player.skierQueue.splice(targetInQueueIndex, 1);
+        player.skierQueue.unshift(skierId);
+        return;
+      }
+      if (targetInQueueIndex === 0) return;
+      const targetIndex = state.crowdDeck.findIndex((card) => {
+        if (!card) return false;
+        if (card.rank !== "J") return false;
+        if (wantsGreenSymbol && card.symbol !== "GREEN") return false;
+        if (state.mode === "RPG" && card.riderType !== state.rpgRiderType) return false;
+        return true;
+      });
+      if (targetIndex === -1) return;
+      const targetCard = state.crowdDeck.splice(targetIndex, 1)[0];
+      const firstSkierId = player.skierQueue[0];
+      const firstSkierState = state.cards[firstSkierId];
+      const originalCardId = firstSkierState.cardId;
+      firstSkierState.cardId = targetCard.id;
+      if (state.mode === "RPG") {
+        const baseSymbol = SYMBOLS[0];
+        targetCard.symbol = baseSymbol.key;
+        targetCard.difficultyRank = baseSymbol.difficultyRank;
+      }
+      if (originalCardId && state.cards[originalCardId]) {
+        state.crowdDeck.push(state.cards[originalCardId]);
+      }
+    }
+
     function getSymbol(card) {
       return SYMBOLS.find((symbol) => symbol.key === card.symbol);
     }
@@ -3183,6 +3239,18 @@
       return card.difficultyRank <= skierCard.difficultyRank ? "✅" : "❌";
     }
 
+    function getTurnCountEmoji(count) {
+      const map = {
+        0: "0️⃣",
+        1: "1️⃣",
+        2: "2️⃣",
+        3: "3️⃣",
+        4: "4️⃣",
+        5: "5️⃣"
+      };
+      return map[count] || `${count}`;
+    }
+
     function formatNumber(value) {
       if (!Number.isFinite(value)) return "∞";
       if (Math.abs(value) >= 1e12) {
@@ -3356,6 +3424,7 @@
       if (state.mode === "RPG") {
         setupRpgRoster(player);
       }
+      ensureCoachStarterSkier(player);
       state.activeRun = null;
       state.gameEnded = false;
       state.message = state.mode === "RPG"
@@ -4448,7 +4517,14 @@
       optionsRow.className = "first-person-options";
       const nowMarker = document.createElement("div");
       nowMarker.className = "first-person-now";
-      nowMarker.textContent = "⏱️ NOW";
+      const symbolIcon = skierCard ? getSymbol(skierCard).icon : "🟢";
+      const upcomingTurns = Math.max(0, visibilityDepth - 1);
+      const upcomingEmoji = upcomingTurns > 0 ? getTurnCountEmoji(upcomingTurns) : "0️⃣";
+      const upcomingIndicator = `↙️${upcomingEmoji}↘️`;
+      nowMarker.innerHTML = `
+        <div class="current-turn-label">Current turn</div>
+        <div class="current-turn-indicator">${symbolIcon}👀 ${upcomingIndicator}</div>
+      `;
       const coachActive = state.coachMode === "ON";
       const leftHandEmoji = getHandEmoji("LEFT");
       const rightHandEmoji = getHandEmoji("RIGHT");
