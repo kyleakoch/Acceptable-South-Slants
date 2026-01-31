@@ -2107,7 +2107,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">P</div>
+    <div class="loading-version">Q</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2430,7 +2430,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35p — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35q — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2844,6 +2844,40 @@
       );
       if (!conditionCards.length) return null;
       return conditionCards[Math.floor(Math.random() * conditionCards.length)].id;
+    }
+
+    function fillEmptyMountainSlots() {
+      const emptySlots = state.mountain.filter(
+        (slot) => !slot.isLiftZone && slot.conditionCardId === null && !slot.lastResult
+      );
+      if (!emptySlots.length) return;
+      if (!state.cloudDeck.length && state.memoriesPile.length) {
+        replenishCloudFromMemories();
+      }
+      if (state.mode !== "RPG" && !state.cloudDeck.length) {
+        rebuildCloudDeckFromMountain({ clearMountain: false });
+      }
+      if (state.mode === "RPG") {
+        ensureRpgDeckVariety();
+        if (!state.cloudDeck.length) {
+          resetRpgCloudDeck();
+        }
+      }
+      emptySlots.forEach((slot) => {
+        const draw = drawCloudCard();
+        if (!draw) {
+          const fallbackId = getRandomConditionCardId();
+          if (!fallbackId) return;
+          slot.conditionCardId = fallbackId;
+          slot.isFaceUp = true;
+        } else {
+          slot.conditionCardId = draw.cardId;
+          slot.isFaceUp = draw.isFaceUp;
+        }
+        slot.lastResult = null;
+        slot.missCount = 0;
+        slot.bonusEmoji = null;
+      });
     }
 
     function slotId(row, idx) {
@@ -4413,6 +4447,7 @@
     }
 
     function render() {
+      fillEmptyMountainSlots();
       renderMountain();
       runGlideAnimation();
       renderFinishZone();
