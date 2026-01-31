@@ -2107,7 +2107,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">O</div>
+    <div class="loading-version">P</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2430,7 +2430,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35o — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35p — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2836,6 +2836,14 @@
         replenishCloudFromMemories();
       }
       return state.cloudDeck.pop() || null;
+    }
+
+    function getRandomConditionCardId() {
+      const conditionCards = Object.values(state.cards).filter(
+        (card) => card?.type === "CONDITION"
+      );
+      if (!conditionCards.length) return null;
+      return conditionCards[Math.floor(Math.random() * conditionCards.length)].id;
     }
 
     function slotId(row, idx) {
@@ -4213,17 +4221,26 @@
           }
         }
         if (available < emptySlots.length) {
-          state.gameEnded = true;
-          state.message = "Cloud deck depleted. Game over!";
-          showErrorOverlay("The cloud deck froze solid. Head back to camp to pick a new mode.");
-          render();
-          return;
+          const fallbackId = getRandomConditionCardId();
+          if (!fallbackId) {
+            state.gameEnded = true;
+            state.message = "Cloud deck depleted. Game over!";
+            showErrorOverlay("The cloud deck froze solid. Head back to camp to pick a new mode.");
+            render();
+            return;
+          }
         }
         const slotsToFill = state.mountain.filter((slot) => slot.conditionCardId === null);
         slotsToFill.forEach((slot) => {
           const draw = drawCloudCard();
-          slot.conditionCardId = draw.cardId;
-          slot.isFaceUp = draw.isFaceUp;
+          if (!draw) {
+            const fallbackId = getRandomConditionCardId();
+            slot.conditionCardId = fallbackId;
+            slot.isFaceUp = true;
+          } else {
+            slot.conditionCardId = draw.cardId;
+            slot.isFaceUp = draw.isFaceUp;
+          }
           slot.lastResult = null;
           slot.missCount = 0;
           slot.bonusEmoji = null;
@@ -4259,17 +4276,27 @@
         }
         needed = emptyOptionSlots.length;
         if (state.cloudDeck.length < needed) {
-          state.gameEnded = true;
-          state.message = "Cloud deck depleted. Game over!";
-          showErrorOverlay("The cloud deck froze solid. Head back to camp to pick a new mode.");
-          return false;
+          const fallbackId = getRandomConditionCardId();
+          if (!fallbackId) {
+            state.gameEnded = true;
+            state.message = "Cloud deck depleted. Game over!";
+            showErrorOverlay("The cloud deck froze solid. Head back to camp to pick a new mode.");
+            return false;
+          }
         }
         emptyOptionSlots.forEach((slotIdValue) => {
           const slot = state.mountain[slotIdValue];
           const draw = drawCloudCard();
-          if (!slot || !draw) return;
-          slot.conditionCardId = draw.cardId;
-          slot.isFaceUp = draw.isFaceUp;
+          if (!slot) return;
+          if (!draw) {
+            const fallbackId = getRandomConditionCardId();
+            if (!fallbackId) return;
+            slot.conditionCardId = fallbackId;
+            slot.isFaceUp = true;
+          } else {
+            slot.conditionCardId = draw.cardId;
+            slot.isFaceUp = draw.isFaceUp;
+          }
           slot.lastResult = null;
           slot.missCount = 0;
           slot.bonusEmoji = null;
