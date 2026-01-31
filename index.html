@@ -2107,7 +2107,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">N</div>
+    <div class="loading-version">O</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2430,7 +2430,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35n — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35o — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -4190,7 +4190,7 @@
           available = state.cloudDeck.length;
         }
         if (state.mode !== "RPG" && available < emptySlots.length) {
-          const rebuilt = rebuildCloudDeckFromMountain();
+          const rebuilt = rebuildCloudDeckFromMountain({ clearMountain: false });
           if (rebuilt) {
             emptySlots = state.mountain.filter((slot) => slot.conditionCardId === null);
             available = state.cloudDeck.length;
