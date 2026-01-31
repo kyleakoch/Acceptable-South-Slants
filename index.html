@@ -2115,7 +2115,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">R</div>
+    <div class="loading-version">S</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2438,7 +2438,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35r — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35s — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -6169,13 +6169,16 @@
         drop.className = "emoji-drop";
         drop.textContent = emoji;
         drop.style.left = `${Math.random() * 100}%`;
-        drop.style.animationDuration = `${1.6 + Math.random() * 1.8}s`;
+        const duration = 3.4 + Math.random() * 2.2;
+        const delay = Math.random() * 1.4;
+        drop.style.animationDuration = `${duration}s`;
+        drop.style.animationDelay = `${delay}s`;
         const baseSize = 18 + Math.random() * 18;
         drop.style.fontSize = `${baseSize * sizeMultiplier}px`;
         rain.appendChild(drop);
         setTimeout(() => {
           drop.remove();
-        }, 3000);
+        }, (duration + delay) * 1000);
       }
     }
 
