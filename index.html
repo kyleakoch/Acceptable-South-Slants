@@ -2105,7 +2105,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">U</div>
+    <div class="loading-version">V</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2428,7 +2428,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35u — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35v — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2846,7 +2846,7 @@
 
     function fillEmptyMountainSlots() {
       const emptySlots = state.mountain.filter(
-        (slot) => !slot.isLiftZone && slot.conditionCardId === null && !slot.lastResult
+        (slot) => !slot.isLiftZone && slot.conditionCardId === null
       );
       if (!emptySlots.length) return;
       if (!state.cloudDeck.length && state.memoriesPile.length) {
@@ -4305,7 +4305,7 @@
     function ensureOptionSlotsFilled(optionIds) {
       const emptyOptionSlots = optionIds.filter((slotIdValue) => {
         const slot = state.mountain[slotIdValue];
-        return slot && !slot.isLiftZone && slot.conditionCardId === null && !slot.lastResult;
+        return slot && !slot.isLiftZone && slot.conditionCardId === null;
       });
       if (!emptyOptionSlots.length) return false;
       let attempts = 0;
