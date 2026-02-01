@@ -204,28 +204,29 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 32px;
-      height: 44px;
+      width: 64px;
+      height: 86px;
       border-radius: 8px;
       background: #f8fafc;
       box-shadow: 0 6px 12px rgba(15, 23, 42, 0.25);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      animation: shuffle-fly 3s ease-in-out forwards;
+      font-size: 28px;
+      animation: shuffle-fly 9s ease-in-out forwards;
       animation-delay: var(--delay);
     }
     @keyframes shuffle-fly {
       0% {
-        transform: translate3d(-50%, -50%, 0) rotate(0deg);
+        transform: translate3d(-50%, -50%, 0) rotate(0deg) scale(0.6);
         opacity: 0;
       }
       15% {
         opacity: 1;
       }
       100% {
-        transform: translate3d(calc(-50% + var(--x)), calc(-50% + var(--y)), 0) rotate(var(--rot));
+        transform: translate3d(calc(-50% + var(--x)), calc(-50% + var(--y)), 0) rotate(var(--rot))
+          scale(var(--scale, 1));
         opacity: 0;
       }
     }
@@ -1198,7 +1199,7 @@
       display: inline-flex;
     }
     .coach-tip {
-      position: absolute;
+      position: fixed;
       left: 50%;
       top: calc(100% + 8px);
       transform: translateX(-50%);
@@ -2104,7 +2105,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">T</div>
+    <div class="loading-version">U</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2427,7 +2428,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35t — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35u — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -3176,6 +3177,7 @@
         elapsedMs: 0,
         progress: {},
         totalScore: 0,
+        bonusCounts: {},
         awards: null
       };
     }
@@ -3821,6 +3823,9 @@
     }
 
     function getBonusCounts() {
+      if (state.mode === "RPG" && state.rpg) {
+        return { ...(state.rpg.bonusCounts || {}) };
+      }
       return getPlayer().collectedPile.reduce((acc, entry) => {
         if (entry.bonusEmoji) {
           acc[entry.bonusEmoji] = (acc[entry.bonusEmoji] || 0) + 1;
@@ -4118,6 +4123,11 @@
         }
         if (bonusEmoji) {
           spawnEmojiRain(bonusEmoji, 8);
+          if (state.mode === "RPG" && state.rpg) {
+            const current = state.rpg.bonusCounts?.[bonusEmoji] || 0;
+            state.rpg.bonusCounts = state.rpg.bonusCounts || {};
+            state.rpg.bonusCounts[bonusEmoji] = current + 1;
+          }
         }
         state.message = bonusValue
           ? `Condition collected with bonus +${bonusValue}!`
@@ -4377,12 +4387,7 @@
       const maxCount = Math.max(0, ...Object.values(counts));
       const mult = Math.min(8, maxCount || 1);
       const finalScore = baseTotal * mult;
-      const bonusCounts = pile.reduce((acc, entry) => {
-        if (entry.bonusEmoji) {
-          acc[entry.bonusEmoji] = (acc[entry.bonusEmoji] || 0) + 1;
-        }
-        return acc;
-      }, {});
+      const bonusCounts = getBonusCounts();
       const metGoals = Object.entries(BONUS_TARGETS).filter(
         ([emoji, target]) => (bonusCounts[emoji] || 0) >= target
       );
@@ -5094,10 +5099,29 @@
       const tip = document.getElementById("coachTip");
       if (!tip) return;
       state.coachTipShown = true;
+      positionCoachTip();
       tip.classList.add("active");
       setTimeout(() => {
         tip.classList.remove("active");
       }, 5000);
+    }
+
+    function positionCoachTip() {
+      const tip = document.getElementById("coachTip");
+      const button = document.getElementById("coachButton");
+      if (!tip || !button) return;
+      const buttonRect = button.getBoundingClientRect();
+      const tipRect = tip.getBoundingClientRect();
+      const width = tipRect.width || 180;
+      const padding = 12;
+      const left = Math.min(
+        Math.max(buttonRect.left + buttonRect.width / 2 - width / 2, padding),
+        window.innerWidth - width - padding
+      );
+      tip.style.left = `${left}px`;
+      tip.style.top = `${buttonRect.bottom + 8}px`;
+      tip.style.transform = "translateX(0)";
+      tip.style.position = "fixed";
     }
 
     function updateFirstPersonToggle() {
@@ -6314,16 +6338,33 @@
       shuffleFlight.innerHTML = "";
       const width = shuffleCard.clientWidth;
       const height = shuffleCard.clientHeight;
-      for (let i = 0; i < 40; i += 1) {
+      const flightEmojis = [
+        "🟢",
+        "🟦",
+        "◆",
+        "◆◆",
+        "☁️",
+        "⛷️",
+        "🏂",
+        "❄️",
+        "❄️",
+        "❄️",
+        "🌨️",
+        "🌬️",
+        "✨",
+        "⛄️"
+      ];
+      for (let i = 0; i < 60; i += 1) {
         const fly = document.createElement("div");
         const x = Math.random() * (width * 0.7);
         const y = Math.random() * (height * 0.6) + height * 0.2;
         fly.className = "shuffle-fly-card";
-        fly.textContent = ["🟢", "🟦", "◆", "◆◆", "☁️", "⛷️", "🏂", "❄️"][i % 8];
+        fly.textContent = flightEmojis[Math.floor(Math.random() * flightEmojis.length)];
         fly.style.setProperty("--x", `${x}px`);
         fly.style.setProperty("--y", `${y}px`);
         fly.style.setProperty("--rot", `${-30 + Math.random() * 60}deg`);
-        fly.style.setProperty("--delay", `${Math.random() * 900}ms`);
+        fly.style.setProperty("--scale", `${0.75 + Math.random() * 1.25}`);
+        fly.style.setProperty("--delay", `${Math.random() * 2400}ms`);
         shuffleFlight.appendChild(fly);
       }
     }
@@ -6340,7 +6381,7 @@
         setTimeout(() => {
           showShuffleOverlay(false);
           resolve();
-        }, 3000);
+        }, 9000);
       });
     }
 
@@ -6496,6 +6537,11 @@
     document.getElementById("coachButton").addEventListener("click", () => {
       state.coachMode = state.coachMode === "OFF" ? "ON" : "OFF";
       render();
+    });
+    window.addEventListener("resize", () => {
+      if (state.coachTipShown && state.firstPersonView) {
+        positionCoachTip();
+      }
     });
     document.getElementById("highScoreButton").addEventListener("click", () => showHighScoreModal(true));
     document.getElementById("highScoreClose").addEventListener("click", () => showHighScoreModal(false));
