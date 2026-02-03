@@ -2149,8 +2149,8 @@
 </head>
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
-    <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">Y</div>
+    <div id="loadingEmoji" class="loading-emoji">❄︎</div>
+    <div class="loading-version">Z</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2484,7 +2484,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35y — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35z — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -6142,9 +6142,19 @@
       }
     }
 
+    function isIOSDevice() {
+      const ua = navigator.userAgent || navigator.vendor || "";
+      const isAppleMobile = /iPad|iPhone|iPod/.test(ua);
+      const isTouchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+      return isAppleMobile || isTouchMac;
+    }
+
     function showMusicUnlockModal(show) {
       const modal = document.getElementById("musicUnlockModal");
       if (!modal) return;
+      if (!isIOSDevice() && show) {
+        return;
+      }
       state.musicUnlockVisible = show;
       modal.classList.toggle("active", show);
     }
@@ -6231,6 +6241,10 @@
       const bgMusicVideo = document.getElementById("bgMusicVideo");
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       syncMusicSources(track);
+      if (!isIOSDevice()) {
+        markMusicUnlocked();
+        return playAnyMedia([bgMusic, bgMusicVideo]).catch(() => {});
+      }
       setMediaMuted(true);
       return playAnyMedia([bgMusic, bgMusicVideo])
         .then(() => {
@@ -6585,7 +6599,7 @@
       const loadingEmoji = document.getElementById("loadingEmoji");
       const snowstorm = document.getElementById("snowstorm");
       const bgMusic = document.getElementById("bgMusic");
-      const sequence = ["❄️", "👑", "🏔️", "⛷️"];
+      const sequence = ["❄︎", "👑", "🏔️", "⛷️"];
       let step = 0;
       showModeOverlay(false);
       createSnowstorm(snowstorm, 140);
