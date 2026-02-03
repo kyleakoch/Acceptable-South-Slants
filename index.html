@@ -2150,7 +2150,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">Z</div>
+    <div class="loading-version">A</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2484,7 +2484,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35z — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36a — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -6125,14 +6125,30 @@
       }
     }
 
+    function normalizeTrackUrl(url) {
+      if (!url) return url;
+      if (!url.includes("dropbox.com")) return url;
+      const cleaned = url.replace("https://www.dropbox.com", "https://dl.dropboxusercontent.com");
+      return cleaned.replace(/\\?.*$/, "");
+    }
+
     function syncMusicSources(track) {
       const bgMusic = document.getElementById("bgMusic");
       const bgMusicVideo = document.getElementById("bgMusicVideo");
-      if (bgMusic && track && bgMusic.src !== track.url) {
-        bgMusic.src = track.url;
+      const normalizedUrl = track ? normalizeTrackUrl(track.url) : "";
+      if (bgMusic) {
+        bgMusic.preload = "auto";
+        bgMusic.crossOrigin = "anonymous";
       }
-      if (bgMusicVideo && track && bgMusicVideo.src !== track.url) {
-        bgMusicVideo.src = track.url;
+      if (bgMusicVideo) {
+        bgMusicVideo.preload = "auto";
+        bgMusicVideo.crossOrigin = "anonymous";
+      }
+      if (bgMusic && normalizedUrl && bgMusic.src !== normalizedUrl) {
+        bgMusic.src = normalizedUrl;
+      }
+      if (bgMusicVideo && normalizedUrl && bgMusicVideo.src !== normalizedUrl) {
+        bgMusicVideo.src = normalizedUrl;
       }
       if (bgMusic) {
         bgMusic.loop = state.loopCurrentTrack;
