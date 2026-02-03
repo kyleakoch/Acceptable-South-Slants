@@ -122,6 +122,44 @@
       opacity: 0;
       pointer-events: none;
     }
+    .music-unlock-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.75);
+      z-index: 30;
+      padding: 20px;
+      text-align: center;
+    }
+    .music-unlock-modal.active {
+      display: flex;
+    }
+    .music-unlock-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      max-width: 360px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+      border: 2px solid #1e2430;
+    }
+    .music-unlock-card h3 {
+      margin: 0 0 8px;
+    }
+    .music-unlock-card p {
+      margin: 0 0 16px;
+      font-size: 14px;
+      color: #475569;
+    }
+    body.night-skiing .music-unlock-card {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-color: rgba(226, 232, 240, 0.6);
+    }
+    body.night-skiing .music-unlock-card p {
+      color: #94a3b8;
+    }
     .loading-emoji {
       font-size: clamp(48px, 9vw, 96px);
       opacity: 0;
@@ -2112,7 +2150,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">V</div>
+    <div class="loading-version">W</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2136,6 +2174,13 @@
   </div>
   <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
   <video id="bgMusicVideo" class="bg-music-video" preload="auto" playsinline></video>
+  <div id="musicUnlockModal" class="music-unlock-modal" aria-live="polite">
+    <div class="music-unlock-card">
+      <h3>Tap to enable music 🎵</h3>
+      <p>iOS requires a quick tap to unlock audio playback.</p>
+      <button id="musicUnlockButton" type="button">Enable music</button>
+    </div>
+  </div>
   <div id="scoreModal" class="score-modal" aria-live="polite">
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
@@ -2436,7 +2481,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35v — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35w — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2563,6 +2608,8 @@
       fullAutoTimeoutId: null,
       audioContext: null,
       audioUnlocked: false,
+      musicUnlocked: false,
+      musicUnlockVisible: false,
       loadingDismissed: false,
       autoStrategy: "MANUAL",
       autoCancelled: false,
@@ -6092,6 +6139,13 @@
       }
     }
 
+    function showMusicUnlockModal(show) {
+      const modal = document.getElementById("musicUnlockModal");
+      if (!modal) return;
+      state.musicUnlockVisible = show;
+      modal.classList.toggle("active", show);
+    }
+
     function unlockAudioContext() {
       if (state.audioUnlocked) return;
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -6123,6 +6177,65 @@
       return Promise.resolve();
     }
 
+    function playAnyMedia(elements = []) {
+      return new Promise((resolve, reject) => {
+        const valid = elements.filter(Boolean);
+        if (!valid.length) {
+          reject();
+          return;
+        }
+        let failures = 0;
+        let resolved = false;
+        valid.forEach((element) => {
+          tryPlayMedia(element)
+            .then(() => {
+              if (resolved) return;
+              resolved = true;
+              resolve(element);
+            })
+            .catch(() => {
+              failures += 1;
+              if (!resolved && failures >= valid.length) {
+                reject();
+              }
+            });
+        });
+      });
+    }
+
+    function setMediaMuted(muted) {
+      const bgMusic = document.getElementById("bgMusic");
+      const bgMusicVideo = document.getElementById("bgMusicVideo");
+      [bgMusic, bgMusicVideo].forEach((element) => {
+        if (!element) return;
+        element.muted = muted;
+        if (muted) {
+          element.volume = 0;
+        } else {
+          element.volume = 0.6;
+        }
+      });
+    }
+
+    function attemptAutoplayMuted() {
+      const bgMusic = document.getElementById("bgMusic");
+      const bgMusicVideo = document.getElementById("bgMusicVideo");
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      syncMusicSources(track);
+      setMediaMuted(true);
+      return playAnyMedia([bgMusic, bgMusicVideo])
+        .then(() => {
+          state.musicUnlocked = true;
+          showMusicUnlockModal(false);
+          setTimeout(() => {
+            setMediaMuted(false);
+          }, 300);
+        })
+        .catch(() => {
+          showMusicUnlockModal(true);
+        });
+    }
+
     function ensureMusicPlaying({ forceRestart = false } = {}) {
       const bgMusic = document.getElementById("bgMusic");
       const bgMusicVideo = document.getElementById("bgMusicVideo");
@@ -6132,6 +6245,9 @@
       if (forceRestart) {
         if (bgMusic) bgMusic.currentTime = 0;
         if (bgMusicVideo) bgMusicVideo.currentTime = 0;
+      }
+      if (state.musicUnlocked) {
+        setMediaMuted(false);
       }
       tryPlayMedia(bgMusic)
         .catch(() => tryPlayMedia(bgMusicVideo))
@@ -6819,6 +6935,7 @@
     startLoadingSequence();
     enableMusicOnInteraction();
     attachMusicUnlockHandlers();
+    attemptAutoplayMuted();
     queueInitialEmojiRain();
     const bgMusic = document.getElementById("bgMusic");
     if (bgMusic) {
@@ -6834,6 +6951,13 @@
         if (!state.loopCurrentTrack) {
           nextTrack();
         }
+      });
+    }
+    const musicUnlockButton = document.getElementById("musicUnlockButton");
+    if (musicUnlockButton) {
+      musicUnlockButton.addEventListener("click", () => {
+        unlockAudioContext();
+        attemptAutoplayMuted();
       });
     }
     state.allTimeHighScores = loadAllTimeHighScores();
