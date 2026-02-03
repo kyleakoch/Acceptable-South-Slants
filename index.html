@@ -2150,7 +2150,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">B</div>
+    <div class="loading-version">C</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2484,7 +2484,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36b — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36c — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -6588,6 +6588,8 @@
         }
         renderShufflePreview();
         showShuffleOverlay(true);
+        markMusicUnlocked();
+        ensureMusicPlaying({ forceRestart: true });
         setTimeout(() => {
           showShuffleOverlay(false);
           resolve();
