@@ -477,6 +477,7 @@
       display: grid;
       gap: var(--slot-gap);
       width: 100%;
+      grid-auto-rows: var(--slot-min);
     }
     .finish-zone {
       display: flex;
@@ -769,6 +770,8 @@
       display: grid;
       gap: var(--slot-gap);
       justify-content: center;
+      height: 100%;
+      align-items: stretch;
     }
     .mountain {
       position: relative;
@@ -876,6 +879,7 @@
       padding: 10px;
       min-width: 70px;
       min-height: 70px;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2150,7 +2154,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">C</div>
+    <div class="loading-version">D</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2484,7 +2488,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36c — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36d — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
