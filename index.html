@@ -2150,7 +2150,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">W</div>
+    <div class="loading-version">X</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2178,7 +2178,10 @@
     <div class="music-unlock-card">
       <h3>Tap to enable music 🎵</h3>
       <p>iOS requires a quick tap to unlock audio playback.</p>
-      <button id="musicUnlockButton" type="button">Enable music</button>
+      <div class="mode-grid">
+        <button id="musicUnlockButton" type="button">Enable music</button>
+        <button id="musicUnlockSkip" type="button" class="secondary">Skip music</button>
+      </div>
     </div>
   </div>
   <div id="scoreModal" class="score-modal" aria-live="polite">
@@ -2481,7 +2484,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35w — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35x — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -6232,6 +6235,7 @@
           }, 300);
         })
         .catch(() => {
+          state.musicUnlocked = false;
           showMusicUnlockModal(true);
         });
     }
@@ -6958,6 +6962,12 @@
       musicUnlockButton.addEventListener("click", () => {
         unlockAudioContext();
         attemptAutoplayMuted();
+      });
+    }
+    const musicUnlockSkip = document.getElementById("musicUnlockSkip");
+    if (musicUnlockSkip) {
+      musicUnlockSkip.addEventListener("click", () => {
+        showMusicUnlockModal(false);
       });
     }
     state.allTimeHighScores = loadAllTimeHighScores();
