@@ -2150,7 +2150,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">X</div>
+    <div class="loading-version">Y</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2484,7 +2484,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.35x — single-player Party Mode (mouse or touch controls)
+    Prototype v0.35y — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -6220,6 +6220,12 @@
       });
     }
 
+    function markMusicUnlocked() {
+      state.musicUnlocked = true;
+      showMusicUnlockModal(false);
+      setMediaMuted(false);
+    }
+
     function attemptAutoplayMuted() {
       const bgMusic = document.getElementById("bgMusic");
       const bgMusicVideo = document.getElementById("bgMusicVideo");
@@ -6261,6 +6267,7 @@
     function enableMusicOnInteraction() {
       const tryPlay = () => {
         unlockAudioContext();
+        markMusicUnlocked();
         ensureMusicPlaying();
         document.removeEventListener("pointerdown", tryPlay);
         document.removeEventListener("touchstart", tryPlay);
@@ -6303,6 +6310,7 @@
       const track = MUSIC_PLAYLIST[state.musicIndex];
       syncMusicSources(track);
       if (userInitiated) {
+        markMusicUnlocked();
         tryPlayMedia(bgMusic)
           .catch(() => tryPlayMedia(document.getElementById("bgMusicVideo")))
           .catch(() => {});
@@ -6707,6 +6715,8 @@
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
     document.getElementById("musicStart").addEventListener("click", () => {
+      unlockAudioContext();
+      markMusicUnlocked();
       ensureMusicPlaying({ forceRestart: true });
     });
     document.getElementById("musicStop").addEventListener("click", () => {
@@ -6718,6 +6728,7 @@
     });
     document.getElementById("musicLoop").addEventListener("click", () => {
       state.loopCurrentTrack = !state.loopCurrentTrack;
+      markMusicUnlocked();
       ensureMusicPlaying({ forceRestart: true });
       renderPowderModal();
     });
