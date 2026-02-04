@@ -553,6 +553,41 @@
       font-size: 14px;
       font-weight: 600;
     }
+    .sidebar-section {
+      border-top: 1px solid rgba(148, 163, 184, 0.35);
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+    .sidebar-section:first-of-type {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+    .section-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: transparent;
+      border: none;
+      padding: 4px 0;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      color: inherit;
+    }
+    .section-toggle .label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-toggle .chevron {
+      font-size: 16px;
+    }
+    .sidebar-section.collapsed .section-body {
+      display: none;
+    }
     .collected-rows {
       display: grid;
       gap: 6px;
@@ -581,7 +616,7 @@
       display: grid;
       gap: 16px;
       justify-items: center;
-      padding: 12px 0;
+      padding: 28px 0 12px;
       min-height: 520px;
       width: 100%;
       max-width: 100%;
@@ -591,6 +626,8 @@
       display: flex;
       justify-content: center;
       margin-top: 24px;
+      position: relative;
+      z-index: 4;
     }
     .first-person-coach-row {
       display: grid;
@@ -2167,7 +2204,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">F</div>
+    <div class="loading-version">G</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2477,31 +2514,67 @@
       <div id="turnCounter" class="status"></div>
       <div class="status" id="status"></div>
       <div class="actions" id="actions"></div>
-      <h3>Active Skier</h3>
-      <div id="activeSkier" class="tag"></div>
-      <div class="lift-header">
-        <button id="liftToggle" class="secondary lift-toggle" type="button" aria-expanded="true">
-          <span id="liftChevron">▾</span>
-          Lift Zone
+      <div class="sidebar-section" data-section="active">
+        <button class="section-toggle" type="button" aria-expanded="true">
+          <span class="label">🧍 Active Human</span>
+          <span class="chevron">▾</span>
         </button>
-        <div id="crowdCounter" class="tag"></div>
+        <div class="section-body">
+          <div id="activeSkier" class="tag"></div>
+        </div>
       </div>
-      <div id="liftDetails" class="lift-details">
-        <div id="bonusTracker" class="status"></div>
-        <div id="skierQueue" class="pile"></div>
+      <div class="sidebar-section" data-section="lift">
+        <button class="section-toggle" type="button" aria-expanded="true">
+          <span class="label">🚡 Lift Zone</span>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="section-body">
+          <div class="lift-header">
+            <button id="liftToggle" class="secondary lift-toggle" type="button" aria-expanded="true">
+              <span id="liftChevron">▾</span>
+              Lift Zone
+            </button>
+            <div id="crowdCounter" class="tag"></div>
+          </div>
+          <div id="liftDetails" class="lift-details">
+            <div id="bonusTracker" class="status"></div>
+            <div id="skierQueue" class="pile"></div>
+          </div>
+        </div>
       </div>
-      <div id="score" class="status"></div>
-      <h3>Scoreboard</h3>
-      <div id="scoreHistory" class="status"></div>
-      <h3>Decks</h3>
-      <div class="status" id="deckStatus"></div>
-      <h3>Difficulty Legend</h3>
-      <div class="legend" id="legend"></div>
+      <div class="sidebar-section" data-section="score">
+        <button class="section-toggle" type="button" aria-expanded="true">
+          <span class="label">🏆 Scoreboard</span>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="section-body">
+          <div id="score" class="status"></div>
+          <div id="scoreHistory" class="status"></div>
+        </div>
+      </div>
+      <div class="sidebar-section" data-section="decks">
+        <button class="section-toggle" type="button" aria-expanded="true">
+          <span class="label">🃏 Decks</span>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="section-body">
+          <div class="status" id="deckStatus"></div>
+        </div>
+      </div>
+      <div class="sidebar-section" data-section="legend">
+        <button class="section-toggle" type="button" aria-expanded="true">
+          <span class="label">🗺️ Difficulty Legend</span>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="section-body">
+          <div class="legend" id="legend"></div>
+        </div>
+      </div>
       <button id="bugToggle" class="bug-toggle" type="button" aria-label="Toggle debug mode">🐞</button>
     </section>
   </main>
   <footer>
-    Prototype v0.36f — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36g — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -7115,6 +7188,18 @@
     document.getElementById("tramRightButton").addEventListener("click", () => {
       handleDirectionalMove("RIGHT");
       render();
+    });
+    document.querySelectorAll(".sidebar-section .section-toggle").forEach((button) => {
+      button.addEventListener("click", () => {
+        const section = button.closest(".sidebar-section");
+        if (!section) return;
+        const isCollapsed = section.classList.toggle("collapsed");
+        button.setAttribute("aria-expanded", (!isCollapsed).toString());
+        const chevron = button.querySelector(".chevron");
+        if (chevron) {
+          chevron.textContent = isCollapsed ? "▸" : "▾";
+        }
+      });
     });
   </script>
 </body>
