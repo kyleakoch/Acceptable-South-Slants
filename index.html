@@ -1151,6 +1151,19 @@
       cursor: pointer;
       display: inline-flex;
       align-items: center;
+      font-size: clamp(42px, 5.8vw, 64px);
+      line-height: 1;
+    }
+    .attract-fade {
+      animation: attract-fade 1.2s ease;
+    }
+    @keyframes attract-fade {
+      0% {
+        opacity: 0.2;
+      }
+      100% {
+        opacity: 1;
+      }
     }
     .debug-toggle-stack {
       position: absolute;
@@ -2154,7 +2167,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">D</div>
+    <div class="loading-version">E</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2488,7 +2501,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36d — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36e — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2663,7 +2676,10 @@
       usedCrowdCount: 0,
       skierCounter: 0,
       rpg: null,
-      rpgRiderType: "SKIER"
+      rpgRiderType: "SKIER",
+      attractTimerId: null,
+      attractActive: false,
+      lastActivityAt: Date.now()
     };
 
     const BONUS_EMOJIS = {
@@ -6644,6 +6660,53 @@
       showStep();
     }
 
+    function isNightHours() {
+      const hour = new Date().getHours();
+      return hour >= 21 || hour < 7;
+    }
+
+    function startAttractMode() {
+      if (state.attractActive) return;
+      state.attractActive = true;
+      state.autoStrategy = "MANUAL";
+      state.autoMode = "MATCH";
+      state.autoSpeed = "ONE_X";
+      state.fullAuto = true;
+      state.firstPersonView = false;
+      state.coachMode = "OFF";
+      state.message = "Attract mode: auto-match cruising.";
+      if (isNightHours()) {
+        setNightSkiing(true);
+      }
+      document.body.classList.add("attract-fade");
+      setTimeout(() => {
+        document.body.classList.remove("attract-fade");
+      }, 1200);
+      render();
+      runFullAutoLoop();
+    }
+
+    function stopAttractMode() {
+      if (!state.attractActive) return;
+      state.attractActive = false;
+      state.fullAuto = false;
+      if (state.fullAutoTimeoutId) {
+        clearTimeout(state.fullAutoTimeoutId);
+        state.fullAutoTimeoutId = null;
+      }
+      render();
+    }
+
+    function resetAttractTimer() {
+      state.lastActivityAt = Date.now();
+      if (state.attractTimerId) {
+        clearTimeout(state.attractTimerId);
+      }
+      state.attractTimerId = setTimeout(() => {
+        startAttractMode();
+      }, 45000);
+    }
+
     function startMode(mode) {
       stopFullAuto();
       state.autoStrategy = "MANUAL";
@@ -6966,12 +7029,21 @@
         showModeOverlay(true);
         return;
       }
+      resetAttractTimer();
+      stopAttractMode();
       handleKeyMove(event);
+    });
+    ["pointerdown", "mousedown", "mousemove", "touchstart", "wheel"].forEach((eventName) => {
+      document.addEventListener(eventName, () => {
+        resetAttractTimer();
+        stopAttractMode();
+      }, { passive: true });
     });
     startLoadingSequence();
     enableMusicOnInteraction();
     attachMusicUnlockHandlers();
     attemptAutoplayMuted();
+    resetAttractTimer();
     queueInitialEmojiRain();
     const bgMusic = document.getElementById("bgMusic");
     if (bgMusic) {
