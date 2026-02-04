@@ -2167,7 +2167,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">E</div>
+    <div class="loading-version">F</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2501,7 +2501,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36e — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36f — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -6667,8 +6667,15 @@
 
     function startAttractMode() {
       if (state.attractActive) return;
+      if (!state.loadingDismissed) {
+        state.loadingDismissed = true;
+        const loadingScreen = document.getElementById("loadingScreen");
+        if (loadingScreen) {
+          loadingScreen.style.display = "none";
+        }
+      }
       state.attractActive = true;
-      state.autoStrategy = "MANUAL";
+      state.autoStrategy = "RANDOM";
       state.autoMode = "MATCH";
       state.autoSpeed = "ONE_X";
       state.fullAuto = true;
