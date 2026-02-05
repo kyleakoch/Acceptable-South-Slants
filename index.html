@@ -1158,13 +1158,7 @@
       width: min(960px, calc(100% - 24px - var(--sidebar-width) - var(--sidebar-gap)));
     }
     .frame-ui-enabled .mountain-panel {
-      padding-top: 96px;
-      padding-bottom: 108px;
-    }
-    .frame-ui-enabled .mountain {
-      padding-top: 14px;
-      padding-bottom: 14px;
-      box-sizing: border-box;
+      padding-top: 72px;
     }
     .frame-ui-enabled .tram-controls {
       bottom: 8px;
@@ -1905,41 +1899,19 @@
       font-size: clamp(44px, 6vw, 60px);
       margin: 0;
     }
-    .active-skier-row {
+    .lift-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
     }
-    .sidebar-detail {
-      border: 2px solid #dfe6f2;
-      border-radius: 12px;
-      background: #f8f9fd;
-      padding: 8px 10px;
-      margin-bottom: 10px;
-    }
-    .sidebar-detail summary {
-      cursor: pointer;
-      font-weight: 700;
-      list-style: none;
-      display: flex;
+    .lift-toggle {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 6px;
     }
-    .sidebar-detail summary::-webkit-details-marker {
+    .lift-details.collapsed {
       display: none;
-    }
-    .sidebar-detail summary::after {
-      content: "▸";
-      opacity: 0.7;
-    }
-    .sidebar-detail[open] summary::after {
-      content: "▾";
-    }
-    .sidebar-detail-content {
-      margin-top: 10px;
     }
     .podium-row {
       display: grid;
@@ -2542,6 +2514,7 @@
       <div id="turnCounter" class="status"></div>
       <div class="status" id="status"></div>
       <div class="actions" id="actions"></div>
+<<<<<<< HEAD
       <div class="sidebar-section" data-section="active">
         <button class="section-toggle" type="button" aria-expanded="true">
           <span class="label">🧍 Active Human</span>
@@ -2603,6 +2576,32 @@
   </main>
   <footer>
     Prototype v0.36g — single-player Party Mode (mouse or touch controls)
+=======
+      <h3>Active Skier</h3>
+      <div id="activeSkier" class="tag"></div>
+      <div class="lift-header">
+        <button id="liftToggle" class="secondary lift-toggle" type="button" aria-expanded="true">
+          <span id="liftChevron">▾</span>
+          Lift Zone
+        </button>
+        <div id="crowdCounter" class="tag"></div>
+      </div>
+      <div id="liftDetails" class="lift-details">
+        <div id="bonusTracker" class="status"></div>
+        <div id="skierQueue" class="pile"></div>
+      </div>
+      <div id="score" class="status"></div>
+      <h3>Scoreboard</h3>
+      <div id="scoreHistory" class="status"></div>
+      <h3>Decks</h3>
+      <div class="status" id="deckStatus"></div>
+      <h3>Difficulty Legend</h3>
+      <div class="legend" id="legend"></div>
+    </section>
+  </main>
+  <footer>
+    Prototype v0.35a — single-player Party Mode (mouse or touch controls)
+>>>>>>> parent of 2e3ce87 (Adjust frame UI spacing and collapse sidebar detail sections)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2738,6 +2737,7 @@
       emojiRainMode: "REAL",
       handEmojiPreference: "DEFAULT",
       scoringMode: "LADDER",
+      liftDetailsOpen: true,
       scheduleMode: "TYPE",
       scheduleConfig: {
         type: { SKIER: "MATCH", SNOWBOARDER: "MATCH" },
@@ -5492,6 +5492,8 @@
       const crowdCounterEl = document.getElementById("crowdCounter");
       const legendEl = document.getElementById("legend");
       const turnCounterEl = document.getElementById("turnCounter");
+      const liftDetailsEl = document.getElementById("liftDetails");
+      const liftChevronEl = document.getElementById("liftChevron");
 
       updateTramControls();
       if (state.mode === "CURLING") {
@@ -5515,6 +5517,7 @@
       if (liftChevronEl) {
         liftChevronEl.textContent = state.liftDetailsOpen ? "▾" : "▸";
       }
+<<<<<<< HEAD
       if (state.mode === "RPG" && state.rpg) {
         statusEl.innerHTML = `
           <strong>🧭 RPG Mode</strong><br />
@@ -5524,6 +5527,9 @@
       } else {
         statusEl.textContent = state.message;
       }
+=======
+      statusEl.textContent = state.message;
+>>>>>>> parent of 2e3ce87 (Adjust frame UI spacing and collapse sidebar detail sections)
       actionsEl.innerHTML = "";
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
@@ -7015,9 +7021,9 @@
         renderHighScoreModal();
       });
     });
-    ["liftDetailSection", "scoreDetailSection", "deckDetailSection", "legendDetailSection"].forEach((id) => {
-      const detail = document.getElementById(id);
-      if (detail) detail.open = false;
+    document.getElementById("liftToggle").addEventListener("click", () => {
+      state.liftDetailsOpen = !state.liftDetailsOpen;
+      render();
     });
     document.getElementById("modalPlayAgain").addEventListener("click", () => {
       hideScoreModal();
