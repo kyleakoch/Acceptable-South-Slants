@@ -371,7 +371,7 @@
       font-weight: 700;
     }
     .auto-modes {
-      display: none;
+      display: grid;
       gap: 8px;
       margin-top: 8px;
     }
@@ -1236,12 +1236,12 @@
       background: transparent;
       font-size: 28px;
       cursor: pointer;
-      display: none;
+      display: inline-flex;
       padding: 0;
       line-height: 1;
     }
-    .debug-enabled .debug-toggle-stack .goggles-button {
-      display: inline-flex;
+    #firstPersonToggle {
+      display: none;
     }
     .debug-enabled .auto-modes {
       display: grid;
@@ -2602,7 +2602,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36g — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36h — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -5849,7 +5849,7 @@
       }
       const frameSetting = document.getElementById("frameUiSetting");
       if (frameSetting) {
-        frameSetting.style.display = document.body.classList.contains("debug-enabled") ? "grid" : "none";
+        frameSetting.style.display = "grid";
       }
       const frameButtons = document.querySelectorAll("[data-frame-ui]");
       frameButtons.forEach((button) => {
@@ -6941,7 +6941,6 @@
       render();
     });
     document.getElementById("frameUiToggle").addEventListener("click", () => {
-      if (!document.body.classList.contains("debug-enabled")) return;
       state.frameUiEnabled = !state.frameUiEnabled;
       render();
       renderPowderModal();
