@@ -1158,7 +1158,13 @@
       width: min(960px, calc(100% - 24px - var(--sidebar-width) - var(--sidebar-gap)));
     }
     .frame-ui-enabled .mountain-panel {
-      padding-top: 72px;
+      padding-top: 96px;
+      padding-bottom: 108px;
+    }
+    .frame-ui-enabled .mountain {
+      padding-top: 14px;
+      padding-bottom: 14px;
+      box-sizing: border-box;
     }
     .frame-ui-enabled .tram-controls {
       bottom: 8px;
@@ -1899,19 +1905,41 @@
       font-size: clamp(44px, 6vw, 60px);
       margin: 0;
     }
-    .lift-header {
+    .active-skier-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
     }
-    .lift-toggle {
-      display: inline-flex;
+    .sidebar-detail {
+      border: 2px solid #dfe6f2;
+      border-radius: 12px;
+      background: #f8f9fd;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+    }
+    .sidebar-detail summary {
+      cursor: pointer;
+      font-weight: 700;
+      list-style: none;
+      display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: space-between;
     }
-    .lift-details.collapsed {
+    .sidebar-detail summary::-webkit-details-marker {
       display: none;
+    }
+    .sidebar-detail summary::after {
+      content: "▸";
+      opacity: 0.7;
+    }
+    .sidebar-detail[open] summary::after {
+      content: "▾";
+    }
+    .sidebar-detail-content {
+      margin-top: 10px;
     }
     .podium-row {
       display: grid;
@@ -2710,7 +2738,6 @@
       emojiRainMode: "REAL",
       handEmojiPreference: "DEFAULT",
       scoringMode: "LADDER",
-      liftDetailsOpen: true,
       scheduleMode: "TYPE",
       scheduleConfig: {
         type: { SKIER: "MATCH", SNOWBOARDER: "MATCH" },
@@ -5465,8 +5492,6 @@
       const crowdCounterEl = document.getElementById("crowdCounter");
       const legendEl = document.getElementById("legend");
       const turnCounterEl = document.getElementById("turnCounter");
-      const liftDetailsEl = document.getElementById("liftDetails");
-      const liftChevronEl = document.getElementById("liftChevron");
 
       updateTramControls();
       if (state.mode === "CURLING") {
@@ -6990,9 +7015,9 @@
         renderHighScoreModal();
       });
     });
-    document.getElementById("liftToggle").addEventListener("click", () => {
-      state.liftDetailsOpen = !state.liftDetailsOpen;
-      render();
+    ["liftDetailSection", "scoreDetailSection", "deckDetailSection", "legendDetailSection"].forEach((id) => {
+      const detail = document.getElementById(id);
+      if (detail) detail.open = false;
     });
     document.getElementById("modalPlayAgain").addEventListener("click", () => {
       hideScoreModal();
