@@ -1402,19 +1402,6 @@
       text-transform: uppercase;
       opacity: 0.8;
     }
-    .coach-card::after {
-      content: "";
-      position: absolute;
-      bottom: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 10px 10px 0;
-      border-style: solid;
-      border-color: rgba(30, 36, 48, 0.9) transparent transparent;
-    }
-    body.night-skiing .coach-card::after {
-      border-color: rgba(226, 232, 240, 0.6) transparent transparent;
-    }
     .input-buffer {
       display: none;
       align-items: center;
@@ -1535,16 +1522,6 @@
     .coach-bubble.right {
       right: -200px;
     }
-    .coach-bubble::after {
-      content: "";
-      position: absolute;
-      top: -14px;
-      left: 28px;
-      width: 0;
-      height: 0;
-      border: 8px solid transparent;
-      border-bottom-color: #1e2430;
-    }
     .coach-bubble:focus-visible {
       outline: 2px solid #38bdf8;
       outline-offset: 2px;
@@ -1569,9 +1546,6 @@
     }
     body.night-skiing .coach-bubble .bubble-text {
       color: #e2e8f0;
-    }
-    body.night-skiing .coach-bubble::after {
-      border-bottom-color: rgba(226, 232, 240, 0.6);
     }
     .ambient-snow {
       position: fixed;
@@ -2265,7 +2239,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">J</div>
+    <div class="loading-version">K</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2627,7 +2601,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36j — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36k — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -4757,10 +4731,12 @@
       }
       const turnText = getTurnCounterText();
       const statusText = state.message || "Pick a direction to begin.";
-      const coachLabel = state.coachMode === "CRUISE" ? "Cruising" : "On";
+      const inRpgMode = state.mode === "RPG";
       const timingText =
-        state.arcadeMode && state.lastTiming ? `<div class="coach-timing">Timing: ${state.lastTiming}</div>` : "";
-      const arcadeHud = state.arcadeMode
+        !inRpgMode && state.arcadeMode && state.lastTiming
+          ? `<div class="coach-timing">Timing: ${state.lastTiming}</div>`
+          : "";
+      const arcadeHud = !inRpgMode && state.arcadeMode
         ? `
           <div class="arcade-hud ${state.arcadeMode ? "active" : ""}">
             <div>Streak: ${state.arcadeStreak}</div>
@@ -4770,15 +4746,7 @@
             )}%"></div></div>
           </div>`
         : "";
-      const rpgStatus = state.mode === "RPG" && state.rpg
-        ? `
-          <div class="coach-rpg">
-            <span>🧭 RPG · ${getRpgRoundText()}</span>
-            <span>Time: ${formatDuration(getRpgElapsedMs())}</span>
-          </div>
-        `
-        : "";
-      const rpgButton = state.mode === "RPG"
+      const rpgButton = inRpgMode
         ? ""
         : `
           <div class="coach-rpg">
@@ -4787,15 +4755,27 @@
             </button>
           </div>
         `;
+      let capabilityLine = "";
+      if (state.activeRun) {
+        const skierState = state.cards[state.activeRun.leadSkierId];
+        const skierCard = skierState ? state.cards[skierState.cardId] : null;
+        if (skierCard) {
+          const symbol = getSymbol(skierCard);
+          const riderIcon = skierCard.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
+          const turnsAhead = Math.max(0, Math.min(3, (skierCard.difficultyRank || 1) - 1));
+          capabilityLine = `<div>As a ${symbol.icon} ${riderIcon} you are capable of seeing ${turnsAhead} turn${
+            turnsAhead === 1 ? "" : "s"
+          } ahead.</div>`;
+        }
+      }
       coachPanel.innerHTML = `
         <div class="coach-card">
           <div class="coach-summary">
-            <strong>${coachLabel}</strong>
             <div>${turnText}</div>
             <div>${statusText}</div>
+            ${capabilityLine}
             ${timingText}
             ${arcadeHud}
-            ${rpgStatus}
             ${rpgButton}
           </div>
         </div>
