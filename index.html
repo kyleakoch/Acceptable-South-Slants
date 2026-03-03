@@ -2045,6 +2045,16 @@
     .powder-controls .music-start:hover {
       background: #16a34a;
     }
+    .powder-controls .music-start-alt {
+      flex: 1 1 calc(50% - 8px);
+      background: #14b8a6;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .powder-controls .music-start-alt:hover {
+      background: #0f766e;
+    }
     .powder-item {
       display: grid;
       gap: 6px;
@@ -2239,7 +2249,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">K</div>
+    <div class="loading-version">L</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2360,8 +2370,14 @@
           <strong>Now playing</strong>
           <div id="musicTitle" class="powder-current"></div>
           <div class="powder-controls">
-            <button id="musicStart" class="music-start" type="button" aria-label="Start music">
-              Start Music
+            <button id="musicStartAlpha" class="music-start" type="button" aria-label="Start music alpha">
+              START ALPHA
+            </button>
+            <button id="musicStartBeta" class="music-start-alt" type="button" aria-label="Start music beta">
+              START BETA
+            </button>
+            <button id="musicStartCharlie" class="music-start-alt" type="button" aria-label="Start music charlie">
+              START CHARLIE
             </button>
             <button id="musicStop" class="secondary" type="button">Stop</button>
             <button id="musicNext" class="secondary" type="button">Next track</button>
@@ -2601,7 +2617,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36k — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36l — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -6391,6 +6407,66 @@
         });
     }
 
+    function startMusicAlpha() {
+      unlockAudioContext();
+      markMusicUnlocked();
+      ensureMusicPlaying({ forceRestart: true });
+    }
+
+    function startMusicBeta() {
+      unlockAudioContext();
+      const bgMusic = document.getElementById("bgMusic");
+      const bgMusicVideo = document.getElementById("bgMusicVideo");
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      syncMusicSources(track);
+      setMediaMuted(true);
+      [bgMusic, bgMusicVideo].forEach((element) => {
+        if (!element) return;
+        element.currentTime = 0;
+        element.setAttribute("playsinline", "");
+        element.load();
+      });
+      playAnyMedia([bgMusic, bgMusicVideo])
+        .then(() => {
+          state.musicUnlocked = true;
+          showMusicUnlockModal(false);
+          setTimeout(() => {
+            setMediaMuted(false);
+            ensureMusicPlaying();
+          }, 180);
+        })
+        .catch(() => {
+          state.musicUnlocked = false;
+          showMusicUnlockModal(true);
+        });
+    }
+
+    function startMusicCharlie() {
+      unlockAudioContext();
+      const bgMusic = document.getElementById("bgMusic");
+      const bgMusicVideo = document.getElementById("bgMusicVideo");
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      syncMusicSources(track);
+      setMediaMuted(false);
+      [bgMusic, bgMusicVideo].forEach((element) => {
+        if (!element) return;
+        element.pause();
+        element.currentTime = 0;
+      });
+      tryPlayMedia(bgMusic)
+        .catch(() => tryPlayMedia(bgMusicVideo))
+        .then(() => {
+          markMusicUnlocked();
+          ensureMusicPlaying();
+        })
+        .catch(() => {
+          attemptAutoplayMuted().then(() => {
+            setMediaMuted(false);
+            ensureMusicPlaying();
+          });
+        });
+    }
+
     function ensureMusicPlaying({ forceRestart = false } = {}) {
       const bgMusic = document.getElementById("bgMusic");
       const bgMusicVideo = document.getElementById("bgMusicVideo");
@@ -6915,10 +6991,14 @@
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
-    document.getElementById("musicStart").addEventListener("click", () => {
-      unlockAudioContext();
-      markMusicUnlocked();
-      ensureMusicPlaying({ forceRestart: true });
+    document.getElementById("musicStartAlpha").addEventListener("click", () => {
+      startMusicAlpha();
+    });
+    document.getElementById("musicStartBeta").addEventListener("click", () => {
+      startMusicBeta();
+    });
+    document.getElementById("musicStartCharlie").addEventListener("click", () => {
+      startMusicCharlie();
     });
     document.getElementById("musicStop").addEventListener("click", () => {
       stopMusic();
