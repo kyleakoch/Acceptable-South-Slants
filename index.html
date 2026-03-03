@@ -588,6 +588,9 @@
     .sidebar-section.collapsed .section-body {
       display: none;
     }
+    .lift-details.collapsed {
+      display: none;
+    }
     .collected-rows {
       display: grid;
       gap: 6px;
@@ -2232,7 +2235,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">G</div>
+    <div class="loading-version">I</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2602,7 +2605,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36h — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36i — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span>Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Show debug</button>
@@ -2754,6 +2757,7 @@
       endTipShown: false,
       musicIndex: 0,
       loopCurrentTrack: false,
+      liftDetailsOpen: true,
       lastGlide: null,
       coachTrusted: false,
       frameUiEnabled: true,
@@ -5492,6 +5496,9 @@
       const crowdCounterEl = document.getElementById("crowdCounter");
       const legendEl = document.getElementById("legend");
       const turnCounterEl = document.getElementById("turnCounter");
+      const liftDetailsEl = document.getElementById("liftDetails");
+      const liftChevronEl = document.getElementById("liftChevron");
+      const liftToggleEl = document.getElementById("liftToggle");
 
       updateTramControls();
       if (state.mode === "CURLING") {
@@ -5514,6 +5521,9 @@
       }
       if (liftChevronEl) {
         liftChevronEl.textContent = state.liftDetailsOpen ? "▾" : "▸";
+      }
+      if (liftToggleEl) {
+        liftToggleEl.setAttribute("aria-expanded", state.liftDetailsOpen ? "true" : "false");
       }
       if (state.mode === "RPG" && state.rpg) {
         statusEl.innerHTML = `
@@ -7082,6 +7092,13 @@
     if (bugToggle) {
       bugToggle.addEventListener("click", () => {
         toggleDebugButton.click();
+      });
+    }
+    const liftToggleButton = document.getElementById("liftToggle");
+    if (liftToggleButton) {
+      liftToggleButton.addEventListener("click", () => {
+        state.liftDetailsOpen = !state.liftDetailsOpen;
+        renderSidebar();
       });
     }
     const loadingScreen = document.getElementById("loadingScreen");
