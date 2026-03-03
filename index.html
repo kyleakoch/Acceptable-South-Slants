@@ -2045,28 +2045,6 @@
     .powder-controls .music-start:hover {
       background: #16a34a;
     }
-    .powder-controls .music-start-alt {
-      flex: 1 1 calc(50% - 8px);
-      background: #14b8a6;
-      color: #ffffff;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .powder-controls .music-start-alt:hover {
-      background: #0f766e;
-    }
-    .powder-controls .music-start-test {
-      flex: 1 1 calc(33.333% - 8px);
-      background: #7c3aed;
-      color: #ffffff;
-      font-weight: 800;
-      font-size: 13px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-    .powder-controls .music-start-test:hover {
-      background: #5b21b6;
-    }
     .powder-item {
       display: grid;
       gap: 6px;
@@ -2261,7 +2239,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">N</div>
+    <div class="loading-version">O</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2382,23 +2360,8 @@
           <strong>Now playing</strong>
           <div id="musicTitle" class="powder-current"></div>
           <div class="powder-controls">
-            <button id="musicStartAlpha" class="music-start" type="button" aria-label="Start music alpha">
-              START ALPHA
-            </button>
-            <button id="musicStartBeta" class="music-start-alt" type="button" aria-label="Start music beta">
-              START BETA
-            </button>
-            <button id="musicStartCharlie" class="music-start-alt" type="button" aria-label="Start music charlie">
-              START CHARLIE
-            </button>
-            <button id="musicStartAltAlpha" class="music-start-test" type="button" aria-label="Start alt music alpha">
-              ALT ALPHA
-            </button>
-            <button id="musicStartAltBeta" class="music-start-test" type="button" aria-label="Start alt music beta">
-              ALT BETA
-            </button>
-            <button id="musicStartAltCharlie" class="music-start-test" type="button" aria-label="Start alt music charlie">
-              ALT CHARLIE
+            <button id="musicStart" class="music-start" type="button" aria-label="Start music">
+              START MUSIC
             </button>
             <button id="musicStop" class="secondary" type="button">Stop</button>
             <button id="musicNext" class="secondary" type="button">Next track</button>
@@ -2638,7 +2601,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36n — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36o — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -2715,21 +2678,17 @@
     const MUSIC_PLAYLIST = [
       {
         title: "PowderKeg001",
-        url: "https://www.dropbox.com/scl/fi/o2xmqc8ejn2pn7izoiqtc/PowderKeg001.mp3?rlkey=o5lgl0v6pwg4wsqyq7y2il8xt&st=rbubemwx&dl=1"
+        url: "http://kyleakoch.com/storage/music/PowderKeg001.mp3"
       },
       {
         title: "26 USA A",
-        url: "https://www.dropbox.com/scl/fi/jx71o3ksl6mi93rgzl4sd/26-USA-A.mp3?rlkey=v8a47vf7c6aza5njphkjo65pf&st=s8bptoa8&dl=1"
+        url: "http://kyleakoch.com/storage/music/PowderKeg001.mp3"
       },
       {
         title: "Ski Bum",
-        url: "https://www.dropbox.com/scl/fi/py8u1mznhn58uqprwe9cz/Ski-Bum.mp3?rlkey=b7xtbhso0nb5neainohm4yfmb&st=xat8kyds&dl=1"
+        url: "http://kyleakoch.com/storage/music/Ski%20Bum.mp3"
       }
     ];
-    const ALT_TEST_TRACK = {
-      title: "ALT TEST · PowderKeg001",
-      url: "https://static1.1.sqspcdn.com/static/f/292180/28710771/1772563780723/PowderKeg001.mp3?token=2IH%2FH9mZ2E2pipf7q1veMJFq6YI%3D"
-    };
     const CURLING_CARDS = {
       AIM: [-3, -2, -1, 0, 1, 2, 3],
       POWER: [1, 2, 3, 4, 5],
@@ -2773,7 +2732,6 @@
       musicUnlockVisible: false,
       iosMusicElement: null,
       iosMusicTrackIndex: null,
-      overrideMusicTrack: null,
       loadingDismissed: false,
       autoStrategy: "MANUAL",
       autoCancelled: false,
@@ -5917,7 +5875,7 @@
       });
       const musicTitle = document.getElementById("musicTitle");
       if (musicTitle) {
-        const track = getCurrentMusicTrack();
+        const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
         musicTitle.textContent = track ? track.title : "—";
       }
       const loopButton = document.getElementById("musicLoop");
@@ -6299,13 +6257,9 @@
       }
     }
 
-    function getCurrentMusicTrack(trackOverride = null) {
-      return trackOverride || state.overrideMusicTrack || MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
-    }
-
     function ensureIosMusicElement(track) {
       if (!isIOSDevice()) return null;
-      const currentTrack = getCurrentMusicTrack(track);
+      const currentTrack = track || MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       if (!currentTrack) return null;
       if (state.iosMusicElement && state.iosMusicTrackIndex !== state.musicIndex) {
         state.iosMusicElement.pause();
@@ -6441,7 +6395,7 @@
     }
 
     function setMediaMuted(muted) {
-      const track = getCurrentMusicTrack();
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       const { all } = getMusicElements(track);
       all.forEach((element) => {
         if (!element) return;
@@ -6461,7 +6415,7 @@
     }
 
     function attemptAutoplayMuted() {
-      const track = getCurrentMusicTrack();
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       syncMusicSources(track);
       const { all } = getMusicElements(track);
       if (!isIOSDevice()) {
@@ -6482,69 +6436,15 @@
           showMusicUnlockModal(true);
         });
     }
-
-    function startMusicAlpha(trackOverride = null) {
-      state.overrideMusicTrack = trackOverride || null;
+    function startMusic() {
       unlockAudioContext();
       markMusicUnlocked();
       ensureMusicPlaying({ forceRestart: true });
     }
 
-    function startMusicBeta(trackOverride = null) {
-      state.overrideMusicTrack = trackOverride || null;
-      unlockAudioContext();
-      const track = getCurrentMusicTrack();
-      syncMusicSources(track);
-      const { all } = getMusicElements(track);
-      setMediaMuted(true);
-      all.forEach((element) => {
-        if (!element) return;
-        element.currentTime = 0;
-        element.setAttribute("playsinline", "");
-        element.load();
-      });
-      playAnyMedia(all)
-        .then(() => {
-          state.musicUnlocked = true;
-          showMusicUnlockModal(false);
-          setTimeout(() => {
-            setMediaMuted(false);
-            ensureMusicPlaying();
-          }, 180);
-        })
-        .catch(() => {
-          state.musicUnlocked = false;
-          showMusicUnlockModal(true);
-        });
-    }
-
-    function startMusicCharlie(trackOverride = null) {
-      state.overrideMusicTrack = trackOverride || null;
-      unlockAudioContext();
-      const track = getCurrentMusicTrack();
-      syncMusicSources(track);
-      const { primary, all } = getMusicElements(track);
-      setMediaMuted(false);
-      all.forEach((element) => {
-        if (!element) return;
-        element.pause();
-        element.currentTime = 0;
-      });
-      tryPlayMedia(primary)
-        .then(() => {
-          markMusicUnlocked();
-          ensureMusicPlaying();
-        })
-        .catch(() => {
-          attemptAutoplayMuted().then(() => {
-            setMediaMuted(false);
-            ensureMusicPlaying();
-          });
-        });
-    }
 
     function ensureMusicPlaying({ forceRestart = false } = {}) {
-      const track = getCurrentMusicTrack();
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       syncMusicSources(track);
       const { primary } = getMusicElements(track);
       if (primary && !primary.paused && !forceRestart) return;
@@ -6584,7 +6484,7 @@
     }
 
     function stopMusic() {
-      const track = getCurrentMusicTrack();
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       const { all } = getMusicElements(track);
       all.forEach((element) => {
         if (!element) return;
@@ -6598,7 +6498,6 @@
         state.iosMusicElement.pause();
       }
       state.musicIndex = (state.musicIndex + 1) % MUSIC_PLAYLIST.length;
-      state.overrideMusicTrack = null;
       state.iosMusicElement = null;
       state.iosMusicTrackIndex = null;
       const track = MUSIC_PLAYLIST[state.musicIndex];
@@ -7063,23 +6962,8 @@
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
-    document.getElementById("musicStartAlpha").addEventListener("click", () => {
-      startMusicAlpha();
-    });
-    document.getElementById("musicStartBeta").addEventListener("click", () => {
-      startMusicBeta();
-    });
-    document.getElementById("musicStartCharlie").addEventListener("click", () => {
-      startMusicCharlie();
-    });
-    document.getElementById("musicStartAltAlpha").addEventListener("click", () => {
-      startMusicAlpha(ALT_TEST_TRACK);
-    });
-    document.getElementById("musicStartAltBeta").addEventListener("click", () => {
-      startMusicBeta(ALT_TEST_TRACK);
-    });
-    document.getElementById("musicStartAltCharlie").addEventListener("click", () => {
-      startMusicCharlie(ALT_TEST_TRACK);
+    document.getElementById("musicStart").addEventListener("click", () => {
+      startMusic();
     });
     document.getElementById("musicStop").addEventListener("click", () => {
       stopMusic();
