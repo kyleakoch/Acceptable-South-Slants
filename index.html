@@ -1211,14 +1211,16 @@
         opacity: 1;
       }
     }
-    .debug-toggle-stack {
+    .sidebar-debug-toggle {
       position: absolute;
-      left: 50%;
-      top: 0;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 6px;
+      top: 16px;
+      right: 16px;
+      display: none;
       align-items: center;
+      justify-content: center;
+    }
+    .debug-enabled .sidebar-debug-toggle {
+      display: inline-flex;
     }
     .header-left {
       display: flex;
@@ -1234,7 +1236,7 @@
       align-items: center;
       justify-content: center;
     }
-    .debug-toggle-stack .goggles-button {
+    .goggles-button {
       border: none;
       background: transparent;
       font-size: 28px;
@@ -1244,7 +1246,7 @@
       line-height: 1;
     }
     #firstPersonToggle {
-      display: none;
+      display: inline-flex;
     }
     .debug-enabled .auto-modes {
       display: grid;
@@ -2023,6 +2025,34 @@
       border-color: #ef4444;
       box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
     }
+    #frameUiToggle {
+      position: absolute;
+      right: 64px;
+      bottom: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(15, 23, 42, 0.2);
+      background: rgba(255, 255, 255, 0.9);
+      font-size: 22px;
+      padding: 6px 10px;
+      cursor: pointer;
+      line-height: 1;
+      display: none;
+    }
+    .debug-enabled #frameUiToggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .debug-footer .secondary {
+      display: none;
+    }
+    .debug-enabled .debug-footer .secondary {
+      display: inline-flex;
+    }
+    .debug-link {
+      text-decoration: underline;
+      cursor: pointer;
+    }
     .powder-grid {
       display: grid;
       gap: 10px;
@@ -2235,7 +2265,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">I</div>
+    <div class="loading-version">J</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2479,26 +2509,6 @@
         <div class="header-center">
           <button id="highScoreButton" class="title-button" type="button" aria-label="High scores">👑</button>
         </div>
-        <div class="debug-toggle-stack">
-          <button
-            id="firstPersonToggle"
-            class="goggles-button"
-            type="button"
-            aria-label="Toggle first person view"
-            aria-pressed="false"
-          >
-            🥽
-          </button>
-          <button
-            id="frameUiToggle"
-            class="goggles-button"
-            type="button"
-            aria-label="Toggle frame UI"
-            aria-pressed="false"
-          >
-            🖼️
-          </button>
-        </div>
         <div class="mountain-actions">
           <button id="peakButton" class="mode-button" type="button" aria-label="Select peak">
             <span id="peakIcon">🏔️¹</span>
@@ -2542,6 +2552,17 @@
     </section>
     <section class="panel sidebar-panel">
       <h2 class="section-emoji">📺</h2>
+      <div class="sidebar-debug-toggle">
+        <button
+          id="firstPersonToggle"
+          class="goggles-button"
+          type="button"
+          aria-label="Toggle first person view"
+          aria-pressed="false"
+        >
+          🥽
+        </button>
+      </div>
       <div id="turnCounter" class="status"></div>
       <div class="status" id="status"></div>
       <div class="actions" id="actions"></div>
@@ -2601,14 +2622,15 @@
           <div class="legend" id="legend"></div>
         </div>
       </div>
+      <button id="frameUiToggle" class="goggles-button" type="button" aria-label="Toggle frame UI" aria-pressed="false">🖼️</button>
       <button id="bugToggle" class="bug-toggle" type="button" aria-label="Toggle debug mode">🐞</button>
     </section>
   </main>
   <footer>
-    Prototype v0.36i — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36j — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
-      <span>Debug overlay shows (row, idx).</span>
-      <button id="toggleDebug" type="button" class="secondary">Show debug</button>
+      <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
+      <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
     </div>
   </footer>
   <div id="modeOverlay" class="mode-overlay">
@@ -7092,6 +7114,17 @@
     if (bugToggle) {
       bugToggle.addEventListener("click", () => {
         toggleDebugButton.click();
+      });
+    }
+    const debugFooterLink = document.getElementById("debugFooterLink");
+    if (debugFooterLink) {
+      const onDebugFooterActivate = () => toggleDebugButton.click();
+      debugFooterLink.addEventListener("click", onDebugFooterActivate);
+      debugFooterLink.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onDebugFooterActivate();
+        }
       });
     }
     const liftToggleButton = document.getElementById("liftToggle");
