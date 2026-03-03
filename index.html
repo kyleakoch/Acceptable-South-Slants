@@ -2249,7 +2249,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">L</div>
+    <div class="loading-version">M</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2617,7 +2617,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36l — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36m — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -2746,6 +2746,8 @@
       audioUnlocked: false,
       musicUnlocked: false,
       musicUnlockVisible: false,
+      iosMusicElement: null,
+      iosMusicTrackIndex: null,
       loadingDismissed: false,
       autoStrategy: "MANUAL",
       autoCancelled: false,
@@ -6271,6 +6273,43 @@
       }
     }
 
+    function ensureIosMusicElement(track) {
+      if (!isIOSDevice()) return null;
+      const currentTrack = track || MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      if (!currentTrack) return null;
+      if (state.iosMusicElement && state.iosMusicTrackIndex !== state.musicIndex) {
+        state.iosMusicElement.pause();
+        state.iosMusicElement = null;
+      }
+      if (!state.iosMusicElement) {
+        const iosAudio = new Audio(currentTrack.url);
+        iosAudio.preload = "auto";
+        iosAudio.loop = state.loopCurrentTrack;
+        iosAudio.playsInline = true;
+        iosAudio.setAttribute("playsinline", "");
+        iosAudio.crossOrigin = "anonymous";
+        iosAudio.volume = 0.6;
+        iosAudio.addEventListener("ended", () => {
+          if (!state.loopCurrentTrack) {
+            nextTrack();
+          }
+        });
+        state.iosMusicElement = iosAudio;
+        state.iosMusicTrackIndex = state.musicIndex;
+      }
+      return state.iosMusicElement;
+    }
+
+    function getMusicElements(track) {
+      const iosAudio = ensureIosMusicElement(track);
+      const bgMusic = document.getElementById("bgMusic");
+      const bgMusicVideo = document.getElementById("bgMusicVideo");
+      if (iosAudio) {
+        return { primary: iosAudio, all: [iosAudio, bgMusic, bgMusicVideo] };
+      }
+      return { primary: bgMusic, all: [bgMusic, bgMusicVideo] };
+    }
+
     function syncMusicSources(track) {
       const bgMusic = document.getElementById("bgMusic");
       const bgMusicVideo = document.getElementById("bgMusicVideo");
@@ -6280,6 +6319,14 @@
       }
       if (bgMusicVideo && trackUrl && bgMusicVideo.src !== trackUrl) {
         bgMusicVideo.src = trackUrl;
+      }
+      const iosAudio = ensureIosMusicElement(track);
+      if (iosAudio && trackUrl) {
+        if (iosAudio.src !== trackUrl) {
+          iosAudio.src = trackUrl;
+          iosAudio.load();
+        }
+        iosAudio.loop = state.loopCurrentTrack;
       }
       if (bgMusic) {
         bgMusic.loop = state.loopCurrentTrack;
@@ -6364,9 +6411,9 @@
     }
 
     function setMediaMuted(muted) {
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
-      [bgMusic, bgMusicVideo].forEach((element) => {
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const { all } = getMusicElements(track);
+      all.forEach((element) => {
         if (!element) return;
         element.muted = muted;
         if (muted) {
@@ -6384,16 +6431,15 @@
     }
 
     function attemptAutoplayMuted() {
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       syncMusicSources(track);
+      const { all } = getMusicElements(track);
       if (!isIOSDevice()) {
         markMusicUnlocked();
-        return playAnyMedia([bgMusic, bgMusicVideo]).catch(() => {});
+        return playAnyMedia(all).catch(() => {});
       }
       setMediaMuted(true);
-      return playAnyMedia([bgMusic, bgMusicVideo])
+      return playAnyMedia(all)
         .then(() => {
           state.musicUnlocked = true;
           showMusicUnlockModal(false);
@@ -6415,18 +6461,17 @@
 
     function startMusicBeta() {
       unlockAudioContext();
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       syncMusicSources(track);
+      const { all } = getMusicElements(track);
       setMediaMuted(true);
-      [bgMusic, bgMusicVideo].forEach((element) => {
+      all.forEach((element) => {
         if (!element) return;
         element.currentTime = 0;
         element.setAttribute("playsinline", "");
         element.load();
       });
-      playAnyMedia([bgMusic, bgMusicVideo])
+      playAnyMedia(all)
         .then(() => {
           state.musicUnlocked = true;
           showMusicUnlockModal(false);
@@ -6443,18 +6488,16 @@
 
     function startMusicCharlie() {
       unlockAudioContext();
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       syncMusicSources(track);
+      const { primary, all } = getMusicElements(track);
       setMediaMuted(false);
-      [bgMusic, bgMusicVideo].forEach((element) => {
+      all.forEach((element) => {
         if (!element) return;
         element.pause();
         element.currentTime = 0;
       });
-      tryPlayMedia(bgMusic)
-        .catch(() => tryPlayMedia(bgMusicVideo))
+      tryPlayMedia(primary)
         .then(() => {
           markMusicUnlocked();
           ensureMusicPlaying();
@@ -6468,21 +6511,17 @@
     }
 
     function ensureMusicPlaying({ forceRestart = false } = {}) {
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       syncMusicSources(track);
-      if (bgMusic && !bgMusic.paused && !forceRestart) return;
-      if (forceRestart) {
-        if (bgMusic) bgMusic.currentTime = 0;
-        if (bgMusicVideo) bgMusicVideo.currentTime = 0;
+      const { primary } = getMusicElements(track);
+      if (primary && !primary.paused && !forceRestart) return;
+      if (forceRestart && primary) {
+        primary.currentTime = 0;
       }
       if (state.musicUnlocked) {
         setMediaMuted(false);
       }
-      tryPlayMedia(bgMusic)
-        .catch(() => tryPlayMedia(bgMusicVideo))
-        .catch(() => {});
+      tryPlayMedia(primary).catch(() => {});
     }
 
     function enableMusicOnInteraction() {
@@ -6512,29 +6551,28 @@
     }
 
     function stopMusic() {
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
-      if (bgMusic) {
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
-      }
-      if (bgMusicVideo) {
-        bgMusicVideo.pause();
-        bgMusicVideo.currentTime = 0;
-      }
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const { all } = getMusicElements(track);
+      all.forEach((element) => {
+        if (!element) return;
+        element.pause();
+        element.currentTime = 0;
+      });
     }
 
     function nextTrack({ userInitiated = true } = {}) {
-      const bgMusic = document.getElementById("bgMusic");
-      if (!bgMusic) return;
+      if (state.iosMusicElement) {
+        state.iosMusicElement.pause();
+      }
       state.musicIndex = (state.musicIndex + 1) % MUSIC_PLAYLIST.length;
+      state.iosMusicElement = null;
+      state.iosMusicTrackIndex = null;
       const track = MUSIC_PLAYLIST[state.musicIndex];
       syncMusicSources(track);
       if (userInitiated) {
         markMusicUnlocked();
-        tryPlayMedia(bgMusic)
-          .catch(() => tryPlayMedia(document.getElementById("bgMusicVideo")))
-          .catch(() => {});
+        const { primary } = getMusicElements(track);
+        tryPlayMedia(primary).catch(() => {});
       }
       renderPowderModal();
     }
