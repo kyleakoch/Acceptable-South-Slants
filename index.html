@@ -2055,6 +2055,18 @@
     .powder-controls .music-start-alt:hover {
       background: #0f766e;
     }
+    .powder-controls .music-start-test {
+      flex: 1 1 calc(33.333% - 8px);
+      background: #7c3aed;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .powder-controls .music-start-test:hover {
+      background: #5b21b6;
+    }
     .powder-item {
       display: grid;
       gap: 6px;
@@ -2249,7 +2261,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">M</div>
+    <div class="loading-version">N</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2378,6 +2390,15 @@
             </button>
             <button id="musicStartCharlie" class="music-start-alt" type="button" aria-label="Start music charlie">
               START CHARLIE
+            </button>
+            <button id="musicStartAltAlpha" class="music-start-test" type="button" aria-label="Start alt music alpha">
+              ALT ALPHA
+            </button>
+            <button id="musicStartAltBeta" class="music-start-test" type="button" aria-label="Start alt music beta">
+              ALT BETA
+            </button>
+            <button id="musicStartAltCharlie" class="music-start-test" type="button" aria-label="Start alt music charlie">
+              ALT CHARLIE
             </button>
             <button id="musicStop" class="secondary" type="button">Stop</button>
             <button id="musicNext" class="secondary" type="button">Next track</button>
@@ -2617,7 +2638,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36m — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36n — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -2705,6 +2726,10 @@
         url: "https://www.dropbox.com/scl/fi/py8u1mznhn58uqprwe9cz/Ski-Bum.mp3?rlkey=b7xtbhso0nb5neainohm4yfmb&st=xat8kyds&dl=1"
       }
     ];
+    const ALT_TEST_TRACK = {
+      title: "ALT TEST · PowderKeg001",
+      url: "https://static1.1.sqspcdn.com/static/f/292180/28710771/1772563780723/PowderKeg001.mp3?token=2IH%2FH9mZ2E2pipf7q1veMJFq6YI%3D"
+    };
     const CURLING_CARDS = {
       AIM: [-3, -2, -1, 0, 1, 2, 3],
       POWER: [1, 2, 3, 4, 5],
@@ -2748,6 +2773,7 @@
       musicUnlockVisible: false,
       iosMusicElement: null,
       iosMusicTrackIndex: null,
+      overrideMusicTrack: null,
       loadingDismissed: false,
       autoStrategy: "MANUAL",
       autoCancelled: false,
@@ -5891,7 +5917,7 @@
       });
       const musicTitle = document.getElementById("musicTitle");
       if (musicTitle) {
-        const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+        const track = getCurrentMusicTrack();
         musicTitle.textContent = track ? track.title : "—";
       }
       const loopButton = document.getElementById("musicLoop");
@@ -6273,9 +6299,13 @@
       }
     }
 
+    function getCurrentMusicTrack(trackOverride = null) {
+      return trackOverride || state.overrideMusicTrack || MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+    }
+
     function ensureIosMusicElement(track) {
       if (!isIOSDevice()) return null;
-      const currentTrack = track || MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const currentTrack = getCurrentMusicTrack(track);
       if (!currentTrack) return null;
       if (state.iosMusicElement && state.iosMusicTrackIndex !== state.musicIndex) {
         state.iosMusicElement.pause();
@@ -6411,7 +6441,7 @@
     }
 
     function setMediaMuted(muted) {
-      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const track = getCurrentMusicTrack();
       const { all } = getMusicElements(track);
       all.forEach((element) => {
         if (!element) return;
@@ -6431,7 +6461,7 @@
     }
 
     function attemptAutoplayMuted() {
-      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const track = getCurrentMusicTrack();
       syncMusicSources(track);
       const { all } = getMusicElements(track);
       if (!isIOSDevice()) {
@@ -6453,15 +6483,17 @@
         });
     }
 
-    function startMusicAlpha() {
+    function startMusicAlpha(trackOverride = null) {
+      state.overrideMusicTrack = trackOverride || null;
       unlockAudioContext();
       markMusicUnlocked();
       ensureMusicPlaying({ forceRestart: true });
     }
 
-    function startMusicBeta() {
+    function startMusicBeta(trackOverride = null) {
+      state.overrideMusicTrack = trackOverride || null;
       unlockAudioContext();
-      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const track = getCurrentMusicTrack();
       syncMusicSources(track);
       const { all } = getMusicElements(track);
       setMediaMuted(true);
@@ -6486,9 +6518,10 @@
         });
     }
 
-    function startMusicCharlie() {
+    function startMusicCharlie(trackOverride = null) {
+      state.overrideMusicTrack = trackOverride || null;
       unlockAudioContext();
-      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const track = getCurrentMusicTrack();
       syncMusicSources(track);
       const { primary, all } = getMusicElements(track);
       setMediaMuted(false);
@@ -6511,7 +6544,7 @@
     }
 
     function ensureMusicPlaying({ forceRestart = false } = {}) {
-      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const track = getCurrentMusicTrack();
       syncMusicSources(track);
       const { primary } = getMusicElements(track);
       if (primary && !primary.paused && !forceRestart) return;
@@ -6551,7 +6584,7 @@
     }
 
     function stopMusic() {
-      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const track = getCurrentMusicTrack();
       const { all } = getMusicElements(track);
       all.forEach((element) => {
         if (!element) return;
@@ -6565,6 +6598,7 @@
         state.iosMusicElement.pause();
       }
       state.musicIndex = (state.musicIndex + 1) % MUSIC_PLAYLIST.length;
+      state.overrideMusicTrack = null;
       state.iosMusicElement = null;
       state.iosMusicTrackIndex = null;
       const track = MUSIC_PLAYLIST[state.musicIndex];
@@ -7037,6 +7071,15 @@
     });
     document.getElementById("musicStartCharlie").addEventListener("click", () => {
       startMusicCharlie();
+    });
+    document.getElementById("musicStartAltAlpha").addEventListener("click", () => {
+      startMusicAlpha(ALT_TEST_TRACK);
+    });
+    document.getElementById("musicStartAltBeta").addEventListener("click", () => {
+      startMusicBeta(ALT_TEST_TRACK);
+    });
+    document.getElementById("musicStartAltCharlie").addEventListener("click", () => {
+      startMusicCharlie(ALT_TEST_TRACK);
     });
     document.getElementById("musicStop").addEventListener("click", () => {
       stopMusic();
