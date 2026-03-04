@@ -2305,7 +2305,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">Q</div>
+    <div class="loading-version">R</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2679,7 +2679,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36q — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36r — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -2755,18 +2755,165 @@
     ];
     const MUSIC_PLAYLIST = [
       {
-        title: "PowderKeg001",
-        url: "https://static1.1.sqspcdn.com/static/f/292180/28710771/1772563780723/PowderKeg001.mp3?token=2IH%2FH9mZ2E2pipf7q1veMJFq6YI%3D"
+        trackNumber: 1,
+        title: "Track 1",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710874/1772662782713/01+-+Sunrise+Launch.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
-        title: "26 USA A",
-        url: "https://static1.1.sqspcdn.com/static/f/292180/28710771/1772563780723/PowderKeg001.mp3?token=2IH%2FH9mZ2E2pipf7q1veMJFq6YI%3D"
+        trackNumber: 2,
+        title: "Track 2",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710875/1772662786047/02+-+First+Descent+LR.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
-        title: "Ski Bum",
-        url: "https://static1.1.sqspcdn.com/static/f/292180/28710771/1772563780723/PowderKeg001.mp3?token=2IH%2FH9mZ2E2pipf7q1veMJFq6YI%3D"
+        trackNumber: 3,
+        title: "Track 3",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710876/1772662787053/03+-+Cold+Boot+Traverse+Part+1.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 4,
+        title: "Track 4",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710877/1772662788003/04+-+Crown+Vector.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 5,
+        title: "Track 5",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710878/1772662789113/05+-+Ski+Bum.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 6,
+        title: "Track 6",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710879/1772662790070/06+-+Compact+Resolve.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 7,
+        title: "Track 7",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710880/1772662790933/07+-+Soft+Reset.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 8,
+        title: "Track 8",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710881/1772662791873/08+-+Cold+Boot+Traverse+Part+2.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 9,
+        title: "Track 9",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710882/1772662792940/09+-+Ski+Bum+Set+2.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 10,
+        title: "Track 10",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710883/1772662793873/10+-+.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 11,
+        title: "Track 11",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710884/1772662852080/11+-+.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 12,
+        title: "Track 12",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710885/1772662860297/12+-+.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 13,
+        title: "Track 13",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710886/1772662861423/13+-+.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 14,
+        title: "Track 14",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710887/1772662862703/14+-+Peak+Auto.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 15,
+        title: "Track 15",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710888/1772662863673/15+-+Auto+Logic.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 16,
+        title: "Track 16",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710889/1772662864663/16+-+Bootleg+Midway.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 17,
+        title: "Track 17",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710890/1772662865583/17+-+Powder+Protocol.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 18,
+        title: "Track 18",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710891/1772662866397/18+-+Snowballin%27.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 19,
+        title: "Track 19",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710892/1772662867577/19+-+Passione+Traverse.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 20,
+        title: "Track 20",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710893/1772662868553/20+-+Hardpack+Hotfix.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 21,
+        title: "Track 21",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710894/1772663076127/21+-+Lowlight+Liaison.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 22,
+        title: "Track 22",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710895/1772663077923/22+-+Neon+Moguls.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 23,
+        title: "Track 23",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710896/1772663078863/23+-+Night+Kernel.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 24,
+        title: "Track 24",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710897/1772663079763/24+-++Night.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 25,
+        title: "Track 25",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710898/1772663081363/25+-++Night.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 26,
+        title: "Track 26",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710899/1772663082467/26+-++Night.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 27,
+        title: "Track 27",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710900/1772663083533/27+-++Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
+      },
+      {
+        trackNumber: 28,
+        title: "Track 28",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710901/1772663085183/28+-+Peak+Auto+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
+      },
+      {
+        trackNumber: 29,
+        title: "Track 29",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710902/1772663086127/29+-+Auto+Logic+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
+      },
+      {
+        trackNumber: 30,
+        title: "Track 30",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710903/1772663087207/30+-+Powder+Protocol+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
+      },
+      {
+        trackNumber: 31,
+        title: "Track 31",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710904/1772663088660/31+-+Snowballin%27+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
       }
     ];
+    const TRACK_BY_NUMBER = MUSIC_PLAYLIST.reduce((acc, track) => {
+      acc[track.trackNumber] = track;
+      return acc;
+    }, {});
     const CURLING_CARDS = {
       AIM: [-3, -2, -1, 0, 1, 2, 3],
       POWER: [1, 2, 3, 4, 5],
@@ -2835,6 +2982,8 @@
       loopCurrentTrack: false,
       liftDetailsOpen: true,
       musicPanelOpen: false,
+      musicDirectorBooted: false,
+      musicCurrentTrackNumber: null,
       lastGlide: null,
       coachTrusted: false,
       frameUiEnabled: true,
@@ -3943,6 +4092,7 @@
               getRpgElapsedMs()
             )}.`;
             showRpgSuccessModal(true);
+            onRpgModeCompleted(true);
             render();
             return;
           }
@@ -4028,6 +4178,12 @@
       state.awaitingStartChoice = false;
       resolveSlot(slotIdChoice, nextSkierId);
       state.message = "Run started. Continue downhill.";
+      if (state.mode === "RPG") {
+        const skierCard = getSkierCard(nextSkierId);
+        if (skierCard && skierCard.difficultyRank === 2) onFirstRankMover("blue");
+        if (skierCard && skierCard.difficultyRank === 3) onFirstRankMover("black");
+        if (skierCard && skierCard.difficultyRank === 4) onFirstRankMover("doubleblack");
+      }
     }
 
     function getNextAvailableSkierId() {
@@ -6182,6 +6338,7 @@
         state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
       }
       updateSkyIndicator();
+      onDarkModeChanged(enabled);
     }
 
     function updateSkyIndicator() {
@@ -6270,6 +6427,7 @@
       state.autoSpeed = "ONE_X";
       state.fullAutoGames = 0;
       state.mode = "FULL";
+      onAutoModeActivated();
       state.autoStrategy = state.autoStrategy || "RANDOM";
       showIntroOverlay(false);
       beginGame();
@@ -6278,6 +6436,7 @@
 
     function stopFullAuto() {
       state.fullAuto = false;
+      onAutoModeDeactivated();
       state.autoCancelled = true;
       if (state.fullAutoTimeoutId) {
         clearTimeout(state.fullAutoTimeoutId);
@@ -6587,6 +6746,339 @@
         tryPlayMedia(primary).catch(() => {});
       }
       renderPowderModal();
+    }
+
+    const musicTrackEndCallbacks = [];
+    const playerInteractionCallbacks = [];
+
+    function onTrackEnded(callback) {
+      if (typeof callback === "function") musicTrackEndCallbacks.push(callback);
+    }
+
+    function onPlayerInteraction(callback) {
+      if (typeof callback === "function") playerInteractionCallbacks.push(callback);
+    }
+
+    function emitTrackEnded() {
+      musicTrackEndCallbacks.forEach((callback) => callback());
+    }
+
+    function emitPlayerInteraction() {
+      playerInteractionCallbacks.forEach((callback) => callback());
+    }
+
+    function playTrack(trackNumber, { loop = false, fadeMs = 700 } = {}) {
+      const track = TRACK_BY_NUMBER[trackNumber];
+      if (!track) return Promise.resolve();
+      state.musicCurrentTrackNumber = trackNumber;
+      state.musicIndex = Math.max(0, trackNumber - 1);
+      syncMusicSources(track);
+      const { primary, all } = getMusicElements(track);
+      all.forEach((element) => {
+        if (!element || element === primary) return;
+        try {
+          element.pause();
+        } catch (error) {}
+      });
+      if (primary) {
+        primary.loop = loop;
+        primary.currentTime = 0;
+      }
+      if (state.musicUnlocked) {
+        setMediaMuted(false);
+      }
+      console.debug("[MusicDirector] playTrack", { trackNumber, loop, fadeMs });
+      return tryPlayMedia(primary).catch(() => {});
+    }
+
+    function stopTrack({ fadeMs = 700 } = {}) {
+      const track = state.musicCurrentTrackNumber ? TRACK_BY_NUMBER[state.musicCurrentTrackNumber] : null;
+      const { all } = getMusicElements(track);
+      all.forEach((element) => {
+        if (!element) return;
+        try {
+          element.pause();
+        } catch (error) {}
+      });
+      console.debug("[MusicDirector] stopTrack", { fadeMs });
+    }
+
+    const MusicState = {
+      NORMAL: "NORMAL",
+      RPG: "RPG",
+      AUTOMODE: "AUTOMODE",
+      COMPLETION: "COMPLETION"
+    };
+
+    const DAY_NORMAL_SEQUENCE = [2, 3, 4, 5, 6, 7, 8, 9];
+    const DAY_AUTOMODE_SEQUENCE = [14, 15, 16, 17];
+    const DAY_RPG_RANK_TRACKS = [10, 11, 12, 13];
+    const DAY_COMPLETION_STINGER = 18;
+    const DAY_RARE_TRACKS = [19, 20];
+    const DARK_TOGGLE_CUE = 21;
+    const DARK_NORMAL_SEQUENCE = [22, 23];
+    const DARK_RPG_RANK_TRACKS = [24, 25, 26, 27];
+    const DARK_AUTOMODE_SEQUENCE = [28, 29, 30];
+    const DARK_COMPLETION_STINGER = 31;
+
+    const musicDirector = {
+      state: MusicState.NORMAL,
+      started: false,
+      isDarkMode: false,
+      isRpgActive: false,
+      isAutoActive: false,
+      rpgRankLevel: 0,
+      dayIntroPlayed: false,
+      darkCuePending: false,
+      dayNormalIndex: 0,
+      darkNormalIndex: 0,
+      autoDayIndex: 0,
+      autoDarkIndex: 0,
+      completionFirstPlayedEver: false,
+      completionPending: false,
+      completionPlaying: false,
+      completionStorageKey: "powderCrownRpgFirstCompletionPlayed",
+      idleSongStreak: 0,
+      trackInteracted: false,
+      rareCooldownReady: true,
+      currentContext: null,
+      init() {
+        this.completionFirstPlayedEver = localStorage.getItem(this.completionStorageKey) === "1";
+      },
+      debugLog(action, extra = {}) {
+        console.debug("[MusicDirector]", action, {
+          state: this.state,
+          currentTrack: state.musicCurrentTrackNumber,
+          context: this.currentContext,
+          ...extra
+        });
+      },
+      requestStart() {
+        this.started = true;
+        this.resolveAndPlay({ immediate: true });
+      },
+      getActiveState() {
+        if (this.completionPlaying || this.completionPending) return MusicState.COMPLETION;
+        if (this.isAutoActive) return MusicState.AUTOMODE;
+        if (this.isRpgActive) return MusicState.RPG;
+        return MusicState.NORMAL;
+      },
+      resolveAndPlay({ immediate = false } = {}) {
+        if (!this.started) return;
+        this.state = this.getActiveState();
+
+        if (this.completionPending && !this.completionPlaying) {
+          this.completionPlaying = true;
+          this.completionPending = false;
+          const stinger = this.isDarkMode ? DARK_COMPLETION_STINGER : DAY_COMPLETION_STINGER;
+          this.currentContext = "COMPLETION";
+          this.trackInteracted = false;
+          playTrack(stinger, { loop: false, fadeMs: immediate ? 100 : 750 });
+          this.debugLog("completion-stinger", { stinger });
+          return;
+        }
+
+        if (this.state === MusicState.AUTOMODE) {
+          const seq = this.isDarkMode ? DARK_AUTOMODE_SEQUENCE : DAY_AUTOMODE_SEQUENCE;
+          const index = this.isDarkMode ? this.autoDarkIndex : this.autoDayIndex;
+          const track = seq[index % seq.length];
+          this.currentContext = this.isDarkMode ? "AUTOMODE_DARK" : "AUTOMODE_DAY";
+          this.trackInteracted = false;
+          playTrack(track, { loop: false, fadeMs: immediate ? 150 : 750 });
+          this.debugLog("automode", { track });
+          return;
+        }
+
+        if (this.state === MusicState.RPG) {
+          const seq = this.isDarkMode ? DARK_RPG_RANK_TRACKS : DAY_RPG_RANK_TRACKS;
+          const rankIndex = Math.max(0, Math.min(3, this.rpgRankLevel));
+          const track = seq[rankIndex];
+          this.currentContext = this.isDarkMode ? "RPG_DARK" : "RPG_DAY";
+          this.trackInteracted = false;
+          playTrack(track, { loop: false, fadeMs: immediate ? 150 : 750 });
+          this.debugLog("rpg-rank", { rankIndex, track });
+          return;
+        }
+
+        if (this.isDarkMode) {
+          if (this.darkCuePending) {
+            this.darkCuePending = false;
+            this.currentContext = "NORMAL_DARK_CUE";
+            this.trackInteracted = false;
+            playTrack(DARK_TOGGLE_CUE, { loop: false, fadeMs: immediate ? 150 : 750 });
+            this.debugLog("dark-cue", { track: DARK_TOGGLE_CUE });
+            return;
+          }
+          const track = DARK_NORMAL_SEQUENCE[this.darkNormalIndex % DARK_NORMAL_SEQUENCE.length];
+          this.currentContext = "NORMAL_DARK_SEQ";
+          this.trackInteracted = false;
+          playTrack(track, { loop: false, fadeMs: immediate ? 150 : 750 });
+          this.debugLog("normal-dark", { track });
+          return;
+        }
+
+        if (!this.dayIntroPlayed) {
+          this.currentContext = "NORMAL_DAY_INTRO";
+          this.trackInteracted = false;
+          playTrack(1, { loop: false, fadeMs: immediate ? 150 : 750 });
+          this.debugLog("day-intro", { track: 1 });
+          return;
+        }
+
+        const dayTrack = DAY_NORMAL_SEQUENCE[this.dayNormalIndex % DAY_NORMAL_SEQUENCE.length];
+        this.currentContext = "NORMAL_DAY_SEQ";
+        this.trackInteracted = false;
+        playTrack(dayTrack, { loop: false, fadeMs: immediate ? 150 : 750 });
+        this.debugLog("normal-day", { track: dayTrack });
+      },
+      handleTrackEnded() {
+        if (this.trackInteracted) {
+          this.idleSongStreak = 0;
+        } else {
+          this.idleSongStreak += 1;
+        }
+
+        if (this.currentContext === "COMPLETION") {
+          this.completionPlaying = false;
+          this.completionFirstPlayedEver = true;
+          localStorage.setItem(this.completionStorageKey, "1");
+          this.resolveAndPlay({ immediate: true });
+          return;
+        }
+
+        if (this.currentContext === "NORMAL_DAY_INTRO") {
+          this.dayIntroPlayed = true;
+        } else if (this.currentContext === "NORMAL_DAY_SEQ") {
+          this.dayNormalIndex = (this.dayNormalIndex + 1) % DAY_NORMAL_SEQUENCE.length;
+        } else if (this.currentContext === "NORMAL_DARK_SEQ") {
+          this.darkNormalIndex = (this.darkNormalIndex + 1) % DARK_NORMAL_SEQUENCE.length;
+        } else if (this.currentContext === "AUTOMODE_DAY") {
+          this.autoDayIndex = (this.autoDayIndex + 1) % DAY_AUTOMODE_SEQUENCE.length;
+        } else if (this.currentContext === "AUTOMODE_DARK") {
+          this.autoDarkIndex = (this.autoDarkIndex + 1) % DARK_AUTOMODE_SEQUENCE.length;
+        }
+
+        const normalContext = this.currentContext === "NORMAL_DAY_SEQ" || this.currentContext === "NORMAL_DARK_SEQ";
+        if (!this.completionPlaying && this.state === MusicState.NORMAL && normalContext) {
+          if (!this.rareCooldownReady && this.idleSongStreak >= 3) {
+            this.rareCooldownReady = true;
+          }
+          if (this.rareCooldownReady && this.idleSongStreak >= 3) {
+            if (Math.random() < 0.15) {
+              const rareTrack = DAY_RARE_TRACKS[Math.floor(Math.random() * DAY_RARE_TRACKS.length)];
+              this.rareCooldownReady = false;
+              this.idleSongStreak = 0;
+              this.currentContext = "RARE";
+              this.trackInteracted = false;
+              playTrack(rareTrack, { loop: false, fadeMs: 750 });
+              this.debugLog("rare-insert", { rareTrack });
+              return;
+            }
+          }
+        }
+
+        if (this.currentContext === "RARE") {
+          this.currentContext = this.isDarkMode ? "NORMAL_DARK_SEQ" : "NORMAL_DAY_SEQ";
+        }
+
+        this.resolveAndPlay({ immediate: true });
+      },
+      handlePlayerInteraction() {
+        this.trackInteracted = true;
+        this.idleSongStreak = 0;
+        this.rareCooldownReady = true;
+      },
+      handleDarkModeChanged(isDarkMode) {
+        this.isDarkMode = Boolean(isDarkMode);
+        if (this.isDarkMode) {
+          this.darkCuePending = true;
+        }
+        this.resolveAndPlay({ immediate: false });
+      },
+      handleRpgModeStarted() {
+        this.isRpgActive = true;
+        this.rpgRankLevel = 0;
+        this.resolveAndPlay({ immediate: true });
+      },
+      handleRpgModeCompleted(firstTime) {
+        this.isRpgActive = false;
+        if (firstTime && !this.completionFirstPlayedEver) {
+          this.completionPending = true;
+        }
+        this.resolveAndPlay({ immediate: true });
+      },
+      handleFirstRankMover(rank) {
+        if (!this.isRpgActive) return;
+        const map = { blue: 1, black: 2, doubleblack: 3 };
+        const next = map[rank] ?? 0;
+        if (next > this.rpgRankLevel) {
+          this.rpgRankLevel = next;
+          this.resolveAndPlay({ immediate: true });
+        }
+      },
+      handleAutoModeActivated() {
+        this.isAutoActive = true;
+        this.resolveAndPlay({ immediate: true });
+      },
+      handleAutoModeDeactivated() {
+        this.isAutoActive = false;
+        this.resolveAndPlay({ immediate: true });
+      },
+      manualSkip() {
+        this.handleTrackEnded();
+      }
+    };
+
+    function onDarkModeChanged(isDarkMode) {
+      musicDirector.handleDarkModeChanged(isDarkMode);
+    }
+
+    function onRpgModeStarted() {
+      musicDirector.handleRpgModeStarted();
+    }
+
+    function onRpgModeCompleted(firstTime) {
+      musicDirector.handleRpgModeCompleted(firstTime);
+    }
+
+    function onFirstRankMover(rank) {
+      musicDirector.handleFirstRankMover(rank);
+    }
+
+    function onAutoModeActivated() {
+      musicDirector.handleAutoModeActivated();
+    }
+
+    function onAutoModeDeactivated() {
+      musicDirector.handleAutoModeDeactivated();
+    }
+
+    function startMusic() {
+      unlockAudioContext();
+      markMusicUnlocked();
+      if (!state.musicDirectorBooted) {
+        musicDirector.init();
+        onTrackEnded(() => musicDirector.handleTrackEnded());
+        onPlayerInteraction(() => musicDirector.handlePlayerInteraction());
+        state.musicDirectorBooted = true;
+      }
+      musicDirector.requestStart();
+    }
+
+    function ensureMusicPlaying() {
+      startMusic();
+    }
+
+    function nextTrack({ userInitiated = false } = {}) {
+      if (userInitiated) {
+        musicDirector.manualSkip();
+        return;
+      }
+      emitTrackEnded();
+    }
+
+    function stopMusic() {
+      stopTrack({ fadeMs: 600 });
     }
 
     function hideScoreModal() {
@@ -6933,6 +7425,7 @@
       if (!state.attractActive) return;
       state.attractActive = false;
       state.fullAuto = false;
+      onAutoModeDeactivated();
       if (state.fullAutoTimeoutId) {
         clearTimeout(state.fullAutoTimeoutId);
         state.fullAutoTimeoutId = null;
@@ -6969,6 +7462,7 @@
       state.firstPersonView = true;
       state.coachMode = "ON";
       startMode("RPG");
+      onRpgModeStarted();
     }
 
     function setPeak(peakKey) {
@@ -7313,16 +7807,18 @@
       stopAttractMode();
       handleKeyMove(event);
     });
-    ["pointerdown", "mousedown", "mousemove", "touchstart", "wheel"].forEach((eventName) => {
+    ["pointerdown", "mousedown", "mousemove", "touchstart", "wheel", "keydown", "click"].forEach((eventName) => {
       document.addEventListener(eventName, () => {
         resetAttractTimer();
         stopAttractMode();
+        emitPlayerInteraction();
       }, { passive: true });
     });
     startLoadingSequence();
     enableMusicOnInteraction();
     attachMusicUnlockHandlers();
     attemptAutoplayMuted();
+    startMusic();
     resetAttractTimer();
     queueInitialEmojiRain();
     const bgMusic = document.getElementById("bgMusic");
@@ -7346,6 +7842,7 @@
       musicUnlockButton.addEventListener("click", () => {
         unlockAudioContext();
         attemptAutoplayMuted();
+        startMusic();
       });
     }
     const musicUnlockSkip = document.getElementById("musicUnlockSkip");
