@@ -540,6 +540,39 @@
     .tram-controls button:hover {
       border-color: #8b5cf6;
     }
+    .music-quick-panel {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 100px;
+      display: none;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 2px solid rgba(30, 36, 48, 0.85);
+      border-radius: 14px;
+      padding: 10px;
+      z-index: 7;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
+    }
+    .music-quick-panel.active {
+      display: grid;
+    }
+    .music-quick-title {
+      font-size: 12px;
+      font-weight: 700;
+      opacity: 0.8;
+      text-align: center;
+    }
+    .music-quick-controls {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .music-quick-controls button {
+      font-size: 11px;
+      padding: 6px;
+      border-radius: 8px;
+    }
     .collected-bubble {
       display: grid;
       gap: 6px;
@@ -705,6 +738,21 @@
       border-radius: 12px;
       border: 2px solid rgba(148, 163, 184, 0.25);
       background: rgba(255, 255, 255, 0.65);
+    }
+    .first-person-tier.now-tier {
+      padding: 18px 16px;
+      border-width: 3px;
+      background: rgba(255, 255, 255, 0.92);
+    }
+    .first-person-tier.now-tier .card-label {
+      font-size: clamp(34px, 5.2vw, 52px);
+      line-height: 1.15;
+      font-weight: 800;
+    }
+    .first-person-tier.now-tier .first-person-indicator {
+      margin-top: 14px;
+      font-size: clamp(15px, 2.4vw, 22px);
+      opacity: 1;
     }
     .first-person-tier.next-tier {
       background: rgba(148, 163, 184, 0.16);
@@ -1309,7 +1357,7 @@
       display: inline-flex;
     }
     .coach-tip {
-      position: fixed;
+      position: absolute;
       left: 50%;
       top: calc(100% + 8px);
       transform: translateX(-50%);
@@ -1884,6 +1932,24 @@
       font-size: clamp(44px, 6vw, 60px);
       margin: 0;
     }
+    .sidebar-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .panel-icon-button {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: clamp(32px, 4.4vw, 44px);
+      line-height: 1;
+      padding: 0;
+    }
+    .panel-icon-button.active {
+      filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
+    }
     .active-skier-row {
       display: flex;
       align-items: center;
@@ -2239,7 +2305,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">P</div>
+    <div class="loading-version">Q</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2498,6 +2564,15 @@
       <div id="finishZone" class="finish-zone" aria-label="Finished skiers">
         <div id="finishTokens" class="finish-zone-tokens"></div>
       </div>
+      <div id="musicQuickPanel" class="music-quick-panel" aria-live="polite">
+        <div id="musicQuickTitle" class="music-quick-title"></div>
+        <div class="music-quick-controls">
+          <button id="musicQuickStart" type="button">Start</button>
+          <button id="musicQuickStop" type="button" class="secondary">Stop</button>
+          <button id="musicQuickNext" type="button" class="secondary">Next</button>
+          <button id="musicQuickLoop" type="button" class="secondary">Loop</button>
+        </div>
+      </div>
       <div class="tram-controls" aria-label="Lift zone controls">
         <button id="tramLeftButton" class="secondary" type="button" aria-label="Move left">👈</button>
         <button id="tramCycleButton" class="secondary" type="button" aria-label="Cycle lift zone">🚡</button>
@@ -2525,7 +2600,10 @@
       </div>
     </section>
     <section class="panel sidebar-panel">
-      <h2 class="section-emoji">📺</h2>
+      <div class="sidebar-topbar">
+        <h2 class="section-emoji">📺</h2>
+        <button id="musicPanelToggle" class="panel-icon-button" type="button" aria-label="Toggle music controls">📻</button>
+      </div>
       <div class="sidebar-debug-toggle">
         <button
           id="firstPersonToggle"
@@ -2601,7 +2679,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36p — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36q — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -2756,6 +2834,7 @@
       musicIndex: 0,
       loopCurrentTrack: false,
       liftDetailsOpen: true,
+      musicPanelOpen: false,
       lastGlide: null,
       coachTrusted: false,
       frameUiEnabled: true,
@@ -4671,6 +4750,20 @@
       }
       updateFirstPersonToggle();
       updateFrameUiToggle();
+      renderMusicQuickPanel();
+    }
+
+    function renderMusicQuickPanel() {
+      const panel = document.getElementById("musicQuickPanel");
+      const title = document.getElementById("musicQuickTitle");
+      const loop = document.getElementById("musicQuickLoop");
+      const toggle = document.getElementById("musicPanelToggle");
+      if (!panel || !title || !loop || !toggle) return;
+      panel.classList.toggle("active", state.musicPanelOpen);
+      toggle.classList.toggle("active", state.musicPanelOpen);
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      title.textContent = track ? `🎵 ${track.title}` : "🎵";
+      loop.textContent = state.loopCurrentTrack ? "Looping" : "Loop";
     }
 
     function runGlideAnimation() {
@@ -5295,21 +5388,7 @@
     }
 
     function positionCoachTip() {
-      const tip = document.getElementById("coachTip");
-      const button = document.getElementById("coachButton");
-      if (!tip || !button) return;
-      const buttonRect = button.getBoundingClientRect();
-      const tipRect = tip.getBoundingClientRect();
-      const width = tipRect.width || 180;
-      const padding = 12;
-      const left = Math.min(
-        Math.max(buttonRect.left + buttonRect.width / 2 - width / 2, padding),
-        window.innerWidth - width - padding
-      );
-      tip.style.left = `${left}px`;
-      tip.style.top = `${buttonRect.bottom + 8}px`;
-      tip.style.transform = "translateX(0)";
-      tip.style.position = "fixed";
+      return;
     }
 
     function updateFirstPersonToggle() {
@@ -6977,6 +7056,28 @@
       markMusicUnlocked();
       ensureMusicPlaying({ forceRestart: true });
       renderPowderModal();
+    });
+    document.getElementById("musicPanelToggle").addEventListener("click", () => {
+      state.musicPanelOpen = !state.musicPanelOpen;
+      renderMusicQuickPanel();
+    });
+    document.getElementById("musicQuickStart").addEventListener("click", () => {
+      startMusic();
+      renderMusicQuickPanel();
+    });
+    document.getElementById("musicQuickStop").addEventListener("click", () => {
+      stopMusic();
+      renderMusicQuickPanel();
+    });
+    document.getElementById("musicQuickNext").addEventListener("click", () => {
+      nextTrack({ userInitiated: true });
+      renderMusicQuickPanel();
+    });
+    document.getElementById("musicQuickLoop").addEventListener("click", () => {
+      state.loopCurrentTrack = !state.loopCurrentTrack;
+      markMusicUnlocked();
+      ensureMusicPlaying({ forceRestart: true });
+      renderMusicQuickPanel();
     });
     document.getElementById("coachButton").addEventListener("click", () => {
       state.coachMode = state.coachMode === "OFF" ? "ON" : "OFF";
