@@ -688,7 +688,7 @@
       letter-spacing: 0.08em;
       opacity: 0.85;
     }
-    .first-person-next {
+     .first-person-next-summary {
       border-top: 1px solid rgba(148, 163, 184, 0.45);
       padding-top: 6px;
       margin-top: 2px;
@@ -765,9 +765,9 @@
         letter-spacing: 0.2em;
         font-size: 11px;
       }
-      .first-person-next {
-        flex-direction: column;
-        align-items: center;
+       .first-person-next-summary {
+        display: grid;
+        justify-items: center;
         gap: 6px;
       }
       .first-person-next .next-card {
@@ -2247,7 +2247,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">Y</div>
+    <div class="loading-version">Z</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2611,8 +2611,8 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36y — single-player Party Mode (mouse or touch controls)
-    <div class="footer-note">Designed by <a href="https://kyleakoch.com" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
+    Prototype v0.36z — single-player Party Mode (mouse or touch controls)
+    <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -5149,8 +5149,8 @@
       const upcomingIndicator = `↙️${upcomingEmoji}↘️`;
       nowMarker.innerHTML = `
         <div class="current-turn-label">Current turn</div>
-        <div class="current-turn-indicator">${symbolIcon}</div>
-        <div class="first-person-next">
+        <div class="current-turn-indicator">Choose between these current conditions</div>
+        <div class="first-person-next-summary">
           <div class="next-turn-label">Next turn</div>
           <div class="next-turn-indicator">${symbolIcon}👀 ${upcomingIndicator}</div>
         </div>
@@ -5490,20 +5490,19 @@
     function positionCoachTip() {
       const tip = document.getElementById("coachTip");
       const button = document.getElementById("coachButton");
-      const stack = button?.closest(".coach-toggle-stack");
-      if (!tip || !button || !stack) return;
-      const stackRect = stack.getBoundingClientRect();
+      if (!tip || !button) return;
       const buttonRect = button.getBoundingClientRect();
       const tipWidth = tip.offsetWidth || 180;
-      const preferredLeft = (stackRect.width - tipWidth) / 2;
-      const minLeft = -stackRect.left + 8;
-      const maxLeft = window.innerWidth - 8 - stackRect.left - tipWidth;
+      const preferredLeft = buttonRect.left + (buttonRect.width - tipWidth) / 2;
+      const minLeft = 8;
+      const maxLeft = window.innerWidth - tipWidth - 8;
       const clampedLeft = Math.max(minLeft, Math.min(maxLeft, preferredLeft));
+      const tipTop = buttonRect.bottom + 8;
+      tip.style.position = "fixed";
       tip.style.left = `${clampedLeft}px`;
+      tip.style.top = `${tipTop}px`;
       tip.style.transform = "none";
-      const tipLeftInViewport = stackRect.left + clampedLeft;
-      const buttonCenter = buttonRect.left + buttonRect.width / 2;
-      const arrowX = Math.max(12, Math.min(tipWidth - 12, buttonCenter - tipLeftInViewport));
+      const arrowX = Math.max(12, Math.min(tipWidth - 12, buttonRect.left + buttonRect.width / 2 - clampedLeft));
       tip.style.setProperty("--coach-tip-arrow-x", `${arrowX}px`);
     }
 
