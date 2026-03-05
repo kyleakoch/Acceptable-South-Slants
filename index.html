@@ -122,44 +122,6 @@
       opacity: 0;
       pointer-events: none;
     }
-    .music-unlock-modal {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15, 23, 42, 0.75);
-      z-index: 30;
-      padding: 20px;
-      text-align: center;
-    }
-    .music-unlock-modal.active {
-      display: flex;
-    }
-    .music-unlock-card {
-      background: #ffffff;
-      border-radius: 18px;
-      padding: 20px;
-      max-width: 360px;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
-      border: 2px solid #1e2430;
-    }
-    .music-unlock-card h3 {
-      margin: 0 0 8px;
-    }
-    .music-unlock-card p {
-      margin: 0 0 16px;
-      font-size: 14px;
-      color: #475569;
-    }
-    body.night-skiing .music-unlock-card {
-      background: #0f172a;
-      color: #e2e8f0;
-      border-color: rgba(226, 232, 240, 0.6);
-    }
-    body.night-skiing .music-unlock-card p {
-      color: #94a3b8;
-    }
     .loading-emoji {
       font-size: clamp(48px, 9vw, 96px);
       opacity: 0;
@@ -371,7 +333,7 @@
       font-weight: 700;
     }
     .auto-modes {
-      display: none;
+      display: grid;
       gap: 8px;
       margin-top: 8px;
     }
@@ -540,6 +502,39 @@
     .tram-controls button:hover {
       border-color: #8b5cf6;
     }
+    .music-quick-panel {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 100px;
+      display: none;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 2px solid rgba(30, 36, 48, 0.85);
+      border-radius: 14px;
+      padding: 10px;
+      z-index: 7;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
+    }
+    .music-quick-panel.active {
+      display: grid;
+    }
+    .music-quick-title {
+      font-size: 12px;
+      font-weight: 700;
+      opacity: 0.8;
+      text-align: center;
+    }
+    .music-quick-controls {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .music-quick-controls button {
+      font-size: 11px;
+      padding: 6px;
+      border-radius: 8px;
+    }
     .collected-bubble {
       display: grid;
       gap: 6px;
@@ -586,6 +581,9 @@
       font-size: 16px;
     }
     .sidebar-section.collapsed .section-body {
+      display: none;
+    }
+    .lift-details.collapsed {
       display: none;
     }
     .collected-rows {
@@ -702,6 +700,21 @@
       border-radius: 12px;
       border: 2px solid rgba(148, 163, 184, 0.25);
       background: rgba(255, 255, 255, 0.65);
+    }
+    .first-person-tier.now-tier {
+      padding: 18px 16px;
+      border-width: 3px;
+      background: rgba(255, 255, 255, 0.92);
+    }
+    .first-person-tier.now-tier .card-label {
+      font-size: clamp(34px, 5.2vw, 52px);
+      line-height: 1.15;
+      font-weight: 800;
+    }
+    .first-person-tier.now-tier .first-person-indicator {
+      margin-top: 14px;
+      font-size: clamp(15px, 2.4vw, 22px);
+      opacity: 1;
     }
     .first-person-tier.next-tier {
       background: rgba(148, 163, 184, 0.16);
@@ -1202,14 +1215,16 @@
         opacity: 1;
       }
     }
-    .debug-toggle-stack {
+    .sidebar-debug-toggle {
       position: absolute;
-      left: 50%;
-      top: 0;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 6px;
+      top: 16px;
+      right: 16px;
+      display: none;
       align-items: center;
+      justify-content: center;
+    }
+    .debug-enabled .sidebar-debug-toggle {
+      display: inline-flex;
     }
     .header-left {
       display: flex;
@@ -1225,16 +1240,16 @@
       align-items: center;
       justify-content: center;
     }
-    .debug-toggle-stack .goggles-button {
+    .goggles-button {
       border: none;
       background: transparent;
       font-size: 28px;
       cursor: pointer;
-      display: none;
+      display: inline-flex;
       padding: 0;
       line-height: 1;
     }
-    .debug-enabled .debug-toggle-stack .goggles-button {
+    #firstPersonToggle {
       display: inline-flex;
     }
     .debug-enabled .auto-modes {
@@ -1298,7 +1313,7 @@
       display: inline-flex;
     }
     .coach-tip {
-      position: fixed;
+      position: absolute;
       left: 50%;
       top: calc(100% + 8px);
       transform: translateX(-50%);
@@ -1390,19 +1405,6 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       opacity: 0.8;
-    }
-    .coach-card::after {
-      content: "";
-      position: absolute;
-      bottom: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 10px 10px 0;
-      border-style: solid;
-      border-color: rgba(30, 36, 48, 0.9) transparent transparent;
-    }
-    body.night-skiing .coach-card::after {
-      border-color: rgba(226, 232, 240, 0.6) transparent transparent;
     }
     .input-buffer {
       display: none;
@@ -1524,16 +1526,6 @@
     .coach-bubble.right {
       right: -200px;
     }
-    .coach-bubble::after {
-      content: "";
-      position: absolute;
-      top: -14px;
-      left: 28px;
-      width: 0;
-      height: 0;
-      border: 8px solid transparent;
-      border-bottom-color: #1e2430;
-    }
     .coach-bubble:focus-visible {
       outline: 2px solid #38bdf8;
       outline-offset: 2px;
@@ -1558,9 +1550,6 @@
     }
     body.night-skiing .coach-bubble .bubble-text {
       color: #e2e8f0;
-    }
-    body.night-skiing .coach-bubble::after {
-      border-bottom-color: rgba(226, 232, 240, 0.6);
     }
     .ambient-snow {
       position: fixed;
@@ -1899,7 +1888,25 @@
       font-size: clamp(44px, 6vw, 60px);
       margin: 0;
     }
-    .lift-header {
+    .sidebar-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .panel-icon-button {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: clamp(32px, 4.4vw, 44px);
+      line-height: 1;
+      padding: 0;
+    }
+    .panel-icon-button.active {
+      filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
+    }
+    .active-skier-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1991,6 +1998,34 @@
     .bug-toggle.active {
       border-color: #ef4444;
       box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    }
+    #frameUiToggle {
+      position: absolute;
+      right: 64px;
+      bottom: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(15, 23, 42, 0.2);
+      background: rgba(255, 255, 255, 0.9);
+      font-size: 22px;
+      padding: 6px 10px;
+      cursor: pointer;
+      line-height: 1;
+      display: none;
+    }
+    .debug-enabled #frameUiToggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .debug-footer .secondary {
+      display: none;
+    }
+    .debug-enabled .debug-footer .secondary {
+      display: inline-flex;
+    }
+    .debug-link {
+      text-decoration: underline;
+      cursor: pointer;
     }
     .powder-grid {
       display: grid;
@@ -2203,8 +2238,8 @@
 </head>
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
-    <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">G</div>
+    <div id="loadingEmoji" class="loading-emoji">❄️</div>
+    <div class="loading-version">T</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2228,16 +2263,6 @@
   </div>
   <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
   <video id="bgMusicVideo" class="bg-music-video" preload="auto" playsinline></video>
-  <div id="musicUnlockModal" class="music-unlock-modal" aria-live="polite">
-    <div class="music-unlock-card">
-      <h3>Tap to enable music 🎵</h3>
-      <p>iOS requires a quick tap to unlock audio playback.</p>
-      <div class="mode-grid">
-        <button id="musicUnlockButton" type="button">Enable music</button>
-        <button id="musicUnlockSkip" type="button" class="secondary">Skip music</button>
-      </div>
-    </div>
-  </div>
   <div id="scoreModal" class="score-modal" aria-live="polite">
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
@@ -2326,7 +2351,7 @@
           <div id="musicTitle" class="powder-current"></div>
           <div class="powder-controls">
             <button id="musicStart" class="music-start" type="button" aria-label="Start music">
-              Start Music
+              START MUSIC
             </button>
             <button id="musicStop" class="secondary" type="button">Stop</button>
             <button id="musicNext" class="secondary" type="button">Next track</button>
@@ -2448,26 +2473,6 @@
         <div class="header-center">
           <button id="highScoreButton" class="title-button" type="button" aria-label="High scores">👑</button>
         </div>
-        <div class="debug-toggle-stack">
-          <button
-            id="firstPersonToggle"
-            class="goggles-button"
-            type="button"
-            aria-label="Toggle first person view"
-            aria-pressed="false"
-          >
-            🥽
-          </button>
-          <button
-            id="frameUiToggle"
-            class="goggles-button"
-            type="button"
-            aria-label="Toggle frame UI"
-            aria-pressed="false"
-          >
-            🖼️
-          </button>
-        </div>
         <div class="mountain-actions">
           <button id="peakButton" class="mode-button" type="button" aria-label="Select peak">
             <span id="peakIcon">🏔️¹</span>
@@ -2482,6 +2487,15 @@
       <div id="mountain" class="mountain"></div>
       <div id="finishZone" class="finish-zone" aria-label="Finished skiers">
         <div id="finishTokens" class="finish-zone-tokens"></div>
+      </div>
+      <div id="musicQuickPanel" class="music-quick-panel" aria-live="polite">
+        <div id="musicQuickTitle" class="music-quick-title"></div>
+        <div class="music-quick-controls">
+          <button id="musicQuickStart" type="button">Start</button>
+          <button id="musicQuickStop" type="button" class="secondary">Stop</button>
+          <button id="musicQuickNext" type="button" class="secondary">Next</button>
+          <button id="musicQuickLoop" type="button" class="secondary">Loop</button>
+        </div>
       </div>
       <div class="tram-controls" aria-label="Lift zone controls">
         <button id="tramLeftButton" class="secondary" type="button" aria-label="Move left">👈</button>
@@ -2510,11 +2524,24 @@
       </div>
     </section>
     <section class="panel sidebar-panel">
-      <h2 class="section-emoji">📺</h2>
+      <div class="sidebar-topbar">
+        <h2 class="section-emoji">📺</h2>
+        <button id="musicPanelToggle" class="panel-icon-button" type="button" aria-label="Toggle music controls">📻</button>
+      </div>
+      <div class="sidebar-debug-toggle">
+        <button
+          id="firstPersonToggle"
+          class="goggles-button"
+          type="button"
+          aria-label="Toggle first person view"
+          aria-pressed="false"
+        >
+          🥽
+        </button>
+      </div>
       <div id="turnCounter" class="status"></div>
       <div class="status" id="status"></div>
       <div class="actions" id="actions"></div>
-<<<<<<< HEAD
       <div class="sidebar-section" data-section="active">
         <button class="section-toggle" type="button" aria-expanded="true">
           <span class="label">🧍 Active Human</span>
@@ -2571,40 +2598,17 @@
           <div class="legend" id="legend"></div>
         </div>
       </div>
+      <button id="frameUiToggle" class="goggles-button" type="button" aria-label="Toggle frame UI" aria-pressed="false">🖼️</button>
       <button id="bugToggle" class="bug-toggle" type="button" aria-label="Toggle debug mode">🐞</button>
     </section>
   </main>
   <footer>
-    Prototype v0.36g — single-player Party Mode (mouse or touch controls)
-=======
-      <h3>Active Skier</h3>
-      <div id="activeSkier" class="tag"></div>
-      <div class="lift-header">
-        <button id="liftToggle" class="secondary lift-toggle" type="button" aria-expanded="true">
-          <span id="liftChevron">▾</span>
-          Lift Zone
-        </button>
-        <div id="crowdCounter" class="tag"></div>
-      </div>
-      <div id="liftDetails" class="lift-details">
-        <div id="bonusTracker" class="status"></div>
-        <div id="skierQueue" class="pile"></div>
-      </div>
-      <div id="score" class="status"></div>
-      <h3>Scoreboard</h3>
-      <div id="scoreHistory" class="status"></div>
-      <h3>Decks</h3>
-      <div class="status" id="deckStatus"></div>
-      <h3>Difficulty Legend</h3>
-      <div class="legend" id="legend"></div>
-    </section>
-  </main>
-  <footer>
-    Prototype v0.35a — single-player Party Mode (mouse or touch controls)
->>>>>>> parent of 2e3ce87 (Adjust frame UI spacing and collapse sidebar detail sections)
+    Prototype v0.36t — single-player Party Mode (mouse or touch controls)
+    <div class="footer-note">Designed by <a href="https://kyleakoch.com" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
+   main
     <div class="debug-footer">
-      <span>Debug overlay shows (row, idx).</span>
-      <button id="toggleDebug" type="button" class="secondary">Show debug</button>
+      <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
+      <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
     </div>
   </footer>
   <div id="modeOverlay" class="mode-overlay">
@@ -2647,7 +2651,7 @@
           <button id="startCurling">Start Curling</button>
         </div>
       </div>
-      <button id="returnToGame" class="secondary" style="display: none;">Return to current game</button>
+      <button id="returnToGame" class="secondary">Return to current game</button>
     </div>
   </div>
   <script>
@@ -2677,18 +2681,165 @@
     ];
     const MUSIC_PLAYLIST = [
       {
-        title: "PowderKeg001",
-        url: "https://www.dropbox.com/scl/fi/o2xmqc8ejn2pn7izoiqtc/PowderKeg001.mp3?rlkey=o5lgl0v6pwg4wsqyq7y2il8xt&st=rbubemwx&dl=1"
+        trackNumber: 1,
+        title: "Track 1",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710874/1772662782713/01+-+Sunrise+Launch.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
-        title: "26 USA A",
-        url: "https://www.dropbox.com/scl/fi/jx71o3ksl6mi93rgzl4sd/26-USA-A.mp3?rlkey=v8a47vf7c6aza5njphkjo65pf&st=s8bptoa8&dl=1"
+        trackNumber: 2,
+        title: "Track 2",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710875/1772662786047/02+-+First+Descent+LR.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
-        title: "Ski Bum",
-        url: "https://www.dropbox.com/scl/fi/py8u1mznhn58uqprwe9cz/Ski-Bum.mp3?rlkey=b7xtbhso0nb5neainohm4yfmb&st=xat8kyds&dl=1"
+        trackNumber: 3,
+        title: "Track 3",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710876/1772662787053/03+-+Cold+Boot+Traverse+Part+1.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 4,
+        title: "Track 4",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710877/1772662788003/04+-+Crown+Vector.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 5,
+        title: "Track 5",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710878/1772662789113/05+-+Ski+Bum.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 6,
+        title: "Track 6",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710879/1772662790070/06+-+Compact+Resolve.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 7,
+        title: "Track 7",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710880/1772662790933/07+-+Soft+Reset.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 8,
+        title: "Track 8",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710881/1772662791873/08+-+Cold+Boot+Traverse+Part+2.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 9,
+        title: "Track 9",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710882/1772662792940/09+-+Ski+Bum+Set+2.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 10,
+        title: "Track 10",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710883/1772662793873/10+-+.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
+      },
+      {
+        trackNumber: 11,
+        title: "Track 11",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710884/1772662852080/11+-+.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 12,
+        title: "Track 12",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710885/1772662860297/12+-+.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 13,
+        title: "Track 13",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710886/1772662861423/13+-+.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 14,
+        title: "Track 14",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710887/1772662862703/14+-+Peak+Auto.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 15,
+        title: "Track 15",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710888/1772662863673/15+-+Auto+Logic.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 16,
+        title: "Track 16",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710889/1772662864663/16+-+Bootleg+Midway.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 17,
+        title: "Track 17",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710890/1772662865583/17+-+Powder+Protocol.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 18,
+        title: "Track 18",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710891/1772662866397/18+-+Snowballin%27.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 19,
+        title: "Track 19",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710892/1772662867577/19+-+Passione+Traverse.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 20,
+        title: "Track 20",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710893/1772662868553/20+-+Hardpack+Hotfix.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
+      },
+      {
+        trackNumber: 21,
+        title: "Track 21",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710894/1772663076127/21+-+Lowlight+Liaison.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 22,
+        title: "Track 22",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710895/1772663077923/22+-+Neon+Moguls.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 23,
+        title: "Track 23",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710896/1772663078863/23+-+Night+Kernel.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 24,
+        title: "Track 24",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710897/1772663079763/24+-++Night.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 25,
+        title: "Track 25",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710898/1772663081363/25+-++Night.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 26,
+        title: "Track 26",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710899/1772663082467/26+-++Night.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
+      },
+      {
+        trackNumber: 27,
+        title: "Track 27",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710900/1772663083533/27+-++Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
+      },
+      {
+        trackNumber: 28,
+        title: "Track 28",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710901/1772663085183/28+-+Peak+Auto+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
+      },
+      {
+        trackNumber: 29,
+        title: "Track 29",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710902/1772663086127/29+-+Auto+Logic+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
+      },
+      {
+        trackNumber: 30,
+        title: "Track 30",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710903/1772663087207/30+-+Powder+Protocol+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
+      },
+      {
+        trackNumber: 31,
+        title: "Track 31",
+        url: "https://static1.1.sqspcdn.com/static/f/292180/28710904/1772663088660/31+-+Snowballin%27+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
       }
     ];
+    const TRACK_BY_NUMBER = MUSIC_PLAYLIST.reduce((acc, track) => {
+      acc[track.trackNumber] = track;
+      return acc;
+    }, {});
     const CURLING_CARDS = {
       AIM: [-3, -2, -1, 0, 1, 2, 3],
       POWER: [1, 2, 3, 4, 5],
@@ -2730,6 +2881,8 @@
       audioUnlocked: false,
       musicUnlocked: false,
       musicUnlockVisible: false,
+      iosMusicElement: null,
+      iosMusicTrackIndex: null,
       loadingDismissed: false,
       autoStrategy: "MANUAL",
       autoCancelled: false,
@@ -2754,6 +2907,10 @@
       endTipShown: false,
       musicIndex: 0,
       loopCurrentTrack: false,
+      liftDetailsOpen: true,
+      musicPanelOpen: false,
+      musicDirectorBooted: false,
+      musicCurrentTrackNumber: null,
       lastGlide: null,
       coachTrusted: false,
       frameUiEnabled: true,
@@ -3862,6 +4019,7 @@
               getRpgElapsedMs()
             )}.`;
             showRpgSuccessModal(true);
+            onRpgModeCompleted(true);
             render();
             return;
           }
@@ -3947,6 +4105,12 @@
       state.awaitingStartChoice = false;
       resolveSlot(slotIdChoice, nextSkierId);
       state.message = "Run started. Continue downhill.";
+      if (state.mode === "RPG") {
+        const skierCard = getSkierCard(nextSkierId);
+        if (skierCard && skierCard.difficultyRank === 2) onFirstRankMover("blue");
+        if (skierCard && skierCard.difficultyRank === 3) onFirstRankMover("black");
+        if (skierCard && skierCard.difficultyRank === 4) onFirstRankMover("doubleblack");
+      }
     }
 
     function getNextAvailableSkierId() {
@@ -4669,6 +4833,20 @@
       }
       updateFirstPersonToggle();
       updateFrameUiToggle();
+      renderMusicQuickPanel();
+    }
+
+    function renderMusicQuickPanel() {
+      const panel = document.getElementById("musicQuickPanel");
+      const title = document.getElementById("musicQuickTitle");
+      const loop = document.getElementById("musicQuickLoop");
+      const toggle = document.getElementById("musicPanelToggle");
+      if (!panel || !title || !loop || !toggle) return;
+      panel.classList.toggle("active", state.musicPanelOpen);
+      toggle.classList.toggle("active", state.musicPanelOpen);
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      title.textContent = track ? `🎵 ${track.title}` : "🎵";
+      loop.textContent = state.loopCurrentTrack ? "Looping" : "Loop";
     }
 
     function runGlideAnimation() {
@@ -4731,10 +4909,12 @@
       }
       const turnText = getTurnCounterText();
       const statusText = state.message || "Pick a direction to begin.";
-      const coachLabel = state.coachMode === "CRUISE" ? "Cruising" : "On";
+      const inRpgMode = state.mode === "RPG";
       const timingText =
-        state.arcadeMode && state.lastTiming ? `<div class="coach-timing">Timing: ${state.lastTiming}</div>` : "";
-      const arcadeHud = state.arcadeMode
+        !inRpgMode && state.arcadeMode && state.lastTiming
+          ? `<div class="coach-timing">Timing: ${state.lastTiming}</div>`
+          : "";
+      const arcadeHud = !inRpgMode && state.arcadeMode
         ? `
           <div class="arcade-hud ${state.arcadeMode ? "active" : ""}">
             <div>Streak: ${state.arcadeStreak}</div>
@@ -4744,15 +4924,7 @@
             )}%"></div></div>
           </div>`
         : "";
-      const rpgStatus = state.mode === "RPG" && state.rpg
-        ? `
-          <div class="coach-rpg">
-            <span>🧭 RPG · ${getRpgRoundText()}</span>
-            <span>Time: ${formatDuration(getRpgElapsedMs())}</span>
-          </div>
-        `
-        : "";
-      const rpgButton = state.mode === "RPG"
+      const rpgButton = inRpgMode
         ? ""
         : `
           <div class="coach-rpg">
@@ -4761,15 +4933,27 @@
             </button>
           </div>
         `;
+      let capabilityLine = "";
+      if (state.activeRun) {
+        const skierState = state.cards[state.activeRun.leadSkierId];
+        const skierCard = skierState ? state.cards[skierState.cardId] : null;
+        if (skierCard) {
+          const symbol = getSymbol(skierCard);
+          const riderIcon = skierCard.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
+          const turnsAhead = Math.max(0, Math.min(3, (skierCard.difficultyRank || 1) - 1));
+          capabilityLine = `<div>As a ${symbol.icon} ${riderIcon} you are capable of seeing ${turnsAhead} turn${
+            turnsAhead === 1 ? "" : "s"
+          } ahead.</div>`;
+        }
+      }
       coachPanel.innerHTML = `
         <div class="coach-card">
           <div class="coach-summary">
-            <strong>${coachLabel}</strong>
             <div>${turnText}</div>
             <div>${statusText}</div>
+            ${capabilityLine}
             ${timingText}
             ${arcadeHud}
-            ${rpgStatus}
             ${rpgButton}
           </div>
         </div>
@@ -5287,21 +5471,7 @@
     }
 
     function positionCoachTip() {
-      const tip = document.getElementById("coachTip");
-      const button = document.getElementById("coachButton");
-      if (!tip || !button) return;
-      const buttonRect = button.getBoundingClientRect();
-      const tipRect = tip.getBoundingClientRect();
-      const width = tipRect.width || 180;
-      const padding = 12;
-      const left = Math.min(
-        Math.max(buttonRect.left + buttonRect.width / 2 - width / 2, padding),
-        window.innerWidth - width - padding
-      );
-      tip.style.left = `${left}px`;
-      tip.style.top = `${buttonRect.bottom + 8}px`;
-      tip.style.transform = "translateX(0)";
-      tip.style.position = "fixed";
+      return;
     }
 
     function updateFirstPersonToggle() {
@@ -5494,6 +5664,7 @@
       const turnCounterEl = document.getElementById("turnCounter");
       const liftDetailsEl = document.getElementById("liftDetails");
       const liftChevronEl = document.getElementById("liftChevron");
+      const liftToggleEl = document.getElementById("liftToggle");
 
       updateTramControls();
       if (state.mode === "CURLING") {
@@ -5517,7 +5688,9 @@
       if (liftChevronEl) {
         liftChevronEl.textContent = state.liftDetailsOpen ? "▾" : "▸";
       }
-<<<<<<< HEAD
+      if (liftToggleEl) {
+        liftToggleEl.setAttribute("aria-expanded", state.liftDetailsOpen ? "true" : "false");
+      }
       if (state.mode === "RPG" && state.rpg) {
         statusEl.innerHTML = `
           <strong>🧭 RPG Mode</strong><br />
@@ -5527,9 +5700,9 @@
       } else {
         statusEl.textContent = state.message;
       }
-=======
+
       statusEl.textContent = state.message;
->>>>>>> parent of 2e3ce87 (Adjust frame UI spacing and collapse sidebar detail sections)
+ parent of 2e3ce87 (Adjust frame UI spacing and collapse sidebar detail sections)
       actionsEl.innerHTML = "";
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
@@ -5855,7 +6028,7 @@
       }
       const frameSetting = document.getElementById("frameUiSetting");
       if (frameSetting) {
-        frameSetting.style.display = document.body.classList.contains("debug-enabled") ? "grid" : "none";
+        frameSetting.style.display = "grid";
       }
       const frameButtons = document.querySelectorAll("[data-frame-ui]");
       frameButtons.forEach((button) => {
@@ -6095,6 +6268,7 @@
         state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
       }
       updateSkyIndicator();
+      onDarkModeChanged(enabled);
     }
 
     function updateSkyIndicator() {
@@ -6183,6 +6357,7 @@
       state.autoSpeed = "ONE_X";
       state.fullAutoGames = 0;
       state.mode = "FULL";
+      onAutoModeActivated();
       state.autoStrategy = state.autoStrategy || "RANDOM";
       showIntroOverlay(false);
       beginGame();
@@ -6191,6 +6366,7 @@
 
     function stopFullAuto() {
       state.fullAuto = false;
+      onAutoModeDeactivated();
       state.autoCancelled = true;
       if (state.fullAutoTimeoutId) {
         clearTimeout(state.fullAutoTimeoutId);
@@ -6249,6 +6425,43 @@
       }
     }
 
+    function ensureIosMusicElement(track) {
+      if (!isIOSDevice()) return null;
+      const currentTrack = track || MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      if (!currentTrack) return null;
+      if (state.iosMusicElement && state.iosMusicTrackIndex !== state.musicIndex) {
+        state.iosMusicElement.pause();
+        state.iosMusicElement = null;
+      }
+      if (!state.iosMusicElement) {
+        const iosAudio = new Audio(currentTrack.url);
+        iosAudio.preload = "auto";
+        iosAudio.loop = state.loopCurrentTrack;
+        iosAudio.playsInline = true;
+        iosAudio.setAttribute("playsinline", "");
+        iosAudio.crossOrigin = "anonymous";
+        iosAudio.volume = 0.6;
+        iosAudio.addEventListener("ended", () => {
+          if (!state.loopCurrentTrack) {
+            nextTrack();
+          }
+        });
+        state.iosMusicElement = iosAudio;
+        state.iosMusicTrackIndex = state.musicIndex;
+      }
+      return state.iosMusicElement;
+    }
+
+    function getMusicElements(track) {
+      const iosAudio = ensureIosMusicElement(track);
+      const bgMusic = document.getElementById("bgMusic");
+      const bgMusicVideo = document.getElementById("bgMusicVideo");
+      if (iosAudio) {
+        return { primary: iosAudio, all: [iosAudio, bgMusic, bgMusicVideo] };
+      }
+      return { primary: bgMusic, all: [bgMusic, bgMusicVideo] };
+    }
+
     function syncMusicSources(track) {
       const bgMusic = document.getElementById("bgMusic");
       const bgMusicVideo = document.getElementById("bgMusicVideo");
@@ -6258,6 +6471,14 @@
       }
       if (bgMusicVideo && trackUrl && bgMusicVideo.src !== trackUrl) {
         bgMusicVideo.src = trackUrl;
+      }
+      const iosAudio = ensureIosMusicElement(track);
+      if (iosAudio && trackUrl) {
+        if (iosAudio.src !== trackUrl) {
+          iosAudio.src = trackUrl;
+          iosAudio.load();
+        }
+        iosAudio.loop = state.loopCurrentTrack;
       }
       if (bgMusic) {
         bgMusic.loop = state.loopCurrentTrack;
@@ -6275,13 +6496,7 @@
     }
 
     function showMusicUnlockModal(show) {
-      const modal = document.getElementById("musicUnlockModal");
-      if (!modal) return;
-      if (!isIOSDevice() && show) {
-        return;
-      }
-      state.musicUnlockVisible = show;
-      modal.classList.toggle("active", show);
+      state.musicUnlockVisible = false;
     }
 
     function unlockAudioContext() {
@@ -6342,9 +6557,9 @@
     }
 
     function setMediaMuted(muted) {
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
-      [bgMusic, bgMusicVideo].forEach((element) => {
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const { all } = getMusicElements(track);
+      all.forEach((element) => {
         if (!element) return;
         element.muted = muted;
         if (muted) {
@@ -6362,16 +6577,15 @@
     }
 
     function attemptAutoplayMuted() {
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       syncMusicSources(track);
+      const { all } = getMusicElements(track);
       if (!isIOSDevice()) {
         markMusicUnlocked();
-        return playAnyMedia([bgMusic, bgMusicVideo]).catch(() => {});
+        return playAnyMedia(all).catch(() => {});
       }
       setMediaMuted(true);
-      return playAnyMedia([bgMusic, bgMusicVideo])
+      return playAnyMedia(all)
         .then(() => {
           state.musicUnlocked = true;
           showMusicUnlockModal(false);
@@ -6384,23 +6598,25 @@
           showMusicUnlockModal(true);
         });
     }
+    function startMusic() {
+      unlockAudioContext();
+      markMusicUnlocked();
+      ensureMusicPlaying({ forceRestart: true });
+    }
+
 
     function ensureMusicPlaying({ forceRestart = false } = {}) {
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       syncMusicSources(track);
-      if (bgMusic && !bgMusic.paused && !forceRestart) return;
-      if (forceRestart) {
-        if (bgMusic) bgMusic.currentTime = 0;
-        if (bgMusicVideo) bgMusicVideo.currentTime = 0;
+      const { primary } = getMusicElements(track);
+      if (primary && !primary.paused && !forceRestart) return;
+      if (forceRestart && primary) {
+        primary.currentTime = 0;
       }
       if (state.musicUnlocked) {
         setMediaMuted(false);
       }
-      tryPlayMedia(bgMusic)
-        .catch(() => tryPlayMedia(bgMusicVideo))
-        .catch(() => {});
+      tryPlayMedia(primary).catch(() => {});
     }
 
     function enableMusicOnInteraction() {
@@ -6430,31 +6646,363 @@
     }
 
     function stopMusic() {
-      const bgMusic = document.getElementById("bgMusic");
-      const bgMusicVideo = document.getElementById("bgMusicVideo");
-      if (bgMusic) {
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
-      }
-      if (bgMusicVideo) {
-        bgMusicVideo.pause();
-        bgMusicVideo.currentTime = 0;
-      }
+      const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
+      const { all } = getMusicElements(track);
+      all.forEach((element) => {
+        if (!element) return;
+        element.pause();
+        element.currentTime = 0;
+      });
     }
 
     function nextTrack({ userInitiated = true } = {}) {
-      const bgMusic = document.getElementById("bgMusic");
-      if (!bgMusic) return;
+      if (state.iosMusicElement) {
+        state.iosMusicElement.pause();
+      }
       state.musicIndex = (state.musicIndex + 1) % MUSIC_PLAYLIST.length;
+      state.iosMusicElement = null;
+      state.iosMusicTrackIndex = null;
       const track = MUSIC_PLAYLIST[state.musicIndex];
       syncMusicSources(track);
       if (userInitiated) {
         markMusicUnlocked();
-        tryPlayMedia(bgMusic)
-          .catch(() => tryPlayMedia(document.getElementById("bgMusicVideo")))
-          .catch(() => {});
+        const { primary } = getMusicElements(track);
+        tryPlayMedia(primary).catch(() => {});
       }
       renderPowderModal();
+    }
+
+    const musicTrackEndCallbacks = [];
+    const playerInteractionCallbacks = [];
+
+    function onTrackEnded(callback) {
+      if (typeof callback === "function") musicTrackEndCallbacks.push(callback);
+    }
+
+    function onPlayerInteraction(callback) {
+      if (typeof callback === "function") playerInteractionCallbacks.push(callback);
+    }
+
+    function emitTrackEnded() {
+      musicTrackEndCallbacks.forEach((callback) => callback());
+    }
+
+    function emitPlayerInteraction() {
+      playerInteractionCallbacks.forEach((callback) => callback());
+    }
+
+    function playTrack(trackNumber, { loop = false, fadeMs = 700 } = {}) {
+      const track = TRACK_BY_NUMBER[trackNumber];
+      if (!track) return Promise.resolve();
+      state.musicCurrentTrackNumber = trackNumber;
+      state.musicIndex = Math.max(0, trackNumber - 1);
+      syncMusicSources(track);
+      const { primary, all } = getMusicElements(track);
+      all.forEach((element) => {
+        if (!element || element === primary) return;
+        try {
+          element.pause();
+        } catch (error) {}
+      });
+      if (primary) {
+        primary.loop = loop;
+        primary.currentTime = 0;
+      }
+      if (state.musicUnlocked) {
+        setMediaMuted(false);
+      }
+      console.debug("[MusicDirector] playTrack", { trackNumber, loop, fadeMs });
+      return tryPlayMedia(primary).catch(() => {});
+    }
+
+    function stopTrack({ fadeMs = 700 } = {}) {
+      const track = state.musicCurrentTrackNumber ? TRACK_BY_NUMBER[state.musicCurrentTrackNumber] : null;
+      const { all } = getMusicElements(track);
+      all.forEach((element) => {
+        if (!element) return;
+        try {
+          element.pause();
+        } catch (error) {}
+      });
+      console.debug("[MusicDirector] stopTrack", { fadeMs });
+    }
+
+    const MusicState = {
+      NORMAL: "NORMAL",
+      RPG: "RPG",
+      AUTOMODE: "AUTOMODE",
+      COMPLETION: "COMPLETION"
+    };
+
+    const DAY_NORMAL_SEQUENCE = [2, 3, 4, 5, 6, 7, 8, 9];
+    const DAY_AUTOMODE_SEQUENCE = [14, 15, 16, 17];
+    const DAY_RPG_RANK_TRACKS = [10, 11, 12, 13];
+    const DAY_COMPLETION_STINGER = 18;
+    const DAY_RARE_TRACKS = [19, 20];
+    const DARK_TOGGLE_CUE = 21;
+    const DARK_NORMAL_SEQUENCE = [22, 23];
+    const DARK_RPG_RANK_TRACKS = [24, 25, 26, 27];
+    const DARK_AUTOMODE_SEQUENCE = [28, 29, 30];
+    const DARK_COMPLETION_STINGER = 31;
+
+    const musicDirector = {
+      state: MusicState.NORMAL,
+      started: false,
+      isDarkMode: false,
+      isRpgActive: false,
+      isAutoActive: false,
+      rpgRankLevel: 0,
+      dayIntroPlayed: false,
+      darkCuePending: false,
+      dayNormalIndex: 0,
+      darkNormalIndex: 0,
+      autoDayIndex: 0,
+      autoDarkIndex: 0,
+      completionFirstPlayedEver: false,
+      completionPending: false,
+      completionPlaying: false,
+      completionStorageKey: "powderCrownRpgFirstCompletionPlayed",
+      idleSongStreak: 0,
+      trackInteracted: false,
+      rareCooldownReady: true,
+      currentContext: null,
+      init() {
+        this.completionFirstPlayedEver = localStorage.getItem(this.completionStorageKey) === "1";
+      },
+      debugLog(action, extra = {}) {
+        console.debug("[MusicDirector]", action, {
+          state: this.state,
+          currentTrack: state.musicCurrentTrackNumber,
+          context: this.currentContext,
+          ...extra
+        });
+      },
+      requestStart() {
+        this.started = true;
+        this.resolveAndPlay({ immediate: true });
+      },
+      getActiveState() {
+        if (this.completionPlaying || this.completionPending) return MusicState.COMPLETION;
+        if (this.isAutoActive) return MusicState.AUTOMODE;
+        if (this.isRpgActive) return MusicState.RPG;
+        return MusicState.NORMAL;
+      },
+      resolveAndPlay({ immediate = false } = {}) {
+        if (!this.started) return;
+        this.state = this.getActiveState();
+
+        if (this.completionPending && !this.completionPlaying) {
+          this.completionPlaying = true;
+          this.completionPending = false;
+          const stinger = this.isDarkMode ? DARK_COMPLETION_STINGER : DAY_COMPLETION_STINGER;
+          this.currentContext = "COMPLETION";
+          this.trackInteracted = false;
+          playTrack(stinger, { loop: false, fadeMs: immediate ? 100 : 750 });
+          this.debugLog("completion-stinger", { stinger });
+          return;
+        }
+
+        if (this.state === MusicState.AUTOMODE) {
+          const seq = this.isDarkMode ? DARK_AUTOMODE_SEQUENCE : DAY_AUTOMODE_SEQUENCE;
+          const index = this.isDarkMode ? this.autoDarkIndex : this.autoDayIndex;
+          const track = seq[index % seq.length];
+          this.currentContext = this.isDarkMode ? "AUTOMODE_DARK" : "AUTOMODE_DAY";
+          this.trackInteracted = false;
+          playTrack(track, { loop: false, fadeMs: immediate ? 150 : 750 });
+          this.debugLog("automode", { track });
+          return;
+        }
+
+        if (this.state === MusicState.RPG) {
+          const seq = this.isDarkMode ? DARK_RPG_RANK_TRACKS : DAY_RPG_RANK_TRACKS;
+          const rankIndex = Math.max(0, Math.min(3, this.rpgRankLevel));
+          const track = seq[rankIndex];
+          this.currentContext = this.isDarkMode ? "RPG_DARK" : "RPG_DAY";
+          this.trackInteracted = false;
+          playTrack(track, { loop: false, fadeMs: immediate ? 150 : 750 });
+          this.debugLog("rpg-rank", { rankIndex, track });
+          return;
+        }
+
+        if (this.isDarkMode) {
+          if (this.darkCuePending) {
+            this.darkCuePending = false;
+            this.currentContext = "NORMAL_DARK_CUE";
+            this.trackInteracted = false;
+            playTrack(DARK_TOGGLE_CUE, { loop: false, fadeMs: immediate ? 150 : 750 });
+            this.debugLog("dark-cue", { track: DARK_TOGGLE_CUE });
+            return;
+          }
+          const track = DARK_NORMAL_SEQUENCE[this.darkNormalIndex % DARK_NORMAL_SEQUENCE.length];
+          this.currentContext = "NORMAL_DARK_SEQ";
+          this.trackInteracted = false;
+          playTrack(track, { loop: false, fadeMs: immediate ? 150 : 750 });
+          this.debugLog("normal-dark", { track });
+          return;
+        }
+
+        if (!this.dayIntroPlayed) {
+          this.currentContext = "NORMAL_DAY_INTRO";
+          this.trackInteracted = false;
+          playTrack(1, { loop: false, fadeMs: immediate ? 150 : 750 });
+          this.debugLog("day-intro", { track: 1 });
+          return;
+        }
+
+        const dayTrack = DAY_NORMAL_SEQUENCE[this.dayNormalIndex % DAY_NORMAL_SEQUENCE.length];
+        this.currentContext = "NORMAL_DAY_SEQ";
+        this.trackInteracted = false;
+        playTrack(dayTrack, { loop: false, fadeMs: immediate ? 150 : 750 });
+        this.debugLog("normal-day", { track: dayTrack });
+      },
+      handleTrackEnded() {
+        if (this.trackInteracted) {
+          this.idleSongStreak = 0;
+        } else {
+          this.idleSongStreak += 1;
+        }
+
+        if (this.currentContext === "COMPLETION") {
+          this.completionPlaying = false;
+          this.completionFirstPlayedEver = true;
+          localStorage.setItem(this.completionStorageKey, "1");
+          this.resolveAndPlay({ immediate: true });
+          return;
+        }
+
+        if (this.currentContext === "NORMAL_DAY_INTRO") {
+          this.dayIntroPlayed = true;
+        } else if (this.currentContext === "NORMAL_DAY_SEQ") {
+          this.dayNormalIndex = (this.dayNormalIndex + 1) % DAY_NORMAL_SEQUENCE.length;
+        } else if (this.currentContext === "NORMAL_DARK_SEQ") {
+          this.darkNormalIndex = (this.darkNormalIndex + 1) % DARK_NORMAL_SEQUENCE.length;
+        } else if (this.currentContext === "AUTOMODE_DAY") {
+          this.autoDayIndex = (this.autoDayIndex + 1) % DAY_AUTOMODE_SEQUENCE.length;
+        } else if (this.currentContext === "AUTOMODE_DARK") {
+          this.autoDarkIndex = (this.autoDarkIndex + 1) % DARK_AUTOMODE_SEQUENCE.length;
+        }
+
+        const normalContext = this.currentContext === "NORMAL_DAY_SEQ" || this.currentContext === "NORMAL_DARK_SEQ";
+        if (!this.completionPlaying && this.state === MusicState.NORMAL && normalContext) {
+          if (!this.rareCooldownReady && this.idleSongStreak >= 3) {
+            this.rareCooldownReady = true;
+          }
+          if (this.rareCooldownReady && this.idleSongStreak >= 3) {
+            if (Math.random() < 0.15) {
+              const rareTrack = DAY_RARE_TRACKS[Math.floor(Math.random() * DAY_RARE_TRACKS.length)];
+              this.rareCooldownReady = false;
+              this.idleSongStreak = 0;
+              this.currentContext = "RARE";
+              this.trackInteracted = false;
+              playTrack(rareTrack, { loop: false, fadeMs: 750 });
+              this.debugLog("rare-insert", { rareTrack });
+              return;
+            }
+          }
+        }
+
+        if (this.currentContext === "RARE") {
+          this.currentContext = this.isDarkMode ? "NORMAL_DARK_SEQ" : "NORMAL_DAY_SEQ";
+        }
+
+        this.resolveAndPlay({ immediate: true });
+      },
+      handlePlayerInteraction() {
+        this.trackInteracted = true;
+        this.idleSongStreak = 0;
+        this.rareCooldownReady = true;
+      },
+      handleDarkModeChanged(isDarkMode) {
+        this.isDarkMode = Boolean(isDarkMode);
+        if (this.isDarkMode) {
+          this.darkCuePending = true;
+        }
+        this.resolveAndPlay({ immediate: false });
+      },
+      handleRpgModeStarted() {
+        this.isRpgActive = true;
+        this.rpgRankLevel = 0;
+        this.resolveAndPlay({ immediate: true });
+      },
+      handleRpgModeCompleted(firstTime) {
+        this.isRpgActive = false;
+        if (firstTime && !this.completionFirstPlayedEver) {
+          this.completionPending = true;
+        }
+        this.resolveAndPlay({ immediate: true });
+      },
+      handleFirstRankMover(rank) {
+        if (!this.isRpgActive) return;
+        const map = { blue: 1, black: 2, doubleblack: 3 };
+        const next = map[rank] ?? 0;
+        if (next > this.rpgRankLevel) {
+          this.rpgRankLevel = next;
+          this.resolveAndPlay({ immediate: true });
+        }
+      },
+      handleAutoModeActivated() {
+        this.isAutoActive = true;
+        this.resolveAndPlay({ immediate: true });
+      },
+      handleAutoModeDeactivated() {
+        this.isAutoActive = false;
+        this.resolveAndPlay({ immediate: true });
+      },
+      manualSkip() {
+        this.handleTrackEnded();
+      }
+    };
+
+    function onDarkModeChanged(isDarkMode) {
+      musicDirector.handleDarkModeChanged(isDarkMode);
+    }
+
+    function onRpgModeStarted() {
+      musicDirector.handleRpgModeStarted();
+    }
+
+    function onRpgModeCompleted(firstTime) {
+      musicDirector.handleRpgModeCompleted(firstTime);
+    }
+
+    function onFirstRankMover(rank) {
+      musicDirector.handleFirstRankMover(rank);
+    }
+
+    function onAutoModeActivated() {
+      musicDirector.handleAutoModeActivated();
+    }
+
+    function onAutoModeDeactivated() {
+      musicDirector.handleAutoModeDeactivated();
+    }
+
+    function startMusic() {
+      unlockAudioContext();
+      markMusicUnlocked();
+      if (!state.musicDirectorBooted) {
+        musicDirector.init();
+        onTrackEnded(() => musicDirector.handleTrackEnded());
+        onPlayerInteraction(() => musicDirector.handlePlayerInteraction());
+        state.musicDirectorBooted = true;
+      }
+      musicDirector.requestStart();
+    }
+
+    function ensureMusicPlaying() {
+      startMusic();
+    }
+
+    function nextTrack({ userInitiated = false } = {}) {
+      if (userInitiated) {
+        musicDirector.manualSkip();
+        return;
+      }
+      emitTrackEnded();
+    }
+
+    function stopMusic() {
+      stopTrack({ fadeMs: 600 });
     }
 
     function hideScoreModal() {
@@ -6726,7 +7274,7 @@
       const loadingEmoji = document.getElementById("loadingEmoji");
       const snowstorm = document.getElementById("snowstorm");
       const bgMusic = document.getElementById("bgMusic");
-      const sequence = ["❄︎", "👑", "🏔️", "⛷️"];
+      const sequence = ["❄️", "👑", "🏔️", "⛷️"];
       let step = 0;
       showModeOverlay(false);
       createSnowstorm(snowstorm, 140);
@@ -6801,6 +7349,7 @@
       if (!state.attractActive) return;
       state.attractActive = false;
       state.fullAuto = false;
+      onAutoModeDeactivated();
       if (state.fullAutoTimeoutId) {
         clearTimeout(state.fullAutoTimeoutId);
         state.fullAutoTimeoutId = null;
@@ -6837,6 +7386,7 @@
       state.firstPersonView = true;
       state.coachMode = "ON";
       startMode("RPG");
+      onRpgModeStarted();
     }
 
     function setPeak(peakKey) {
@@ -6910,9 +7460,7 @@
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
     document.getElementById("musicStart").addEventListener("click", () => {
-      unlockAudioContext();
-      markMusicUnlocked();
-      ensureMusicPlaying({ forceRestart: true });
+      startMusic();
     });
     document.getElementById("musicStop").addEventListener("click", () => {
       stopMusic();
@@ -6926,6 +7474,28 @@
       markMusicUnlocked();
       ensureMusicPlaying({ forceRestart: true });
       renderPowderModal();
+    });
+    document.getElementById("musicPanelToggle").addEventListener("click", () => {
+      state.musicPanelOpen = !state.musicPanelOpen;
+      renderMusicQuickPanel();
+    });
+    document.getElementById("musicQuickStart").addEventListener("click", () => {
+      startMusic();
+      renderMusicQuickPanel();
+    });
+    document.getElementById("musicQuickStop").addEventListener("click", () => {
+      stopMusic();
+      renderMusicQuickPanel();
+    });
+    document.getElementById("musicQuickNext").addEventListener("click", () => {
+      nextTrack({ userInitiated: true });
+      renderMusicQuickPanel();
+    });
+    document.getElementById("musicQuickLoop").addEventListener("click", () => {
+      state.loopCurrentTrack = !state.loopCurrentTrack;
+      markMusicUnlocked();
+      ensureMusicPlaying({ forceRestart: true });
+      renderMusicQuickPanel();
     });
     document.getElementById("coachButton").addEventListener("click", () => {
       state.coachMode = state.coachMode === "OFF" ? "ON" : "OFF";
@@ -6947,7 +7517,6 @@
       render();
     });
     document.getElementById("frameUiToggle").addEventListener("click", () => {
-      if (!document.body.classList.contains("debug-enabled")) return;
       state.frameUiEnabled = !state.frameUiEnabled;
       render();
       renderPowderModal();
@@ -7038,6 +7607,14 @@
     });
     document.getElementById("returnToGame").addEventListener("click", () => showModeOverlay(false));
     document.getElementById("modeOverlayClose").addEventListener("click", () => showModeOverlay(false));
+    const modeOverlayEl = document.getElementById("modeOverlay");
+    if (modeOverlayEl) {
+      modeOverlayEl.addEventListener("click", (event) => {
+        if (event.target === modeOverlayEl && state.gameStarted) {
+          showModeOverlay(false);
+        }
+      });
+    }
     document.getElementById("scheduleCloseTop").addEventListener("click", () => closeScheduleModal());
     document.getElementById("powderCloseTop").addEventListener("click", () => showPowderModal(false));
     document.getElementById("highScoreCloseTop").addEventListener("click", () => showHighScoreModal(false));
@@ -7089,6 +7666,24 @@
     if (bugToggle) {
       bugToggle.addEventListener("click", () => {
         toggleDebugButton.click();
+      });
+    }
+    const debugFooterLink = document.getElementById("debugFooterLink");
+    if (debugFooterLink) {
+      const onDebugFooterActivate = () => toggleDebugButton.click();
+      debugFooterLink.addEventListener("click", onDebugFooterActivate);
+      debugFooterLink.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onDebugFooterActivate();
+        }
+      });
+    }
+    const liftToggleButton = document.getElementById("liftToggle");
+    if (liftToggleButton) {
+      liftToggleButton.addEventListener("click", () => {
+        state.liftDetailsOpen = !state.liftDetailsOpen;
+        renderSidebar();
       });
     }
     const loadingScreen = document.getElementById("loadingScreen");
@@ -7144,16 +7739,16 @@
       stopAttractMode();
       handleKeyMove(event);
     });
-    ["pointerdown", "mousedown", "mousemove", "touchstart", "wheel"].forEach((eventName) => {
+    ["pointerdown", "mousedown", "mousemove", "touchstart", "wheel", "keydown", "click"].forEach((eventName) => {
       document.addEventListener(eventName, () => {
         resetAttractTimer();
         stopAttractMode();
+        emitPlayerInteraction();
       }, { passive: true });
     });
     startLoadingSequence();
     enableMusicOnInteraction();
-    attachMusicUnlockHandlers();
-    attemptAutoplayMuted();
+    startMusic();
     resetAttractTimer();
     queueInitialEmojiRain();
     const bgMusic = document.getElementById("bgMusic");
@@ -7170,19 +7765,6 @@
         if (!state.loopCurrentTrack) {
           nextTrack();
         }
-      });
-    }
-    const musicUnlockButton = document.getElementById("musicUnlockButton");
-    if (musicUnlockButton) {
-      musicUnlockButton.addEventListener("click", () => {
-        unlockAudioContext();
-        attemptAutoplayMuted();
-      });
-    }
-    const musicUnlockSkip = document.getElementById("musicUnlockSkip");
-    if (musicUnlockSkip) {
-      musicUnlockSkip.addEventListener("click", () => {
-        showMusicUnlockModal(false);
       });
     }
     state.allTimeHighScores = loadAllTimeHighScores();
