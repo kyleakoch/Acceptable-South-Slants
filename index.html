@@ -1171,13 +1171,7 @@
       width: min(960px, calc(100% - 24px - var(--sidebar-width) - var(--sidebar-gap)));
     }
     .frame-ui-enabled .mountain-panel {
-      padding-top: 96px;
-      padding-bottom: 108px;
-    }
-    .frame-ui-enabled .mountain {
-      padding-top: 14px;
-      padding-bottom: 14px;
-      box-sizing: border-box;
+      padding-top: 72px;
     }
     .frame-ui-enabled .tram-controls {
       bottom: 8px;
@@ -1917,36 +1911,14 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
     }
-    .sidebar-detail {
-      border: 2px solid #dfe6f2;
-      border-radius: 12px;
-      background: #f8f9fd;
-      padding: 8px 10px;
-      margin-bottom: 10px;
-    }
-    .sidebar-detail summary {
-      cursor: pointer;
-      font-weight: 700;
-      list-style: none;
-      display: flex;
+    .lift-toggle {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 6px;
     }
-    .sidebar-detail summary::-webkit-details-marker {
+    .lift-details.collapsed {
       display: none;
-    }
-    .sidebar-detail summary::after {
-      content: "▸";
-      opacity: 0.7;
-    }
-    .sidebar-detail[open] summary::after {
-      content: "▾";
-    }
-    .sidebar-detail-content {
-      margin-top: 10px;
     }
     .podium-row {
       display: grid;
@@ -2633,6 +2605,7 @@
   <footer>
     Prototype v0.36t — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://kyleakoch.com" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
+   main
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -2917,6 +2890,7 @@
       emojiRainMode: "REAL",
       handEmojiPreference: "DEFAULT",
       scoringMode: "LADDER",
+      liftDetailsOpen: true,
       scheduleMode: "TYPE",
       scheduleConfig: {
         type: { SKIER: "MATCH", SNOWBOARDER: "MATCH" },
@@ -5726,6 +5700,9 @@
       } else {
         statusEl.textContent = state.message;
       }
+
+      statusEl.textContent = state.message;
+ parent of 2e3ce87 (Adjust frame UI spacing and collapse sidebar detail sections)
       actionsEl.innerHTML = "";
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
@@ -7613,9 +7590,9 @@
         renderHighScoreModal();
       });
     });
-    ["liftDetailSection", "scoreDetailSection", "deckDetailSection", "legendDetailSection"].forEach((id) => {
-      const detail = document.getElementById(id);
-      if (detail) detail.open = false;
+    document.getElementById("liftToggle").addEventListener("click", () => {
+      state.liftDetailsOpen = !state.liftDetailsOpen;
+      render();
     });
     document.getElementById("modalPlayAgain").addEventListener("click", () => {
       hideScoreModal();
