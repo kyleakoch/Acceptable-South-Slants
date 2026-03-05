@@ -2239,7 +2239,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">T</div>
+    <div class="loading-version">U</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2603,9 +2603,8 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36t — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36u — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://kyleakoch.com" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
-   main
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -5702,7 +5701,6 @@
       }
 
       statusEl.textContent = state.message;
- parent of 2e3ce87 (Adjust frame UI spacing and collapse sidebar detail sections)
       actionsEl.innerHTML = "";
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
