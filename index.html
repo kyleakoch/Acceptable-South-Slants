@@ -2247,7 +2247,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">Z</div>
+    <div class="loading-version">A</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2611,7 +2611,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36z — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37a — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -5480,8 +5480,9 @@
       const tip = document.getElementById("coachTip");
       if (!tip) return;
       state.coachTipShown = true;
-      positionCoachTip();
       tip.classList.add("active");
+      requestAnimationFrame(() => positionCoachTip());
+      setTimeout(() => positionCoachTip(), 60);
       setTimeout(() => {
         tip.classList.remove("active");
       }, 5000);
@@ -5490,19 +5491,21 @@
     function positionCoachTip() {
       const tip = document.getElementById("coachTip");
       const button = document.getElementById("coachButton");
-      if (!tip || !button) return;
+      const stack = button?.closest(".coach-toggle-stack");
+      if (!tip || !button || !stack) return;
+      const stackRect = stack.getBoundingClientRect();
       const buttonRect = button.getBoundingClientRect();
       const tipWidth = tip.offsetWidth || 180;
-      const preferredLeft = buttonRect.left + (buttonRect.width - tipWidth) / 2;
+      const preferredLeftInViewport = stackRect.left + stackRect.width / 2 - tipWidth / 2;
       const minLeft = 8;
       const maxLeft = window.innerWidth - tipWidth - 8;
-      const clampedLeft = Math.max(minLeft, Math.min(maxLeft, preferredLeft));
-      const tipTop = buttonRect.bottom + 8;
-      tip.style.position = "fixed";
-      tip.style.left = `${clampedLeft}px`;
-      tip.style.top = `${tipTop}px`;
-      tip.style.transform = "none";
-      const arrowX = Math.max(12, Math.min(tipWidth - 12, buttonRect.left + buttonRect.width / 2 - clampedLeft));
+      const clampedLeftInViewport = Math.max(minLeft, Math.min(maxLeft, preferredLeftInViewport));
+      const shiftFromCenter = clampedLeftInViewport - preferredLeftInViewport;
+      tip.style.position = "absolute";
+      tip.style.left = `calc(50% + ${shiftFromCenter}px)`;
+      tip.style.top = "calc(100% + 8px)";
+      tip.style.transform = "translateX(-50%)";
+      const arrowX = Math.max(12, Math.min(tipWidth - 12, buttonRect.left + buttonRect.width / 2 - clampedLeftInViewport));
       tip.style.setProperty("--coach-tip-arrow-x", `${arrowX}px`);
     }
 
@@ -7574,6 +7577,16 @@
         positionCoachTip();
       }
     });
+    window.addEventListener("orientationchange", () => {
+      if (state.coachTipShown && state.firstPersonView) {
+        setTimeout(() => positionCoachTip(), 120);
+      }
+    });
+    window.addEventListener("scroll", () => {
+      if (state.coachTipShown && state.firstPersonView) {
+        positionCoachTip();
+      }
+    }, { passive: true });
     document.getElementById("highScoreButton").addEventListener("click", () => showHighScoreModal(true));
     document.getElementById("highScoreClose").addEventListener("click", () => showHighScoreModal(false));
     document.getElementById("openHighScoreFromScore").addEventListener("click", () => {
