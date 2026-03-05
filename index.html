@@ -679,13 +679,25 @@
     .current-turn-label {
       letter-spacing: 0.2em;
     }
-    .current-turn-indicator {
+    .current-turn-indicator,
+    .next-turn-indicator {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-size: 16px;
       letter-spacing: 0.08em;
       opacity: 0.85;
+    }
+    .first-person-next {
+      border-top: 1px solid rgba(148, 163, 184, 0.45);
+      padding-top: 6px;
+      margin-top: 2px;
+      display: grid;
+      gap: 4px;
+    }
+    .next-turn-label {
+      letter-spacing: 0.2em;
+      opacity: 0.7;
     }
     .first-person-lanes {
       display: grid;
@@ -2235,7 +2247,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">W</div>
+    <div class="loading-version">X</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2599,7 +2611,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36w — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36x — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://kyleakoch.com" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -2931,7 +2943,12 @@
       rpgRiderType: "SKIER",
       attractTimerId: null,
       attractActive: false,
-      lastActivityAt: Date.now()
+      lastActivityAt: Date.now(),
+      hasPlayerInteracted: false,
+      appStartedAt: Date.now(),
+      lastScreenChangeAt: Date.now(),
+      startupAttractTimerId: null,
+      screenIdleTimerId: null
     };
 
     const BONUS_EMOJIS = {
@@ -4799,6 +4816,7 @@
     }
 
     function render() {
+      noteScreenActivity();
       fillEmptyMountainSlots();
       renderMountain();
       runGlideAnimation();
@@ -5131,7 +5149,11 @@
       const upcomingIndicator = `↙️${upcomingEmoji}↘️`;
       nowMarker.innerHTML = `
         <div class="current-turn-label">Current turn</div>
-        <div class="current-turn-indicator">${symbolIcon}👀 ${upcomingIndicator}</div>
+        <div class="current-turn-indicator">${symbolIcon}👀</div>
+        <div class="first-person-next">
+          <div class="next-turn-label">Next turn</div>
+          <div class="next-turn-indicator">${upcomingIndicator}</div>
+        </div>
       `;
       const coachActive = state.coachMode === "ON";
       const leftHandEmoji = getHandEmoji("LEFT");
@@ -7361,14 +7383,41 @@
       render();
     }
 
-    function resetAttractTimer() {
-      state.lastActivityAt = Date.now();
-      if (state.attractTimerId) {
-        clearTimeout(state.attractTimerId);
+    function scheduleStartupAttractTimer() {
+      if (state.startupAttractTimerId) {
+        clearTimeout(state.startupAttractTimerId);
       }
-      state.attractTimerId = setTimeout(() => {
+      state.startupAttractTimerId = setTimeout(() => {
+        if (state.hasPlayerInteracted) return;
         startAttractMode();
-      }, 45000);
+      }, 180000);
+    }
+
+    function scheduleScreenIdleTimer() {
+      if (state.screenIdleTimerId) {
+        clearTimeout(state.screenIdleTimerId);
+      }
+      state.screenIdleTimerId = setTimeout(() => {
+        startAttractMode();
+      }, 300000);
+    }
+
+    function noteScreenActivity() {
+      state.lastScreenChangeAt = Date.now();
+      if (state.attractActive) return;
+      scheduleScreenIdleTimer();
+    }
+
+    function notePlayerInteraction() {
+      state.lastActivityAt = Date.now();
+      state.hasPlayerInteracted = true;
+      if (state.startupAttractTimerId) {
+        clearTimeout(state.startupAttractTimerId);
+        state.startupAttractTimerId = null;
+      }
+      if (!state.attractActive) {
+        scheduleScreenIdleTimer();
+      }
     }
 
     function startMode(mode) {
@@ -7739,13 +7788,13 @@
         showModeOverlay(true);
         return;
       }
-      resetAttractTimer();
+      notePlayerInteraction();
       stopAttractMode();
       handleKeyMove(event);
     });
     ["pointerdown", "mousedown", "mousemove", "touchstart", "wheel", "keydown", "click"].forEach((eventName) => {
       document.addEventListener(eventName, () => {
-        resetAttractTimer();
+        notePlayerInteraction();
         stopAttractMode();
         emitPlayerInteraction();
       }, { passive: true });
@@ -7753,7 +7802,8 @@
     startLoadingSequence();
     enableMusicOnInteraction();
     startMusic();
-    resetAttractTimer();
+    scheduleStartupAttractTimer();
+    scheduleScreenIdleTimer();
     queueInitialEmojiRain();
     const bgMusic = document.getElementById("bgMusic");
     if (bgMusic) {
