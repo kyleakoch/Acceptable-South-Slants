@@ -2239,7 +2239,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">U</div>
+    <div class="loading-version">V</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2603,7 +2603,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36u — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36v — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://kyleakoch.com" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -7273,6 +7273,7 @@
       const snowstorm = document.getElementById("snowstorm");
       const bgMusic = document.getElementById("bgMusic");
       const sequence = ["❄️", "👑", "🏔️", "⛷️"];
+      loadingEmoji.textContent = sequence[0];
       let step = 0;
       showModeOverlay(false);
       createSnowstorm(snowstorm, 140);
