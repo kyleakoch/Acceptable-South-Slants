@@ -503,17 +503,13 @@
       border-color: #8b5cf6;
     }
     .music-quick-panel {
-      position: absolute;
-      left: 14px;
-      right: 14px;
-      bottom: 100px;
       display: none;
       gap: 8px;
+      margin: 4px 0 10px;
       background: rgba(255, 255, 255, 0.96);
       border: 2px solid rgba(30, 36, 48, 0.85);
       border-radius: 14px;
       padding: 10px;
-      z-index: 7;
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
     }
     .music-quick-panel.active {
@@ -2239,7 +2235,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">V</div>
+    <div class="loading-version">W</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2488,15 +2484,6 @@
       <div id="finishZone" class="finish-zone" aria-label="Finished skiers">
         <div id="finishTokens" class="finish-zone-tokens"></div>
       </div>
-      <div id="musicQuickPanel" class="music-quick-panel" aria-live="polite">
-        <div id="musicQuickTitle" class="music-quick-title"></div>
-        <div class="music-quick-controls">
-          <button id="musicQuickStart" type="button">Start</button>
-          <button id="musicQuickStop" type="button" class="secondary">Stop</button>
-          <button id="musicQuickNext" type="button" class="secondary">Next</button>
-          <button id="musicQuickLoop" type="button" class="secondary">Loop</button>
-        </div>
-      </div>
       <div class="tram-controls" aria-label="Lift zone controls">
         <button id="tramLeftButton" class="secondary" type="button" aria-label="Move left">👈</button>
         <button id="tramCycleButton" class="secondary" type="button" aria-label="Cycle lift zone">🚡</button>
@@ -2527,6 +2514,15 @@
       <div class="sidebar-topbar">
         <h2 class="section-emoji">📺</h2>
         <button id="musicPanelToggle" class="panel-icon-button" type="button" aria-label="Toggle music controls">📻</button>
+      </div>
+      <div id="musicQuickPanel" class="music-quick-panel" aria-live="polite">
+        <div id="musicQuickTitle" class="music-quick-title"></div>
+        <div class="music-quick-controls">
+          <button id="musicQuickStart" type="button">Start</button>
+          <button id="musicQuickStop" type="button" class="secondary">Stop</button>
+          <button id="musicQuickNext" type="button" class="secondary">Next</button>
+          <button id="musicQuickLoop" type="button" class="secondary">Loop</button>
+        </div>
       </div>
       <div class="sidebar-debug-toggle">
         <button
@@ -2603,7 +2599,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36v — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36w — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://kyleakoch.com" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -6692,10 +6688,13 @@
     function playTrack(trackNumber, { loop = false, fadeMs = 700 } = {}) {
       const track = TRACK_BY_NUMBER[trackNumber];
       if (!track) return Promise.resolve();
+      const previousTrackNumber = state.musicCurrentTrackNumber;
+      const isSameTrack = previousTrackNumber === trackNumber;
       state.musicCurrentTrackNumber = trackNumber;
       state.musicIndex = Math.max(0, trackNumber - 1);
       syncMusicSources(track);
       const { primary, all } = getMusicElements(track);
+      const alreadyPlayingSameTrack = Boolean(isSameTrack && primary && !primary.paused);
       all.forEach((element) => {
         if (!element || element === primary) return;
         try {
@@ -6704,10 +6703,16 @@
       });
       if (primary) {
         primary.loop = loop;
-        primary.currentTime = 0;
+        if (!alreadyPlayingSameTrack) {
+          primary.currentTime = 0;
+        }
       }
       if (state.musicUnlocked) {
         setMediaMuted(false);
+      }
+      if (alreadyPlayingSameTrack) {
+        console.debug("[MusicDirector] keepTrack", { trackNumber, loop, fadeMs });
+        return Promise.resolve();
       }
       console.debug("[MusicDirector] playTrack", { trackNumber, loop, fadeMs });
       return tryPlayMedia(primary).catch(() => {});
