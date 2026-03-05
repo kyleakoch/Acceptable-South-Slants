@@ -49,8 +49,8 @@
       background: rgba(10, 15, 30, 0.92);
     }
     body.night-skiing .mode-card {
-      background: #111827;
-      color: #e5e7eb;
+      background: #f8fafc;
+      color: #111827;
     }
     body.night-skiing .legend span {
       color: #e5e7eb;
@@ -422,11 +422,30 @@
     }
     @media (max-width: 600px) {
       :root {
-        --slot-min: 58px;
-        --slot-gap: 6px;
+        --slot-min: 64px;
+        --slot-gap: 8px;
       }
       main {
         padding: 16px;
+      }
+      .slot {
+        padding: 8px;
+      }
+      .slot .token {
+        top: 8px;
+        transform: translateX(-50%) scale(1.25);
+      }
+      .slot .token.fork {
+        top: -10px;
+      }
+      .slot .token.fork-2 {
+        top: -16px;
+      }
+      .slot .token.fork-3 {
+        top: -20px;
+      }
+      .slot .token.fork-4 {
+        top: -24px;
       }
     }
     .panel {
@@ -468,6 +487,11 @@
       opacity: 0.5;
       pointer-events: none;
       mix-blend-mode: multiply;
+    }
+    body.night-skiing .mountain-panel::before,
+    body.night-skiing .mountain-panel::after {
+      opacity: 0.16;
+      mix-blend-mode: normal;
     }
     .mountain-panel > * {
       position: relative;
@@ -1832,16 +1856,23 @@
     body.night-skiing .schedule-modal .modal-card,
     body.night-skiing .powder-modal .modal-card,
     body.night-skiing .high-score-modal .modal-card {
-      background: #111827;
-      color: #e5e7eb;
+      background: #f8fafc;
+      color: #111827;
     }
     body.night-skiing .score-modal .status,
     body.night-skiing .schedule-modal .schedule-item,
     body.night-skiing .powder-modal .powder-item {
-      color: #e5e7eb;
+      color: #111827;
     }
     body.night-skiing .high-score-modal .status {
-      color: #e5e7eb;
+      color: #111827;
+    }
+    body.night-skiing #bonusTracker,
+    body.night-skiing .collected-pill,
+    body.night-skiing #scoreModeCurrent,
+    body.night-skiing #scoreModeDescription,
+    body.night-skiing #scoreModeFormula {
+      color: #111827;
     }
     .schedule-modal {
       position: fixed;
@@ -2305,7 +2336,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄︎</div>
-    <div class="loading-version">S</div>
+    <div class="loading-version">T</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2679,7 +2710,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36s — single-player Party Mode (mouse or touch controls)
+    Prototype v0.36t — single-player Party Mode (mouse or touch controls)
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -5014,9 +5045,9 @@
           const symbol = getSymbol(skierCard);
           const riderIcon = skierCard.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
           const turnsAhead = Math.max(0, Math.min(3, (skierCard.difficultyRank || 1) - 1));
-          capabilityLine = `<div>As a ${symbol.icon} ${riderIcon} you are capable of seeing ${turnsAhead} turn${
+          capabilityLine = `<div>${symbol.icon} ${riderIcon} can see ${turnsAhead} next turn${
             turnsAhead === 1 ? "" : "s"
-          } ahead.</div>`;
+          }.</div>`;
         }
       }
       coachPanel.innerHTML = `
