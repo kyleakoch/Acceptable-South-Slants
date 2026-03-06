@@ -490,24 +490,32 @@
       grid-auto-rows: var(--slot-min);
     }
     .finish-zone {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
+      display: grid;
+      align-items: stretch;
       min-height: 56px;
       margin-top: 8px;
       width: 100%;
     }
     .finish-zone-tokens {
+      display: grid;
+      gap: var(--slot-gap);
+      width: 100%;
+    }
+    .finish-zone-cell {
+      min-height: 52px;
+      border-radius: 10px;
+      border: 1px dashed rgba(148, 163, 184, 0.45);
+      background: rgba(255, 255, 255, 0.35);
       display: flex;
       align-items: center;
-      gap: 8px;
-      justify-content: flex-end;
-      width: 100%;
+      justify-content: center;
+      gap: 4px;
+      padding: 2px 4px;
     }
     .finish-zone-item {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .finish-zone-item .finish-card {
       background: #f1f5f9;
@@ -2296,7 +2304,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">J</div>
+    <div class="loading-version">K</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2673,7 +2681,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37j — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37k — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -4717,6 +4725,9 @@
         landedAt: Date.now(),
         collectedRanks: [...(run.collectedRanks || [])]
       });
+      if (state.landingZoneTokens.length > 4) {
+        state.landingZoneTokens = state.landingZoneTokens.slice(-4);
+      }
       if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
         const skierCardId = state.cards[run.leadSkierId].cardId;
         state.bestRun = {
@@ -5200,17 +5211,26 @@
       if (!finishTokensEl || !finishZoneEl) return;
       finishTokensEl.innerHTML = "";
       const shouldShow = !state.firstPersonView;
-      finishZoneEl.style.display = shouldShow ? "flex" : "none";
+      finishZoneEl.style.display = shouldShow ? "grid" : "none";
       if (!shouldShow) return;
-      const landedTokens = state.landingZoneTokens || [];
-      if (!landedTokens.length) return;
-      finishTokensEl.innerHTML = landedTokens
-        .map((entry) => `
-          <div class="finish-zone-item">
-            <div class="finish-zone-token">${getSkierTokenMarkup(entry.skierId)}</div>
-          </div>
-        `)
-        .join("");
+      const lastRowSize = state.rowSizes[state.rowSizes.length - 1] || 0;
+      finishTokensEl.style.gridTemplateColumns = `repeat(${Math.max(1, lastRowSize)}, minmax(var(--slot-min), 1fr))`;
+      const landedTokens = (state.landingZoneTokens || []).slice(-4);
+      const tokensByColumn = new Map();
+      landedTokens.forEach((entry) => {
+        const { idx } = rowIdxFromSlotId(entry.slotId);
+        if (!tokensByColumn.has(idx)) tokensByColumn.set(idx, []);
+        tokensByColumn.get(idx).push(entry);
+      });
+      for (let idx = 0; idx < Math.max(1, lastRowSize); idx += 1) {
+        const columnTokens = tokensByColumn.get(idx) || [];
+        const cell = document.createElement("div");
+        cell.className = "finish-zone-cell";
+        cell.innerHTML = columnTokens
+          .map((entry) => `<div class="finish-zone-item"><div class="finish-zone-token">${getSkierTokenMarkup(entry.skierId)}</div></div>`)
+          .join("");
+        finishTokensEl.appendChild(cell);
+      }
     }
 
     function renderMountain() {
