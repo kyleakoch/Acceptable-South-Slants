@@ -351,6 +351,54 @@
       border-color: #1f8f4d;
       box-shadow: 0 0 0 2px rgba(31, 143, 77, 0.2);
     }
+    .auto-modes.collapsed {
+      display: none;
+    }
+    .auto-modes-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+      border-radius: 10px;
+      background: rgba(107, 114, 128, 0.22);
+      color: #4b5563;
+      border: 1px solid rgba(107, 114, 128, 0.45);
+      font-size: 18px;
+      min-height: 38px;
+    }
+    .auto-modes-toggle.unlocked {
+      background: rgba(31, 143, 77, 0.14);
+      color: #14532d;
+      border-color: rgba(31, 143, 77, 0.5);
+    }
+    .full-mode-coach-bubble {
+      display: none;
+      margin-top: 8px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.92);
+      border: 2px solid #1e2430;
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .full-mode-coach-bubble.active {
+      display: block;
+    }
+    .auto-modes-unlock-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 210;
+      padding: 16px;
+    }
+    .auto-modes-unlock-overlay.active {
+      display: flex;
+    }
     .auto-speed {
       display: grid;
       gap: 6px;
@@ -503,17 +551,13 @@
       border-color: #8b5cf6;
     }
     .music-quick-panel {
-      position: absolute;
-      left: 14px;
-      right: 14px;
-      bottom: 100px;
       display: none;
       gap: 8px;
+      margin: 4px 0 10px;
       background: rgba(255, 255, 255, 0.96);
       border: 2px solid rgba(30, 36, 48, 0.85);
       border-radius: 14px;
       padding: 10px;
-      z-index: 7;
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
     }
     .music-quick-panel.active {
@@ -683,13 +727,25 @@
     .current-turn-label {
       letter-spacing: 0.2em;
     }
-    .current-turn-indicator {
+    .current-turn-indicator,
+    .next-turn-indicator {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-size: 16px;
       letter-spacing: 0.08em;
       opacity: 0.85;
+    }
+     .first-person-next-summary {
+      border-top: 1px solid rgba(148, 163, 184, 0.45);
+      padding-top: 6px;
+      margin-top: 2px;
+      display: grid;
+      gap: 4px;
+    }
+    .next-turn-label {
+      letter-spacing: 0.2em;
+      opacity: 0.7;
     }
     .first-person-lanes {
       display: grid;
@@ -757,9 +813,9 @@
         letter-spacing: 0.2em;
         font-size: 11px;
       }
-      .first-person-next {
-        flex-direction: column;
-        align-items: center;
+       .first-person-next-summary {
+        display: grid;
+        justify-items: center;
         gap: 6px;
       }
       .first-person-next .next-card {
@@ -927,8 +983,9 @@
       border: 2px solid transparent;
       border-radius: 12px;
       padding: 10px;
-      min-width: 70px;
-      min-height: 70px;
+      min-width: var(--slot-min);
+      min-height: var(--slot-min);
+      box-sizing: border-box;
       height: 100%;
       display: flex;
       align-items: center;
@@ -1342,7 +1399,7 @@
       content: "";
       position: absolute;
       top: 0;
-      left: 50%;
+      left: var(--coach-tip-arrow-x, 50%);
       border: 6px solid transparent;
       border-bottom-color: #1e2430;
       transform: translate(-50%, -100%);
@@ -2239,7 +2296,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">T</div>
+    <div class="loading-version">E</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2281,6 +2338,7 @@
       <div class="modal-actions">
         <button id="modalPlayAgain">Play again</button>
         <button id="modalMode" class="secondary">Mode</button>
+        <button id="modalStartRpg" class="secondary" type="button">🧭 Start RPG</button>
       </div>
     </div>
     <div id="scoreTip" class="score-tip">
@@ -2304,6 +2362,16 @@
   </div>
   <div id="emojiRain" class="emoji-rain" aria-hidden="true"></div>
   <div id="ambientSnow" class="ambient-snow snowstorm" aria-hidden="true"></div>
+  <div id="autoModesUnlockOverlay" class="auto-modes-unlock-overlay" aria-live="polite">
+    <div class="intro-card">
+      <h2 id="autoModesUnlockTitle"></h2>
+      <p id="autoModesUnlockBody"></p>
+      <div class="intro-actions">
+        <button id="autoModesUnlockNext" class="intro-next" type="button">Next</button>
+        <button id="autoModesUnlockClose" class="intro-skip" type="button">Close</button>
+      </div>
+    </div>
+  </div>
   <div id="introOverlay" class="intro-overlay" aria-live="polite">
     <div class="intro-card">
       <h2 id="introTitle"></h2>
@@ -2488,20 +2556,13 @@
       <div id="finishZone" class="finish-zone" aria-label="Finished skiers">
         <div id="finishTokens" class="finish-zone-tokens"></div>
       </div>
-      <div id="musicQuickPanel" class="music-quick-panel" aria-live="polite">
-        <div id="musicQuickTitle" class="music-quick-title"></div>
-        <div class="music-quick-controls">
-          <button id="musicQuickStart" type="button">Start</button>
-          <button id="musicQuickStop" type="button" class="secondary">Stop</button>
-          <button id="musicQuickNext" type="button" class="secondary">Next</button>
-          <button id="musicQuickLoop" type="button" class="secondary">Loop</button>
-        </div>
-      </div>
       <div class="tram-controls" aria-label="Lift zone controls">
         <button id="tramLeftButton" class="secondary" type="button" aria-label="Move left">👈</button>
         <button id="tramCycleButton" class="secondary" type="button" aria-label="Cycle lift zone">🚡</button>
         <button id="tramRightButton" class="secondary" type="button" aria-label="Move right">👉</button>
       </div>
+      <div id="fullModeCoachBubble" class="full-mode-coach-bubble" aria-live="polite"></div>
+      <button id="autoModesToggle" class="auto-modes-toggle" type="button" aria-label="Toggle auto modes" aria-expanded="false">🎮</button>
       <div class="mountain-footer">
         <div class="collected-bubble">
           <div class="collected-bubble-header">🗺️</div>
@@ -2527,6 +2588,15 @@
       <div class="sidebar-topbar">
         <h2 class="section-emoji">📺</h2>
         <button id="musicPanelToggle" class="panel-icon-button" type="button" aria-label="Toggle music controls">📻</button>
+      </div>
+      <div id="musicQuickPanel" class="music-quick-panel" aria-live="polite">
+        <div id="musicQuickTitle" class="music-quick-title"></div>
+        <div class="music-quick-controls">
+          <button id="musicQuickStart" type="button">Start</button>
+          <button id="musicQuickStop" type="button" class="secondary">Stop</button>
+          <button id="musicQuickNext" type="button" class="secondary">Next</button>
+          <button id="musicQuickLoop" type="button" class="secondary">Loop</button>
+        </div>
       </div>
       <div class="sidebar-debug-toggle">
         <button
@@ -2603,9 +2673,8 @@
     </section>
   </main>
   <footer>
-    Prototype v0.36t — single-player Party Mode (mouse or touch controls)
-    <div class="footer-note">Designed by <a href="https://kyleakoch.com" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
-   main
+    Prototype v0.37e — single-player Party Mode (mouse or touch controls)
+    <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -2913,7 +2982,7 @@
       musicCurrentTrackNumber: null,
       lastGlide: null,
       coachTrusted: false,
-      frameUiEnabled: true,
+      frameUiEnabled: false,
       animationSpeed: "TURTLE",
       glideAnimationEnabled: true,
       cosmicNotation: "SCIENTIFIC",
@@ -2936,8 +3005,91 @@
       rpgRiderType: "SKIER",
       attractTimerId: null,
       attractActive: false,
-      lastActivityAt: Date.now()
+      lastActivityAt: Date.now(),
+      hasPlayerInteracted: false,
+      appStartedAt: Date.now(),
+      lastScreenChangeAt: Date.now(),
+      startupAttractTimerId: null,
+      screenIdleTimerId: null,
+      autoModesUnlocked: false,
+      autoModesPanelOpen: false,
+      fullModeCompletions: 0,
+      fullModeCompletionCounted: false,
+      autoModesIntroSeen: false,
+      autoModesIntroStep: 0
     };
+
+
+    const AUTO_UNLOCK_STEPS = [
+      {
+        title: "🎮 Auto Modes Unlocked",
+        body: "You can now open Auto Modes with the game controller button and let the mountain run itself."
+      },
+      {
+        title: "Choose a pattern",
+        body: "Auto Mode chooses what type of condition to target each move. Strategy and speed change how aggressively it plays."
+      },
+      {
+        title: "Debug override",
+        body: "If debug is enabled, Auto Modes can always be opened for testing even before unlock."
+      }
+    ];
+
+    function canAccessAutoModes() {
+      return state.autoModesUnlocked || document.body.classList.contains("debug-enabled");
+    }
+
+    function saveAutoUnlockState() {
+      try {
+        localStorage.setItem("powderCrownAutoModesUnlocked", state.autoModesUnlocked ? "1" : "0");
+        localStorage.setItem("powderCrownFullModeCompletions", String(state.fullModeCompletions || 0));
+        localStorage.setItem("powderCrownAutoModesIntroSeen", state.autoModesIntroSeen ? "1" : "0");
+      } catch (error) {}
+    }
+
+    function loadAutoUnlockState() {
+      try {
+        state.autoModesUnlocked = localStorage.getItem("powderCrownAutoModesUnlocked") === "1";
+        state.autoModesPanelOpen = false;
+        const completions = Number(localStorage.getItem("powderCrownFullModeCompletions") || 0);
+        state.fullModeCompletions = Number.isFinite(completions) ? completions : 0;
+        state.autoModesIntroSeen = localStorage.getItem("powderCrownAutoModesIntroSeen") === "1";
+      } catch (error) {}
+    }
+
+    function showAutoModesUnlockOverlay(show) {
+      const overlay = document.getElementById("autoModesUnlockOverlay");
+      if (!overlay) return;
+      overlay.classList.toggle("active", show);
+      if (show) {
+        state.autoModesIntroStep = 0;
+        renderAutoModesUnlockOverlay();
+      }
+    }
+
+    function renderAutoModesUnlockOverlay() {
+      const titleEl = document.getElementById("autoModesUnlockTitle");
+      const bodyEl = document.getElementById("autoModesUnlockBody");
+      const nextEl = document.getElementById("autoModesUnlockNext");
+      const step = AUTO_UNLOCK_STEPS[state.autoModesIntroStep] || AUTO_UNLOCK_STEPS[0];
+      if (titleEl) titleEl.textContent = step.title;
+      if (bodyEl) bodyEl.textContent = step.body;
+      if (nextEl) {
+        nextEl.textContent = state.autoModesIntroStep >= AUTO_UNLOCK_STEPS.length - 1 ? "Done" : "Next";
+      }
+    }
+
+    function unlockAutoModes(reason = "") {
+      if (state.autoModesUnlocked) return;
+      state.autoModesUnlocked = true;
+      state.autoModesPanelOpen = true;
+      if (!state.autoModesIntroSeen) {
+        showAutoModesUnlockOverlay(true);
+        state.autoModesIntroSeen = true;
+      }
+      state.message = reason || "🎮 Auto Modes unlocked.";
+      saveAutoUnlockState();
+    }
 
     const BONUS_EMOJIS = {
       1: "🌭",
@@ -3960,6 +4112,8 @@
       state.lastInputAt = null;
       state.lastTiming = null;
       state.bufferRunning = false;
+      state.frameUiEnabled = false;
+      state.fullModeCompletionCounted = false;
       state.coachMode = "ON";
       state.coachTipShown = state.coachTipShown || false;
       state.endTipShown = state.endTipShown || false;
@@ -4019,6 +4173,7 @@
               getRpgElapsedMs()
             )}.`;
             showRpgSuccessModal(true);
+            unlockAutoModes("🎮 Auto Modes unlocked by completing RPG.");
             onRpgModeCompleted(true);
             render();
             return;
@@ -4034,6 +4189,14 @@
         if (!nextSkierId) {
           state.message = "All skiers used. Game over!";
           state.gameEnded = true;
+          if (state.mode === "FULL" && !state.fullModeCompletionCounted) {
+            state.fullModeCompletions += 1;
+            state.fullModeCompletionCounted = true;
+            if (state.fullModeCompletions >= 3) {
+              unlockAutoModes("🎮 Auto Modes unlocked after 3 Full Tram runs.");
+            }
+            saveAutoUnlockState();
+          }
           showScoreModal();
           if (state.fullAuto) {
             if (state.fullAutoTimeoutId) {
@@ -4804,6 +4967,7 @@
     }
 
     function render() {
+      noteScreenActivity();
       fillEmptyMountainSlots();
       renderMountain();
       runGlideAnimation();
@@ -4903,9 +5067,9 @@
       if (!coachPanel) return;
       const isActive = state.firstPersonView && state.coachMode !== "OFF";
       coachPanel.classList.toggle("active", isActive);
+      const fullModeBubble = document.getElementById("fullModeCoachBubble");
       if (!isActive) {
         coachPanel.innerHTML = "";
-        return;
       }
       const turnText = getTurnCounterText();
       const statusText = state.message || "Pick a direction to begin.";
@@ -4924,45 +5088,41 @@
             )}%"></div></div>
           </div>`
         : "";
-      const rpgButton = inRpgMode
-        ? ""
-        : `
-          <div class="coach-rpg">
-            <button id="coachRpgButton" class="coach-rpg-button" type="button" aria-label="Start RPG mode">
-              🧭 Start RPG
-            </button>
-          </div>
-        `;
       let capabilityLine = "";
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
         const skierCard = skierState ? state.cards[skierState.cardId] : null;
         if (skierCard) {
           const symbol = getSymbol(skierCard);
-          const riderIcon = skierCard.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
           const turnsAhead = Math.max(0, Math.min(3, (skierCard.difficultyRank || 1) - 1));
-          capabilityLine = `<div>As a ${symbol.icon} ${riderIcon} you are capable of seeing ${turnsAhead} turn${
+          capabilityLine = `<div>${symbol.icon} gear can see next ${turnsAhead} turn${
             turnsAhead === 1 ? "" : "s"
-          } ahead.</div>`;
+          }.</div>`;
         }
       }
-      coachPanel.innerHTML = `
-        <div class="coach-card">
-          <div class="coach-summary">
-            <div>${turnText}</div>
-            <div>${statusText}</div>
-            ${capabilityLine}
-            ${timingText}
-            ${arcadeHud}
-            ${rpgButton}
+      if (isActive) {
+        coachPanel.innerHTML = `
+          <div class="coach-card">
+            <div class="coach-summary">
+              <div>${turnText}</div>
+              <div>${statusText}</div>
+              ${capabilityLine}
+              ${timingText}
+              ${arcadeHud}
+            </div>
           </div>
-        </div>
-      `;
-      const rpgButtonEl = coachPanel.querySelector("#coachRpgButton");
-      if (rpgButtonEl) {
-        rpgButtonEl.addEventListener("click", () => {
-          startRpgMode(state.rpgRiderType);
-        });
+        `;
+      }
+      if (fullModeBubble) {
+        const showFullBubble = state.mode === "FULL" && !state.firstPersonView && state.coachMode !== "OFF";
+        fullModeBubble.classList.toggle("active", showFullBubble);
+        if (showFullBubble) {
+          fullModeBubble.textContent = capabilityLine
+            ? capabilityLine.replace(/<[^>]+>/g, "")
+            : "Coach: choose the safest line to keep your combo alive.";
+        } else {
+          fullModeBubble.textContent = "";
+        }
       }
     }
 
@@ -5136,7 +5296,11 @@
       const upcomingIndicator = `↙️${upcomingEmoji}↘️`;
       nowMarker.innerHTML = `
         <div class="current-turn-label">Current turn</div>
-        <div class="current-turn-indicator">${symbolIcon}👀 ${upcomingIndicator}</div>
+        <div class="current-turn-indicator">Choose between these current conditions</div>
+        <div class="first-person-next-summary">
+          <div class="next-turn-label">Next turn</div>
+          <div class="next-turn-indicator">${symbolIcon}👀 ${upcomingIndicator}</div>
+        </div>
       `;
       const coachActive = state.coachMode === "ON";
       const leftHandEmoji = getHandEmoji("LEFT");
@@ -5463,15 +5627,33 @@
       const tip = document.getElementById("coachTip");
       if (!tip) return;
       state.coachTipShown = true;
-      positionCoachTip();
       tip.classList.add("active");
+      requestAnimationFrame(() => positionCoachTip());
+      setTimeout(() => positionCoachTip(), 60);
       setTimeout(() => {
         tip.classList.remove("active");
       }, 5000);
     }
 
     function positionCoachTip() {
-      return;
+      const tip = document.getElementById("coachTip");
+      const button = document.getElementById("coachButton");
+      const stack = button?.closest(".coach-toggle-stack");
+      if (!tip || !button || !stack) return;
+      const stackRect = stack.getBoundingClientRect();
+      const buttonRect = button.getBoundingClientRect();
+      const tipWidth = tip.offsetWidth || 180;
+      const preferredLeftInViewport = stackRect.left + stackRect.width / 2 - tipWidth / 2;
+      const minLeft = 8;
+      const maxLeft = window.innerWidth - tipWidth - 8;
+      const clampedLeftInViewport = Math.max(minLeft, Math.min(maxLeft, preferredLeftInViewport));
+      const shiftFromCenter = clampedLeftInViewport - preferredLeftInViewport;
+      tip.style.position = "absolute";
+      tip.style.left = `calc(50% + ${shiftFromCenter}px)`;
+      tip.style.top = "calc(100% + 8px)";
+      tip.style.transform = "translateX(-50%)";
+      const arrowX = Math.max(12, Math.min(tipWidth - 12, buttonRect.left + buttonRect.width / 2 - clampedLeftInViewport));
+      tip.style.setProperty("--coach-tip-arrow-x", `${arrowX}px`);
     }
 
     function updateFirstPersonToggle() {
@@ -5654,6 +5836,7 @@
       const actionsEl = document.getElementById("actions");
       const activeSkierEl = document.getElementById("activeSkier");
       const autoModesEl = document.getElementById("autoModes");
+      const autoModesToggleEl = document.getElementById("autoModesToggle");
       const queueEl = document.getElementById("skierQueue");
       const collectedEl = document.getElementById("collectedPile");
       const scoreEl = document.getElementById("score");
@@ -5672,6 +5855,7 @@
         actionsEl.innerHTML = "";
         activeSkierEl.innerHTML = "Stone: 🥌  Sweepers: 🧹🧹";
         if (autoModesEl) autoModesEl.style.display = "none";
+        if (autoModesToggleEl) autoModesToggleEl.style.display = "none";
         if (queueEl) queueEl.innerHTML = "";
         if (collectedEl) collectedEl.innerHTML = "";
         if (scoreEl) scoreEl.textContent = "";
@@ -5681,7 +5865,19 @@
         if (turnCounterEl) turnCounterEl.textContent = "";
         return;
       }
-      if (autoModesEl) autoModesEl.style.display = "";
+      const autoAccess = canAccessAutoModes();
+      if (autoModesEl) {
+        const autoVisible = autoAccess && state.autoModesPanelOpen;
+        autoModesEl.style.display = autoVisible ? "" : "none";
+        autoModesEl.classList.toggle("collapsed", !autoVisible);
+      }
+      if (autoModesToggleEl) {
+        autoModesToggleEl.style.display = "inline-flex";
+        autoModesToggleEl.classList.toggle("unlocked", autoAccess);
+        autoModesToggleEl.setAttribute("aria-expanded", autoAccess && state.autoModesPanelOpen ? "true" : "false");
+        autoModesToggleEl.textContent = autoAccess ? "🎮" : "🎮";
+        autoModesToggleEl.title = autoAccess ? "Toggle auto modes" : "Locked: complete RPG or play Full Tram 3 times";
+      }
       if (liftDetailsEl) {
         liftDetailsEl.classList.toggle("collapsed", !state.liftDetailsOpen);
       }
@@ -5702,7 +5898,6 @@
       }
 
       statusEl.textContent = state.message;
- parent of 2e3ce87 (Adjust frame UI spacing and collapse sidebar detail sections)
       actionsEl.innerHTML = "";
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
@@ -5718,6 +5913,7 @@
         turnCounterEl.textContent = getTurnCounterText();
       }
 
+      if (autoAccess && state.autoModesPanelOpen) {
       const autoGrid = autoModesEl.querySelector(".auto-grid");
       autoGrid.innerHTML = "";
       AUTO_MODES.forEach((mode) => {
@@ -5830,6 +6026,7 @@
         } else {
           glideStatus.textContent = "Glide animation: Off";
         }
+      }
       }
 
       queueEl.innerHTML = "";
@@ -6384,6 +6581,7 @@
       const allTimeEl = document.getElementById("allTimeHighScore");
       const scoreTipEl = document.getElementById("scoreTip");
       const scoreTipText = document.getElementById("scoreTipText");
+      const startRpgButton = document.getElementById("modalStartRpg");
       const summary = computeScore();
       const bestRun = state.bestRun;
       const bestRunLabel = bestRun
@@ -6412,6 +6610,9 @@
         snowstorm.classList.add("active");
       }
       modal.classList.add("active");
+      if (startRpgButton) {
+        startRpgButton.style.display = state.mode === "RPG" ? "none" : "inline-flex";
+      }
       if (scoreTipEl && scoreTipText) {
         if (!state.endTipShown) {
           scoreTipText.textContent =
@@ -6694,10 +6895,13 @@
     function playTrack(trackNumber, { loop = false, fadeMs = 700 } = {}) {
       const track = TRACK_BY_NUMBER[trackNumber];
       if (!track) return Promise.resolve();
+      const previousTrackNumber = state.musicCurrentTrackNumber;
+      const isSameTrack = previousTrackNumber === trackNumber;
       state.musicCurrentTrackNumber = trackNumber;
       state.musicIndex = Math.max(0, trackNumber - 1);
       syncMusicSources(track);
       const { primary, all } = getMusicElements(track);
+      const alreadyPlayingSameTrack = Boolean(isSameTrack && primary && !primary.paused);
       all.forEach((element) => {
         if (!element || element === primary) return;
         try {
@@ -6706,10 +6910,16 @@
       });
       if (primary) {
         primary.loop = loop;
-        primary.currentTime = 0;
+        if (!alreadyPlayingSameTrack) {
+          primary.currentTime = 0;
+        }
       }
       if (state.musicUnlocked) {
         setMediaMuted(false);
+      }
+      if (alreadyPlayingSameTrack) {
+        console.debug("[MusicDirector] keepTrack", { trackNumber, loop, fadeMs });
+        return Promise.resolve();
       }
       console.debug("[MusicDirector] playTrack", { trackNumber, loop, fadeMs });
       return tryPlayMedia(primary).catch(() => {});
@@ -7275,6 +7485,7 @@
       const snowstorm = document.getElementById("snowstorm");
       const bgMusic = document.getElementById("bgMusic");
       const sequence = ["❄️", "👑", "🏔️", "⛷️"];
+      loadingEmoji.textContent = sequence[0];
       let step = 0;
       showModeOverlay(false);
       createSnowstorm(snowstorm, 140);
@@ -7357,14 +7568,41 @@
       render();
     }
 
-    function resetAttractTimer() {
-      state.lastActivityAt = Date.now();
-      if (state.attractTimerId) {
-        clearTimeout(state.attractTimerId);
+    function scheduleStartupAttractTimer() {
+      if (state.startupAttractTimerId) {
+        clearTimeout(state.startupAttractTimerId);
       }
-      state.attractTimerId = setTimeout(() => {
+      state.startupAttractTimerId = setTimeout(() => {
+        if (state.hasPlayerInteracted) return;
         startAttractMode();
-      }, 45000);
+      }, 180000);
+    }
+
+    function scheduleScreenIdleTimer() {
+      if (state.screenIdleTimerId) {
+        clearTimeout(state.screenIdleTimerId);
+      }
+      state.screenIdleTimerId = setTimeout(() => {
+        startAttractMode();
+      }, 300000);
+    }
+
+    function noteScreenActivity() {
+      state.lastScreenChangeAt = Date.now();
+      if (state.attractActive) return;
+      scheduleScreenIdleTimer();
+    }
+
+    function notePlayerInteraction() {
+      state.lastActivityAt = Date.now();
+      state.hasPlayerInteracted = true;
+      if (state.startupAttractTimerId) {
+        clearTimeout(state.startupAttractTimerId);
+        state.startupAttractTimerId = null;
+      }
+      if (!state.attractActive) {
+        scheduleScreenIdleTimer();
+      }
     }
 
     function startMode(mode) {
@@ -7372,6 +7610,9 @@
       state.autoStrategy = "MANUAL";
       state.autoMode = null;
       state.mode = mode;
+      if (mode === "FULL") {
+        state.firstPersonView = false;
+      }
       hideErrorOverlay();
       hideRpgSuccessModal();
       showModeOverlay(false);
@@ -7420,6 +7661,10 @@
       {
         title: "Pick your line 👈 👉",
         body: "Use the left/right buttons (or arrow keys) to choose your next condition card. The tram 🚡 lets you cycle the lift queue before you start."
+      },
+      {
+        title: "Collect the hill 🟢🟦◆◆",
+        body: "As a skier, you collect any conditions on the hill that match your skill or are below your skill level. The goal is to collect as many condition cards as you can to increase your score. Collecting 🥘 multiplies your combos. Have fun!"
       },
       {
         title: "I’m your coach 🗣️",
@@ -7497,6 +7742,15 @@
       ensureMusicPlaying({ forceRestart: true });
       renderMusicQuickPanel();
     });
+    document.getElementById("autoModesToggle").addEventListener("click", () => {
+      if (!canAccessAutoModes()) {
+        state.message = "🔒 Auto Modes unlock after RPG completion or 3 Full Tram runs.";
+        render();
+        return;
+      }
+      state.autoModesPanelOpen = !state.autoModesPanelOpen;
+      render();
+    });
     document.getElementById("coachButton").addEventListener("click", () => {
       state.coachMode = state.coachMode === "OFF" ? "ON" : "OFF";
       render();
@@ -7506,6 +7760,16 @@
         positionCoachTip();
       }
     });
+    window.addEventListener("orientationchange", () => {
+      if (state.coachTipShown && state.firstPersonView) {
+        setTimeout(() => positionCoachTip(), 120);
+      }
+    });
+    window.addEventListener("scroll", () => {
+      if (state.coachTipShown && state.firstPersonView) {
+        positionCoachTip();
+      }
+    }, { passive: true });
     document.getElementById("highScoreButton").addEventListener("click", () => showHighScoreModal(true));
     document.getElementById("highScoreClose").addEventListener("click", () => showHighScoreModal(false));
     document.getElementById("openHighScoreFromScore").addEventListener("click", () => {
@@ -7605,6 +7869,10 @@
       hideScoreModal();
       showModeOverlay(true);
     });
+    document.getElementById("modalStartRpg").addEventListener("click", () => {
+      hideScoreModal();
+      startRpgMode(state.rpgRiderType || "SKIER");
+    });
     document.getElementById("returnToGame").addEventListener("click", () => showModeOverlay(false));
     document.getElementById("modeOverlayClose").addEventListener("click", () => showModeOverlay(false));
     const modeOverlayEl = document.getElementById("modeOverlay");
@@ -7641,12 +7909,25 @@
       showIntroOverlay(false);
       showModeOverlay(true);
     });
+    document.getElementById("autoModesUnlockNext").addEventListener("click", () => {
+      state.autoModesIntroStep += 1;
+      if (state.autoModesIntroStep >= AUTO_UNLOCK_STEPS.length) {
+        showAutoModesUnlockOverlay(false);
+        return;
+      }
+      renderAutoModesUnlockOverlay();
+    });
+    document.getElementById("autoModesUnlockClose").addEventListener("click", () => {
+      showAutoModesUnlockOverlay(false);
+    });
     document.getElementById("scoreTipOk").addEventListener("click", () => {
       const scoreTipEl = document.getElementById("scoreTip");
       const scoreTipText = document.getElementById("scoreTipText");
       if (scoreTipEl) scoreTipEl.classList.remove("active");
       if (scoreTipText) scoreTipText.textContent = "";
     });
+    loadAutoUnlockState();
+
     const toggleDebugButton = document.getElementById("toggleDebug");
     const bugToggle = document.getElementById("bugToggle");
     document.body.classList.add("hide-coords");
@@ -7655,7 +7936,9 @@
       document.body.classList.toggle("hide-coords");
       const debugEnabled = !document.body.classList.contains("hide-coords");
       document.body.classList.toggle("debug-enabled", debugEnabled);
-      if (!debugEnabled) {
+      if (debugEnabled) {
+        state.autoModesPanelOpen = true;
+      } else {
         state.frameUiEnabled = false;
       }
       toggleDebugButton.textContent = document.body.classList.contains("hide-coords")
@@ -7735,13 +8018,13 @@
         showModeOverlay(true);
         return;
       }
-      resetAttractTimer();
+      notePlayerInteraction();
       stopAttractMode();
       handleKeyMove(event);
     });
     ["pointerdown", "mousedown", "mousemove", "touchstart", "wheel", "keydown", "click"].forEach((eventName) => {
       document.addEventListener(eventName, () => {
-        resetAttractTimer();
+        notePlayerInteraction();
         stopAttractMode();
         emitPlayerInteraction();
       }, { passive: true });
@@ -7749,7 +8032,8 @@
     startLoadingSequence();
     enableMusicOnInteraction();
     startMusic();
-    resetAttractTimer();
+    scheduleStartupAttractTimer();
+    scheduleScreenIdleTimer();
     queueInitialEmojiRain();
     const bgMusic = document.getElementById("bgMusic");
     if (bgMusic) {
