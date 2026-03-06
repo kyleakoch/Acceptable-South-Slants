@@ -2296,7 +2296,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">I</div>
+    <div class="loading-version">J</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2673,7 +2673,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37i — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37j — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -2969,6 +2969,7 @@
       rowSizes: [...PEAKS.PEAK_1.rows],
       currentAutoModeForRun: null,
       lastRunToken: null,
+      landingZoneTokens: [],
       firstPersonView: false,
       coachMode: "ON",
       introStep: 0,
@@ -3895,7 +3896,7 @@
 
     function getVisibilityDepth(skierCard) {
       if (!skierCard) return 1;
-      return Math.max(1, Math.min(4, skierCard.difficultyRank));
+      return Math.max(1, Math.min(5, (skierCard.difficultyRank || 1) + 1));
     }
 
     function getCoachFocusSkierCard() {
@@ -4119,6 +4120,7 @@
       state.dayIcon = DAY_ICONS[Math.floor(Math.random() * DAY_ICONS.length)];
       state.autoCancelled = false;
       state.lastRunToken = null;
+      state.landingZoneTokens = [];
       state.arcadeBlueprintIndex = 0;
       state.arcadeCurrentBlueprint = null;
       state.arcadeStreak = 0;
@@ -4709,6 +4711,12 @@
         clicksRemaining: 2,
         collectedRanks: run.collectedRanks || []
       };
+      state.landingZoneTokens.push({
+        skierId: run.leadSkierId,
+        slotId: run.currentSlotId,
+        landedAt: Date.now(),
+        collectedRanks: [...(run.collectedRanks || [])]
+      });
       if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
         const skierCardId = state.cards[run.leadSkierId].cardId;
         state.bestRun = {
@@ -5115,7 +5123,7 @@
         if (skierCard) {
           const symbol = getSymbol(skierCard);
           const riderLabel = skierCard.riderType === "SNOWBOARDER" ? "boarder" : "skier";
-          const turnsAhead = Math.max(0, Math.min(3, (skierCard.difficultyRank || 1) - 1));
+          const turnsAhead = Math.max(0, getVisibilityDepth(skierCard) - 1);
           visibilityLine = `${skierCard.rank} ${riderLabel} can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
           goalLine = `Goal for ${skierCard.rank}${symbol.icon}: collect ${skierCard.rank}${symbol.icon} cards or easier, then keep building your combo score.`;
           const options = getMoveOptionsOrdered();
@@ -5191,15 +5199,18 @@
       const finishZoneEl = document.getElementById("finishZone");
       if (!finishTokensEl || !finishZoneEl) return;
       finishTokensEl.innerHTML = "";
-      const shouldShow = Boolean(state.lastRunToken) && !state.firstPersonView;
+      const shouldShow = !state.firstPersonView;
       finishZoneEl.style.display = shouldShow ? "flex" : "none";
       if (!shouldShow) return;
-      const finishToken = state.lastRunToken;
-      finishTokensEl.innerHTML = `
-        <div class="finish-zone-item">
-          <div class="finish-zone-token">${getSkierTokenMarkup(finishToken.skierId)}</div>
-        </div>
-      `;
+      const landedTokens = state.landingZoneTokens || [];
+      if (!landedTokens.length) return;
+      finishTokensEl.innerHTML = landedTokens
+        .map((entry) => `
+          <div class="finish-zone-item">
+            <div class="finish-zone-token">${getSkierTokenMarkup(entry.skierId)}</div>
+          </div>
+        `)
+        .join("");
     }
 
     function renderMountain() {
