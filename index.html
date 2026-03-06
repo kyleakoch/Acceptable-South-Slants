@@ -1360,7 +1360,7 @@
       padding: 0;
       font-size: clamp(36px, 5vw, 52px);
       cursor: pointer;
-      display: none;
+      display: inline-flex;
       line-height: 1;
     }
     .coach-button.active {
@@ -2296,7 +2296,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">H</div>
+    <div class="loading-version">I</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2673,7 +2673,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37h — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37i — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -3898,6 +3898,21 @@
       return Math.max(1, Math.min(4, skierCard.difficultyRank));
     }
 
+    function getCoachFocusSkierCard() {
+      const skierId = state.activeRun?.leadSkierId || getNextAvailableSkierId();
+      return skierId ? getSkierCard(skierId) : null;
+    }
+
+    function canActiveSkierSeeSlot(slot) {
+      if (!slot || slot.isLiftZone) return true;
+      const skierCard = getCoachFocusSkierCard();
+      if (!skierCard) return true;
+      const depth = getVisibilityDepth(skierCard);
+      const activeRow = state.activeRun ? rowIdxFromSlotId(state.activeRun.currentSlotId).row : 1;
+      const maxVisibleRow = activeRow + depth - 1;
+      return slot.row <= maxVisibleRow;
+    }
+
     function getDecisionOutcomeEmoji(card, skierCard) {
       if (!card || !skierCard || card.type === "SPECIAL") return "";
       return card.difficultyRank <= skierCard.difficultyRank ? "✅" : "❌";
@@ -5090,7 +5105,7 @@
           </div>`
         : "";
 
-      let visibilityLine = "Gear visibility: select a skier to reveal their line depth.";
+      let visibilityLine = "Select a skier to preview visibility range.";
       let goalLine = "Goal: guide each skier downhill and collect as many matching/easier condition cards as possible.";
       let progressLine = "";
 
@@ -5099,8 +5114,9 @@
         const skierCard = skierState ? state.cards[skierState.cardId] : null;
         if (skierCard) {
           const symbol = getSymbol(skierCard);
+          const riderLabel = skierCard.riderType === "SNOWBOARDER" ? "boarder" : "skier";
           const turnsAhead = Math.max(0, Math.min(3, (skierCard.difficultyRank || 1) - 1));
-          visibilityLine = `${symbol.icon} gear can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
+          visibilityLine = `${skierCard.rank} ${riderLabel} can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
           goalLine = `Goal for ${skierCard.rank}${symbol.icon}: collect ${skierCard.rank}${symbol.icon} cards or easier, then keep building your combo score.`;
           const options = getMoveOptionsOrdered();
           if (options.length) {
@@ -5238,10 +5254,15 @@
               </div>
             `;
           } else if (card) {
-            const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
-            label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
-            if (slot.lastResult && slot.lastResult.outcome === "missed" && slot.isFaceUp) {
-              label = `${label} <span class="result-badge">❌</span>`;
+            const canSeeSlot = canActiveSkierSeeSlot(slot);
+            if (!canSeeSlot && card.type === "CONDITION") {
+              label = "❔";
+            } else {
+              const bonusEmoji = slot.isFaceUp && slot.bonusEmoji ? ` ${slot.bonusEmoji}` : "";
+              label = slot.isFaceUp ? `${getCardLabel(card)}${bonusEmoji}` : getHiddenConditionLabel(card);
+              if (slot.lastResult && slot.lastResult.outcome === "missed" && slot.isFaceUp) {
+                label = `${label} <span class="result-badge">❌</span>`;
+              }
             }
           } else if (slot.lastResult) {
             const lastCard = state.cards[slot.lastResult.cardId];
@@ -5265,7 +5286,7 @@
             <div class="card-label">${label}</div>
             <div class="coords">(${slot.row}, ${slot.idx})</div>
             ${slot.occupiedBySkierId ? `<div class="coords">Paused</div>` : ""}
-            ${card && !slot.isFaceUp ? `<div class="unknown-badge">❔</div>` : ""}
+            ${card && (!slot.isFaceUp || (card.type === "CONDITION" && !canActiveSkierSeeSlot(slot))) ? `<div class="unknown-badge">❔</div>` : ""}
             ${tokenMarkup}
           `;
           button.addEventListener("click", () => handleSlotClick(id));
