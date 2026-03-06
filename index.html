@@ -2247,7 +2247,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">A</div>
+    <div class="loading-version">B</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2289,6 +2289,7 @@
       <div class="modal-actions">
         <button id="modalPlayAgain">Play again</button>
         <button id="modalMode" class="secondary">Mode</button>
+        <button id="modalStartRpg" class="secondary" type="button">🧭 Start RPG</button>
       </div>
     </div>
     <div id="scoreTip" class="score-tip">
@@ -2611,7 +2612,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37a — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37b — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -4937,26 +4938,16 @@
             )}%"></div></div>
           </div>`
         : "";
-      const rpgButton = inRpgMode
-        ? ""
-        : `
-          <div class="coach-rpg">
-            <button id="coachRpgButton" class="coach-rpg-button" type="button" aria-label="Start RPG mode">
-              🧭 Start RPG
-            </button>
-          </div>
-        `;
       let capabilityLine = "";
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
         const skierCard = skierState ? state.cards[skierState.cardId] : null;
         if (skierCard) {
           const symbol = getSymbol(skierCard);
-          const riderIcon = skierCard.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
           const turnsAhead = Math.max(0, Math.min(3, (skierCard.difficultyRank || 1) - 1));
-          capabilityLine = `<div>As a ${symbol.icon} ${riderIcon} you are capable of seeing ${turnsAhead} turn${
+          capabilityLine = `<div>${symbol.icon} gear can see next ${turnsAhead} turn${
             turnsAhead === 1 ? "" : "s"
-          } ahead.</div>`;
+          }.</div>`;
         }
       }
       coachPanel.innerHTML = `
@@ -4967,16 +4958,9 @@
             ${capabilityLine}
             ${timingText}
             ${arcadeHud}
-            ${rpgButton}
           </div>
         </div>
       `;
-      const rpgButtonEl = coachPanel.querySelector("#coachRpgButton");
-      if (rpgButtonEl) {
-        rpgButtonEl.addEventListener("click", () => {
-          startRpgMode(state.rpgRiderType);
-        });
-      }
     }
 
     function renderInputBuffer() {
@@ -6418,6 +6402,7 @@
       const allTimeEl = document.getElementById("allTimeHighScore");
       const scoreTipEl = document.getElementById("scoreTip");
       const scoreTipText = document.getElementById("scoreTipText");
+      const startRpgButton = document.getElementById("modalStartRpg");
       const summary = computeScore();
       const bestRun = state.bestRun;
       const bestRunLabel = bestRun
@@ -6446,6 +6431,9 @@
         snowstorm.classList.add("active");
       }
       modal.classList.add("active");
+      if (startRpgButton) {
+        startRpgButton.style.display = state.mode === "RPG" ? "none" : "inline-flex";
+      }
       if (scoreTipEl && scoreTipText) {
         if (!state.endTipShown) {
           scoreTipText.textContent =
@@ -7493,6 +7481,10 @@
         body: "Use the left/right buttons (or arrow keys) to choose your next condition card. The tram 🚡 lets you cycle the lift queue before you start."
       },
       {
+        title: "Collect the hill 🟢🟦◆◆",
+        body: "As a skier, you collect any conditions on the hill that match your skill or are below your skill level. The goal is to collect as many condition cards as you can to increase your score. Collecting 🥘 multiplies your combos. Have fun!"
+      },
+      {
         title: "I’m your coach 🗣️",
         body: "I’ll explain what happens if you go left or right and help you learn the mountain. You can hide me at any time in settings."
       }
@@ -7685,6 +7677,10 @@
     document.getElementById("modalMode").addEventListener("click", () => {
       hideScoreModal();
       showModeOverlay(true);
+    });
+    document.getElementById("modalStartRpg").addEventListener("click", () => {
+      hideScoreModal();
+      startRpgMode(state.rpgRiderType || "SKIER");
     });
     document.getElementById("returnToGame").addEventListener("click", () => showModeOverlay(false));
     document.getElementById("modeOverlayClose").addEventListener("click", () => showModeOverlay(false));
