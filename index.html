@@ -2247,7 +2247,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">B</div>
+    <div class="loading-version">C</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2612,7 +2612,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37b — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37c — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -2908,7 +2908,7 @@
       rowSizes: [...PEAKS.PEAK_1.rows],
       currentAutoModeForRun: null,
       lastRunToken: null,
-      firstPersonView: true,
+      firstPersonView: false,
       coachMode: "ON",
       introStep: 0,
       coachTipShown: false,
@@ -6403,6 +6403,8 @@
       const scoreTipEl = document.getElementById("scoreTip");
       const scoreTipText = document.getElementById("scoreTipText");
       const startRpgButton = document.getElementById("modalStartRpg");
+      const playAgainButton = document.getElementById("modalPlayAgain");
+      const modeButton = document.getElementById("modalMode");
       const summary = computeScore();
       const bestRun = state.bestRun;
       const bestRunLabel = bestRun
@@ -6431,6 +6433,12 @@
         snowstorm.classList.add("active");
       }
       modal.classList.add("active");
+      if (playAgainButton) {
+        playAgainButton.textContent = state.mode === "FREE" ? "One Tram again" : "Play again";
+      }
+      if (modeButton) {
+        modeButton.textContent = state.mode === "FREE" ? "Start Full Tram" : "Mode";
+      }
       if (startRpgButton) {
         startRpgButton.style.display = state.mode === "RPG" ? "none" : "inline-flex";
       }
@@ -7431,6 +7439,10 @@
       state.autoStrategy = "MANUAL";
       state.autoMode = null;
       state.mode = mode;
+      if (mode === "FREE") {
+        state.coachMode = "ON";
+        state.firstPersonView = false;
+      }
       hideErrorOverlay();
       hideRpgSuccessModal();
       showModeOverlay(false);
@@ -7676,6 +7688,10 @@
     });
     document.getElementById("modalMode").addEventListener("click", () => {
       hideScoreModal();
+      if (state.mode === "FREE") {
+        startMode("FULL");
+        return;
+      }
       showModeOverlay(true);
     });
     document.getElementById("modalStartRpg").addEventListener("click", () => {
@@ -7716,7 +7732,7 @@
     });
     document.getElementById("introSkip").addEventListener("click", () => {
       showIntroOverlay(false);
-      showModeOverlay(true);
+      startMode("FREE");
     });
     document.getElementById("scoreTipOk").addEventListener("click", () => {
       const scoreTipEl = document.getElementById("scoreTip");
@@ -7794,7 +7810,7 @@
       }
       finalizeLoading();
       showIntroOverlay(false);
-      showModeOverlay(true);
+      startMode("FREE");
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
@@ -7809,7 +7825,7 @@
       if (!state.loadingDismissed) {
         finalizeLoading();
         showIntroOverlay(false);
-        showModeOverlay(true);
+        startMode("FREE");
         return;
       }
       notePlayerInteraction();
