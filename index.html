@@ -2296,7 +2296,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">G</div>
+    <div class="loading-version">H</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2673,7 +2673,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37g — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37h — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -5065,12 +5065,13 @@
     function renderCoachPanel() {
       const coachPanel = document.getElementById("coachPanel");
       if (!coachPanel) return;
-      const isActive = state.firstPersonView && state.coachMode !== "OFF";
-      coachPanel.classList.toggle("active", isActive);
       const fullModeBubble = document.getElementById("fullModeCoachBubble");
-      if (!isActive) {
+      const panelActive = state.firstPersonView && state.coachMode !== "OFF";
+      coachPanel.classList.toggle("active", panelActive);
+      if (!panelActive) {
         coachPanel.innerHTML = "";
       }
+
       const turnText = getTurnCounterText();
       const statusText = state.message || "Pick a direction to begin.";
       const inRpgMode = state.mode === "RPG";
@@ -5088,38 +5089,58 @@
             )}%"></div></div>
           </div>`
         : "";
-      let capabilityLine = "";
+
+      let visibilityLine = "Gear visibility: select a skier to reveal their line depth.";
+      let goalLine = "Goal: guide each skier downhill and collect as many matching/easier condition cards as possible.";
+      let progressLine = "";
+
       if (state.activeRun) {
         const skierState = state.cards[state.activeRun.leadSkierId];
         const skierCard = skierState ? state.cards[skierState.cardId] : null;
         if (skierCard) {
           const symbol = getSymbol(skierCard);
           const turnsAhead = Math.max(0, Math.min(3, (skierCard.difficultyRank || 1) - 1));
-          capabilityLine = `<div>${symbol.icon} gear can see next ${turnsAhead} turn${
-            turnsAhead === 1 ? "" : "s"
-          }.</div>`;
+          visibilityLine = `${symbol.icon} gear can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
+          goalLine = `Goal for ${skierCard.rank}${symbol.icon}: collect ${skierCard.rank}${symbol.icon} cards or easier, then keep building your combo score.`;
+          const options = getMoveOptionsOrdered();
+          if (options.length) {
+            const collectableCount = options.reduce((count, id) => {
+              const slot = state.mountain[id];
+              const card = slot?.conditionCardId ? state.cards[slot.conditionCardId] : null;
+              if (!card || card.type !== "CONDITION") return count;
+              return count + (card.difficultyRank <= skierCard.difficultyRank ? 1 : 0);
+            }, 0);
+            progressLine = `Current choices: ${collectableCount}/${options.length} options are collectable right now.`;
+          }
         }
       }
-      if (isActive) {
+
+      if (panelActive) {
         coachPanel.innerHTML = `
           <div class="coach-card">
             <div class="coach-summary">
               <div>${turnText}</div>
               <div>${statusText}</div>
-              ${capabilityLine}
+              <div>${goalLine}</div>
+              <div>${visibilityLine}</div>
+              ${progressLine ? `<div>${progressLine}</div>` : ""}
               ${timingText}
               ${arcadeHud}
             </div>
           </div>
         `;
       }
+
       if (fullModeBubble) {
-        const showFullBubble = state.mode === "FULL" && !state.firstPersonView && state.coachMode !== "OFF";
+        const showFullBubble = !state.firstPersonView && state.coachMode !== "OFF" && state.mode !== "CURLING";
         fullModeBubble.classList.toggle("active", showFullBubble);
         if (showFullBubble) {
-          fullModeBubble.textContent = capabilityLine
-            ? capabilityLine.replace(/<[^>]+>/g, "")
-            : "Coach: choose the safest line to keep your combo alive.";
+          fullModeBubble.innerHTML = `
+            <strong>${turnText}</strong><br />
+            ${goalLine}<br />
+            ${visibilityLine}
+            ${progressLine ? `<br />${progressLine}` : ""}
+          `;
         } else {
           fullModeBubble.textContent = "";
         }
