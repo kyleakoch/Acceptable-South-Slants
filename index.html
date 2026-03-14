@@ -622,21 +622,12 @@
     }
     .music-quick-eq span {
       width: 3px;
+      min-height: 2px;
+      height: 3px;
       border-radius: 999px;
       background: linear-gradient(180deg, #60a5fa, #22c55e);
-      animation: eq-pulse 0.9s ease-in-out infinite;
-      animation-delay: var(--delay, 0s);
-    }
-    @keyframes eq-pulse {
-      0%,
-      100% {
-        height: 3px;
-        opacity: 0.45;
-      }
-      50% {
-        height: 11px;
-        opacity: 1;
-      }
+      opacity: 0.9;
+      transition: height 80ms linear, opacity 120ms ease;
     }
     .music-quick-controls {
       display: grid;
@@ -2386,7 +2377,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">L</div>
+    <div class="loading-version">M</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2408,8 +2399,8 @@
       <div id="shuffleFlight" class="shuffle-flight" aria-hidden="true"></div>
     </div>
   </div>
-  <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
-  <video id="bgMusicVideo" class="bg-music-video" preload="auto" playsinline></video>
+  <audio id="bgMusic" preload="auto" autoplay playsinline crossorigin="anonymous"></audio>
+  <video id="bgMusicVideo" class="bg-music-video" preload="auto" playsinline crossorigin="anonymous"></video>
   <div id="scoreModal" class="score-modal" aria-live="polite">
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
@@ -2778,7 +2769,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37l — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37m — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -3086,6 +3077,10 @@
       musicPanelOpen: true,
       musicDirectorBooted: false,
       musicCurrentTrackNumber: null,
+      musicAnalyser: null,
+      musicFreqData: null,
+      musicVisualizerFrame: null,
+      musicElementSources: new WeakMap(),
       lastGlide: null,
       coachTrusted: false,
       frameUiEnabled: false,
@@ -4810,20 +4805,24 @@
       if (state.mode === "RPG" && state.rpg) {
         state.rpg.totalScore += run.collectedScore || 0;
       }
-      state.lastRunToken = {
-        slotId: run.currentSlotId,
-        skierId: run.leadSkierId,
-        clicksRemaining: 2,
-        collectedRanks: run.collectedRanks || []
-      };
-      state.landingZoneTokens.push({
-        skierId: run.leadSkierId,
-        slotId: run.currentSlotId,
-        landedAt: Date.now(),
-        collectedRanks: [...(run.collectedRanks || [])]
-      });
-      if (state.landingZoneTokens.length > 4) {
-        state.landingZoneTokens = state.landingZoneTokens.slice(-4);
+      const tramFinishPosition = (state.usedCrowdCount % 4) + 1;
+      if (tramFinishPosition < 4) {
+        state.lastRunToken = {
+          slotId: run.currentSlotId,
+          skierId: run.leadSkierId,
+          clicksRemaining: 2,
+          collectedRanks: run.collectedRanks || []
+        };
+        state.landingZoneTokens.push({
+          skierId: run.leadSkierId,
+          slotId: run.currentSlotId,
+          landedAt: Date.now(),
+          collectedRanks: [...(run.collectedRanks || [])],
+          tramFinishPosition
+        });
+      } else {
+        state.lastRunToken = null;
+        state.landingZoneTokens = [];
       }
       if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
         const skierCardId = state.cards[run.leadSkierId].cardId;
@@ -5155,12 +5154,10 @@
         }
       });
 
-      const isPlaying = [state.iosMusicElement, document.getElementById("bgMusic"), document.getElementById("bgMusicVideo")]
-        .filter(Boolean)
-        .some((el) => !el.paused && !el.ended);
       if (eq) {
-        eq.style.opacity = isPlaying ? "1" : "0.35";
+        eq.style.opacity = state.musicPanelOpen ? "1" : "0";
       }
+      ensureMusicEqualizerRunning();
     }
 
     function runGlideAnimation() {
@@ -5347,7 +5344,7 @@
       if (!shouldShow) return;
       const lastRowSize = state.rowSizes[state.rowSizes.length - 1] || 0;
       finishTokensEl.style.gridTemplateColumns = `repeat(${Math.max(1, lastRowSize)}, minmax(var(--slot-min), 1fr))`;
-      const landedTokens = (state.landingZoneTokens || []).slice(-4);
+      const landedTokens = state.landingZoneTokens || [];
       const tokensByColumn = new Map();
       landedTokens.forEach((entry) => {
         const { idx } = rowIdxFromSlotId(entry.slotId);
@@ -6892,6 +6889,10 @@
       if (bgMusicVideo) {
         bgMusicVideo.loop = state.loopCurrentTrack;
       }
+      connectMusicElementToAnalyser(bgMusic);
+      connectMusicElementToAnalyser(bgMusicVideo);
+      connectMusicElementToAnalyser(iosAudio);
+      ensureMusicEqualizerRunning();
     }
 
     function isIOSDevice() {
@@ -6906,7 +6907,6 @@
     }
 
     function unlockAudioContext() {
-      if (state.audioUnlocked) return;
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       if (!state.audioContext) {
@@ -6916,6 +6916,13 @@
       if (context.state === "suspended") {
         context.resume().catch(() => {});
       }
+      if (!state.musicAnalyser) {
+        state.musicAnalyser = context.createAnalyser();
+        state.musicAnalyser.fftSize = 128;
+        state.musicAnalyser.smoothingTimeConstant = 0.72;
+        state.musicFreqData = new Uint8Array(state.musicAnalyser.frequencyBinCount);
+      }
+      if (state.audioUnlocked) return;
       try {
         const source = context.createBufferSource();
         source.buffer = context.createBuffer(1, 1, 22050);
@@ -6925,6 +6932,64 @@
       } catch (error) {
         state.audioUnlocked = true;
       }
+    }
+
+    function connectMusicElementToAnalyser(element) {
+      if (!element || !state.audioContext || !state.musicAnalyser) return;
+      if (state.musicElementSources.has(element)) return;
+      try {
+        const sourceNode = state.audioContext.createMediaElementSource(element);
+        sourceNode.connect(state.musicAnalyser);
+        sourceNode.connect(state.audioContext.destination);
+        state.musicElementSources.set(element, sourceNode);
+      } catch (error) {
+        // Some browsers or CORS policies can block analyzer routing.
+      }
+    }
+
+    function animateMusicEqualizer() {
+      const eq = document.getElementById("musicQuickEq");
+      if (!eq) {
+        state.musicVisualizerFrame = null;
+        return;
+      }
+      const bars = Array.from(eq.querySelectorAll("span"));
+      if (!bars.length) {
+        state.musicVisualizerFrame = null;
+        return;
+      }
+
+      const anyPlaying = [state.iosMusicElement, document.getElementById("bgMusic"), document.getElementById("bgMusicVideo")]
+        .filter(Boolean)
+        .some((el) => !el.paused && !el.ended);
+
+      if (state.musicAnalyser && state.musicFreqData && anyPlaying) {
+        state.musicAnalyser.getByteFrequencyData(state.musicFreqData);
+        const binsPerBar = Math.max(1, Math.floor(state.musicFreqData.length / bars.length));
+        bars.forEach((bar, index) => {
+          const start = index * binsPerBar;
+          const end = Math.min(state.musicFreqData.length, start + binsPerBar);
+          let sum = 0;
+          for (let i = start; i < end; i += 1) sum += state.musicFreqData[i];
+          const avg = end > start ? sum / (end - start) : 0;
+          const normalized = avg / 255;
+          const px = Math.max(2, Math.round(2 + normalized * 16));
+          bar.style.height = `${px}px`;
+          bar.style.opacity = `${Math.max(0.35, 0.45 + normalized * 0.55)}`;
+        });
+      } else {
+        bars.forEach((bar, index) => {
+          bar.style.height = `${2 + ((index + Math.floor(Date.now() / 240)) % 2)}px`;
+          bar.style.opacity = "0.35";
+        });
+      }
+
+      state.musicVisualizerFrame = requestAnimationFrame(animateMusicEqualizer);
+    }
+
+    function ensureMusicEqualizerRunning() {
+      if (state.musicVisualizerFrame) return;
+      state.musicVisualizerFrame = requestAnimationFrame(animateMusicEqualizer);
     }
 
     function tryPlayMedia(element) {
