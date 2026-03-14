@@ -386,6 +386,11 @@
     .full-mode-coach-bubble.active {
       display: block;
     }
+    body.night-skiing .full-mode-coach-bubble {
+      background: rgba(15, 23, 42, 0.92);
+      border-color: rgba(226, 232, 240, 0.7);
+      color: #f8fafc;
+    }
     .auto-modes-unlock-overlay {
       position: fixed;
       inset: 0;
@@ -559,8 +564,8 @@
       border-color: #8b5cf6;
     }
     .music-quick-panel {
-      display: none;
-      gap: 8px;
+      display: grid;
+      gap: 10px;
       margin: 4px 0 10px;
       background: rgba(255, 255, 255, 0.96);
       border: 2px solid rgba(30, 36, 48, 0.85);
@@ -568,14 +573,61 @@
       padding: 10px;
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
     }
-    .music-quick-panel.active {
+    .music-quick-trackline {
       display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .music-quick-icon,
+    .music-quick-radio {
+      font-size: 18px;
+      line-height: 1;
+    }
+    .music-quick-title-wrap {
+      min-width: 0;
+      overflow: hidden;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.08);
+      padding: 4px 8px;
     }
     .music-quick-title {
       font-size: 12px;
       font-weight: 700;
       opacity: 0.8;
-      text-align: center;
+      text-align: left;
+      white-space: nowrap;
+      display: inline-block;
+      padding-right: 0;
+      transform: translateX(0);
+    }
+    .music-quick-title.scroll {
+      animation: music-marquee 12s linear infinite;
+      padding-right: 36px;
+    }
+    @keyframes music-marquee {
+      from {
+        transform: translateX(0);
+      }
+      to {
+        transform: translateX(calc(-1 * var(--scroll-distance, 0px)));
+      }
+    }
+    .music-quick-eq {
+      height: 12px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 3px;
+    }
+    .music-quick-eq span {
+      width: 3px;
+      min-height: 2px;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #60a5fa, #22c55e);
+      opacity: 0.9;
+      transition: height 80ms linear, opacity 120ms ease;
     }
     .music-quick-controls {
       display: grid;
@@ -654,6 +706,8 @@
       padding: 4px 8px;
       font-size: 12px;
       font-weight: 600;
+      color: #1f2937;
+      border: 1px solid rgba(148, 163, 184, 0.45);
     }
     .collected-bubble .pile {
       grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
@@ -1464,6 +1518,12 @@
       color: #e2e8f0;
       border-color: rgba(226, 232, 240, 0.6);
     }
+    body.night-skiing .coach-summary {
+      color: #f8fafc;
+    }
+    body.night-skiing .coach-summary .subtle {
+      color: #cbd5e1;
+    }
     .coach-timing {
       margin-top: 6px;
       font-size: 12px;
@@ -1615,6 +1675,19 @@
     }
     body.night-skiing .coach-bubble .bubble-text {
       color: #e2e8f0;
+    }
+    body.night-skiing .collected-pill {
+      background: rgba(15, 23, 42, 0.82);
+      color: #f8fafc;
+      border-color: rgba(226, 232, 240, 0.35);
+    }
+    body.night-skiing .music-quick-panel {
+      background: rgba(15, 23, 42, 0.92);
+      border-color: rgba(226, 232, 240, 0.75);
+      color: #f8fafc;
+    }
+    body.night-skiing .music-quick-title-wrap {
+      background: rgba(148, 163, 184, 0.14);
     }
     .ambient-snow {
       position: fixed;
@@ -2304,7 +2377,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">K</div>
+    <div class="loading-version">M</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2326,8 +2399,8 @@
       <div id="shuffleFlight" class="shuffle-flight" aria-hidden="true"></div>
     </div>
   </div>
-  <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
-  <video id="bgMusicVideo" class="bg-music-video" preload="auto" playsinline></video>
+  <audio id="bgMusic" preload="auto" autoplay playsinline crossorigin="anonymous"></audio>
+  <video id="bgMusicVideo" class="bg-music-video" preload="auto" playsinline crossorigin="anonymous"></video>
   <div id="scoreModal" class="score-modal" aria-live="polite">
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
@@ -2598,7 +2671,22 @@
         <button id="musicPanelToggle" class="panel-icon-button" type="button" aria-label="Toggle music controls">📻</button>
       </div>
       <div id="musicQuickPanel" class="music-quick-panel" aria-live="polite">
-        <div id="musicQuickTitle" class="music-quick-title"></div>
+        <div class="music-quick-trackline">
+          <span class="music-quick-icon" aria-hidden="true">📺</span>
+          <div class="music-quick-title-wrap">
+            <div id="musicQuickTitle" class="music-quick-title"></div>
+          </div>
+          <span class="music-quick-radio" aria-hidden="true">📻</span>
+        </div>
+        <div id="musicQuickEq" class="music-quick-eq" aria-hidden="true">
+          <span style="--delay:0s"></span>
+          <span style="--delay:0.1s"></span>
+          <span style="--delay:0.2s"></span>
+          <span style="--delay:0.3s"></span>
+          <span style="--delay:0.4s"></span>
+          <span style="--delay:0.5s"></span>
+          <span style="--delay:0.6s"></span>
+        </div>
         <div class="music-quick-controls">
           <button id="musicQuickStart" type="button">Start</button>
           <button id="musicQuickStop" type="button" class="secondary">Stop</button>
@@ -2681,7 +2769,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37k — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37m — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -2986,9 +3074,13 @@
       musicIndex: 0,
       loopCurrentTrack: false,
       liftDetailsOpen: true,
-      musicPanelOpen: false,
+      musicPanelOpen: true,
       musicDirectorBooted: false,
       musicCurrentTrackNumber: null,
+      musicAnalyser: null,
+      musicFreqData: null,
+      musicVisualizerFrame: null,
+      musicElementSources: new WeakMap(),
       lastGlide: null,
       coachTrusted: false,
       frameUiEnabled: false,
@@ -4713,20 +4805,24 @@
       if (state.mode === "RPG" && state.rpg) {
         state.rpg.totalScore += run.collectedScore || 0;
       }
-      state.lastRunToken = {
-        slotId: run.currentSlotId,
-        skierId: run.leadSkierId,
-        clicksRemaining: 2,
-        collectedRanks: run.collectedRanks || []
-      };
-      state.landingZoneTokens.push({
-        skierId: run.leadSkierId,
-        slotId: run.currentSlotId,
-        landedAt: Date.now(),
-        collectedRanks: [...(run.collectedRanks || [])]
-      });
-      if (state.landingZoneTokens.length > 4) {
-        state.landingZoneTokens = state.landingZoneTokens.slice(-4);
+      const tramFinishPosition = (state.usedCrowdCount % 4) + 1;
+      if (tramFinishPosition < 4) {
+        state.lastRunToken = {
+          slotId: run.currentSlotId,
+          skierId: run.leadSkierId,
+          clicksRemaining: 2,
+          collectedRanks: run.collectedRanks || []
+        };
+        state.landingZoneTokens.push({
+          skierId: run.leadSkierId,
+          slotId: run.currentSlotId,
+          landedAt: Date.now(),
+          collectedRanks: [...(run.collectedRanks || [])],
+          tramFinishPosition
+        });
+      } else {
+        state.lastRunToken = null;
+        state.landingZoneTokens = [];
       }
       if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
         const skierCardId = state.cards[run.leadSkierId].cardId;
@@ -5039,12 +5135,29 @@
       const title = document.getElementById("musicQuickTitle");
       const loop = document.getElementById("musicQuickLoop");
       const toggle = document.getElementById("musicPanelToggle");
-      if (!panel || !title || !loop || !toggle) return;
-      panel.classList.toggle("active", state.musicPanelOpen);
+      const titleWrap = panel?.querySelector(".music-quick-title-wrap");
+      const eq = document.getElementById("musicQuickEq");
+      if (!panel || !title || !loop || !toggle || !titleWrap) return;
+      panel.style.display = state.musicPanelOpen ? "grid" : "none";
       toggle.classList.toggle("active", state.musicPanelOpen);
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       title.textContent = track ? `🎵 ${track.title}` : "🎵";
       loop.textContent = state.loopCurrentTrack ? "Looping" : "Loop";
+
+      title.classList.remove("scroll");
+      title.style.removeProperty("--scroll-distance");
+      requestAnimationFrame(() => {
+        const overflow = Math.ceil(title.scrollWidth - titleWrap.clientWidth);
+        if (overflow > 6) {
+          title.style.setProperty("--scroll-distance", `${overflow}px`);
+          title.classList.add("scroll");
+        }
+      });
+
+      if (eq) {
+        eq.style.opacity = state.musicPanelOpen ? "1" : "0";
+      }
+      ensureMusicEqualizerRunning();
     }
 
     function runGlideAnimation() {
@@ -5124,6 +5237,8 @@
           </div>`
         : "";
 
+      let headlineLine = turnText;
+      let collectLine = "";
       let visibilityLine = "Select a skier to preview visibility range.";
       let goalLine = "Goal: guide each skier downhill and collect as many matching/easier condition cards as possible.";
       let progressLine = "";
@@ -5135,8 +5250,15 @@
           const symbol = getSymbol(skierCard);
           const riderLabel = skierCard.riderType === "SNOWBOARDER" ? "boarder" : "skier";
           const turnsAhead = Math.max(0, getVisibilityDepth(skierCard) - 1);
-          visibilityLine = `${skierCard.rank} ${riderLabel} can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
-          goalLine = `Goal for ${skierCard.rank}${symbol.icon}: collect ${skierCard.rank}${symbol.icon} cards or easier, then keep building your combo score.`;
+          const skillByRank = {
+            1: "Green Circle",
+            2: "Blue Square",
+            3: "Black Diamond",
+            4: "Double Black Diamond"
+          };
+          const humanRankLabel = `${skierCard.rank}${symbol.icon}`;
+          visibilityLine = `${symbol.icon} ${riderLabel} can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
+          goalLine = `Goal for ${humanRankLabel}: collect ${humanRankLabel} cards or easier, then keep building your combo score.`;
           const options = getMoveOptionsOrdered();
           if (options.length) {
             const collectableCount = options.reduce((count, id) => {
@@ -5145,8 +5267,17 @@
               if (!card || card.type !== "CONDITION") return count;
               return count + (card.difficultyRank <= skierCard.difficultyRank ? 1 : 0);
             }, 0);
-            progressLine = `Current choices: ${collectableCount}/${options.length} options are collectable right now.`;
+            headlineLine = `${turnText} · ${collectableCount}/${options.length} options can be collected`;
           }
+
+          const collectedCounts = getCollectedCounts();
+          const uncollectedRanks = CONDITION_RANKS.filter((rank) => !collectedCounts[rank]);
+          const needCount = Math.max(0, 7 - (CONDITION_RANKS.length - uncollectedRanks.length));
+          const suggestedTargets = uncollectedRanks.slice(0, Math.max(needCount, 1));
+          collectLine = `Collect ${Math.min(needCount || 1, suggestedTargets.length)} more of the following: ${
+            suggestedTargets.length ? suggestedTargets.join(", ") : "all unique ranks collected"
+          } unique ranked # of ${skierCard.rank} or lower, to increase your rank.`;
+          progressLine = `${symbol.icon} ${skillByRank[skierCard.difficultyRank] || "Skill"} ${riderLabel} can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
         }
       }
 
@@ -5154,11 +5285,10 @@
         coachPanel.innerHTML = `
           <div class="coach-card">
             <div class="coach-summary">
-              <div>${turnText}</div>
-              <div>${statusText}</div>
-              <div>${goalLine}</div>
-              <div>${visibilityLine}</div>
-              ${progressLine ? `<div>${progressLine}</div>` : ""}
+              <div>${headlineLine}</div>
+              <div class="subtle">${statusText}</div>
+              <div>${collectLine || goalLine}</div>
+              <div>${progressLine || visibilityLine}</div>
               ${timingText}
               ${arcadeHud}
             </div>
@@ -5171,10 +5301,9 @@
         fullModeBubble.classList.toggle("active", showFullBubble);
         if (showFullBubble) {
           fullModeBubble.innerHTML = `
-            <strong>${turnText}</strong><br />
-            ${goalLine}<br />
-            ${visibilityLine}
-            ${progressLine ? `<br />${progressLine}` : ""}
+            <strong>${headlineLine}</strong><br />
+            ${collectLine || goalLine}<br />
+            ${progressLine || visibilityLine}
           `;
         } else {
           fullModeBubble.textContent = "";
@@ -5215,7 +5344,7 @@
       if (!shouldShow) return;
       const lastRowSize = state.rowSizes[state.rowSizes.length - 1] || 0;
       finishTokensEl.style.gridTemplateColumns = `repeat(${Math.max(1, lastRowSize)}, minmax(var(--slot-min), 1fr))`;
-      const landedTokens = (state.landingZoneTokens || []).slice(-4);
+      const landedTokens = state.landingZoneTokens || [];
       const tokensByColumn = new Map();
       landedTokens.forEach((entry) => {
         const { idx } = rowIdxFromSlotId(entry.slotId);
@@ -6760,6 +6889,10 @@
       if (bgMusicVideo) {
         bgMusicVideo.loop = state.loopCurrentTrack;
       }
+      connectMusicElementToAnalyser(bgMusic);
+      connectMusicElementToAnalyser(bgMusicVideo);
+      connectMusicElementToAnalyser(iosAudio);
+      ensureMusicEqualizerRunning();
     }
 
     function isIOSDevice() {
@@ -6774,7 +6907,6 @@
     }
 
     function unlockAudioContext() {
-      if (state.audioUnlocked) return;
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       if (!state.audioContext) {
@@ -6784,6 +6916,13 @@
       if (context.state === "suspended") {
         context.resume().catch(() => {});
       }
+      if (!state.musicAnalyser) {
+        state.musicAnalyser = context.createAnalyser();
+        state.musicAnalyser.fftSize = 128;
+        state.musicAnalyser.smoothingTimeConstant = 0.72;
+        state.musicFreqData = new Uint8Array(state.musicAnalyser.frequencyBinCount);
+      }
+      if (state.audioUnlocked) return;
       try {
         const source = context.createBufferSource();
         source.buffer = context.createBuffer(1, 1, 22050);
@@ -6793,6 +6932,64 @@
       } catch (error) {
         state.audioUnlocked = true;
       }
+    }
+
+    function connectMusicElementToAnalyser(element) {
+      if (!element || !state.audioContext || !state.musicAnalyser) return;
+      if (state.musicElementSources.has(element)) return;
+      try {
+        const sourceNode = state.audioContext.createMediaElementSource(element);
+        sourceNode.connect(state.musicAnalyser);
+        sourceNode.connect(state.audioContext.destination);
+        state.musicElementSources.set(element, sourceNode);
+      } catch (error) {
+        // Some browsers or CORS policies can block analyzer routing.
+      }
+    }
+
+    function animateMusicEqualizer() {
+      const eq = document.getElementById("musicQuickEq");
+      if (!eq) {
+        state.musicVisualizerFrame = null;
+        return;
+      }
+      const bars = Array.from(eq.querySelectorAll("span"));
+      if (!bars.length) {
+        state.musicVisualizerFrame = null;
+        return;
+      }
+
+      const anyPlaying = [state.iosMusicElement, document.getElementById("bgMusic"), document.getElementById("bgMusicVideo")]
+        .filter(Boolean)
+        .some((el) => !el.paused && !el.ended);
+
+      if (state.musicAnalyser && state.musicFreqData && anyPlaying) {
+        state.musicAnalyser.getByteFrequencyData(state.musicFreqData);
+        const binsPerBar = Math.max(1, Math.floor(state.musicFreqData.length / bars.length));
+        bars.forEach((bar, index) => {
+          const start = index * binsPerBar;
+          const end = Math.min(state.musicFreqData.length, start + binsPerBar);
+          let sum = 0;
+          for (let i = start; i < end; i += 1) sum += state.musicFreqData[i];
+          const avg = end > start ? sum / (end - start) : 0;
+          const normalized = avg / 255;
+          const px = Math.max(2, Math.round(2 + normalized * 16));
+          bar.style.height = `${px}px`;
+          bar.style.opacity = `${Math.max(0.35, 0.45 + normalized * 0.55)}`;
+        });
+      } else {
+        bars.forEach((bar, index) => {
+          bar.style.height = `${2 + ((index + Math.floor(Date.now() / 240)) % 2)}px`;
+          bar.style.opacity = "0.35";
+        });
+      }
+
+      state.musicVisualizerFrame = requestAnimationFrame(animateMusicEqualizer);
+    }
+
+    function ensureMusicEqualizerRunning() {
+      if (state.musicVisualizerFrame) return;
+      state.musicVisualizerFrame = requestAnimationFrame(animateMusicEqualizer);
     }
 
     function tryPlayMedia(element) {
