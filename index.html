@@ -2377,7 +2377,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">M</div>
+    <div class="loading-version">N</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2769,7 +2769,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37m — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37n — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -3297,6 +3297,18 @@
     const DAY_ICONS = ["☀️", "🌤️", "⛅️", "🌥️", "☁️", "🌨️"];
 
     const TOTAL_CROWD = 32;
+    const SKIER_PROGRESSION_THRESHOLDS = [
+      { tier: 1, minXp: 0, label: "🟢 Green" },
+      { tier: 2, minXp: 100, label: "🟦 Blue" },
+      { tier: 3, minXp: 250, label: "◆ Black" },
+      { tier: 4, minXp: 500, label: "◆◆ Double Black" }
+    ];
+    const PROGRESSION_GAIN_TABLE = {
+      byConditionTier: { 1: 12, 2: 18, 3: 26, 4: 36 },
+      sameTierBonus: 4,
+      overSkillGain: 0,
+      overSkillPenaltyOffset: { 1: 4, 2: 10, 3: 18 }
+    };
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i -= 1) {
@@ -3777,41 +3789,77 @@
       player.skierQueue.forEach((skierId) => {
         const skierState = state.cards[skierId];
         const card = state.cards[skierState.cardId];
-        const baseSymbol = SYMBOLS[0];
-        card.symbol = baseSymbol.key;
-        card.difficultyRank = baseSymbol.difficultyRank;
+        card.progressionXp = 0;
+        syncSkierSkillFromProgress(card);
         state.rpg.progress[skierId] = {
-          symbolIndex: 0,
-          collectedRanks: new Set(),
+          xp: card.progressionXp,
+          tier: getSkierSkillTier(card),
           completed: false
         };
       });
+    }
+
+    function getProgressTierFromXp(xp = 0) {
+      let tier = 1;
+      SKIER_PROGRESSION_THRESHOLDS.forEach((entry) => {
+        if (xp >= entry.minXp) tier = entry.tier;
+      });
+      return tier;
+    }
+
+    function getSkierSkillTier(skierCard) {
+      if (!skierCard) return 1;
+      if (Number.isFinite(skierCard.progressionXp)) {
+        return getProgressTierFromXp(skierCard.progressionXp);
+      }
+      return skierCard.difficultyRank || 1;
+    }
+
+    function syncSkierSkillFromProgress(skierCard) {
+      if (!skierCard) return 1;
+      const tier = getSkierSkillTier(skierCard);
+      const symbol = SYMBOLS[Math.max(0, Math.min(SYMBOLS.length - 1, tier - 1))] || SYMBOLS[0];
+      skierCard.symbol = symbol.key;
+      skierCard.difficultyRank = symbol.difficultyRank;
+      return tier;
     }
 
     function getRpgProgress(skierId) {
       return state.rpg?.progress?.[skierId] || null;
     }
 
-    function updateRpgProgress(skierId, card) {
-      if (state.mode !== "RPG" || !state.rpg || !card || card.type !== "CONDITION") return null;
-      const progress = getRpgProgress(skierId);
-      if (!progress || progress.completed) return null;
-      const currentSymbol = SYMBOLS[progress.symbolIndex];
-      if (!currentSymbol || card.symbol !== currentSymbol.key) return null;
-      progress.collectedRanks.add(card.rank);
-      if (progress.collectedRanks.size < 7) return null;
-      const nextIndex = Math.min(SYMBOLS.length - 1, progress.symbolIndex + 1);
-      progress.symbolIndex = nextIndex;
-      progress.collectedRanks = new Set();
-      if (progress.symbolIndex >= SYMBOLS.length - 1) {
-        progress.completed = true;
-      }
+    function getProgressionGain(card, skierTier) {
+      if (!card || card.type !== "CONDITION") return 0;
+      const base = PROGRESSION_GAIN_TABLE.byConditionTier[card.difficultyRank] || 0;
+      if (card.difficultyRank > skierTier) return PROGRESSION_GAIN_TABLE.overSkillGain;
+      const sameTierBonus = card.difficultyRank === skierTier ? PROGRESSION_GAIN_TABLE.sameTierBonus : 0;
+      return base + Number(card.rank || 0) + sameTierBonus;
+    }
+
+    function getOverSkillPenalty(card, tierGap = 0) {
+      if (!card || card.type !== "CONDITION") return 0;
+      const offset = PROGRESSION_GAIN_TABLE.overSkillPenaltyOffset[tierGap] || 22;
+      return Number(card.rank || 0) + offset;
+    }
+
+    function updateRpgProgress(skierId, progressionGain = 0) {
+      if (state.mode !== "RPG" || !state.rpg) return null;
       const skierState = state.cards[skierId];
-      const skierCard = state.cards[skierState.cardId];
-      const nextSymbol = SYMBOLS[progress.symbolIndex];
-      skierCard.symbol = nextSymbol.key;
-      skierCard.difficultyRank = nextSymbol.difficultyRank;
-      return nextSymbol;
+      const skierCard = skierState ? state.cards[skierState.cardId] : null;
+      if (!skierCard) return null;
+      skierCard.progressionXp = Math.max(0, Number(skierCard.progressionXp || 0) + Number(progressionGain || 0));
+      const prevTier = skierCard.difficultyRank || 1;
+      const nextTier = syncSkierSkillFromProgress(skierCard);
+      const progress = getRpgProgress(skierId);
+      if (progress) {
+        progress.xp = skierCard.progressionXp;
+        progress.tier = nextTier;
+        progress.completed = nextTier >= 4;
+      }
+      if (nextTier > prevTier) {
+        return SYMBOLS[nextTier - 1];
+      }
+      return null;
     }
 
     function getRpgElapsedMs() {
@@ -3828,12 +3876,14 @@
     function getRpgProgressText(skierId) {
       const progress = getRpgProgress(skierId);
       if (!progress) return "";
-      const symbol = SYMBOLS[progress.symbolIndex];
-      const count = progress.collectedRanks.size;
+      const xp = progress.xp || 0;
+      const tier = progress.tier || 1;
+      const symbol = SYMBOLS[Math.max(0, tier - 1)] || SYMBOLS[0];
+      const nextThreshold = SKIER_PROGRESSION_THRESHOLDS.find((entry) => entry.tier === Math.min(4, tier + 1));
       if (progress.completed) {
-        return `${symbol.icon} complete`;
+        return `${symbol.icon} ${xp} XP (max tier)`;
       }
-      return `${symbol.icon} ${count}/7`;
+      return `${symbol.icon} ${xp} XP / ${nextThreshold?.minXp || 500}`;
     }
 
     function buildRpgAwards(player) {
@@ -3871,7 +3921,8 @@
       const needed = new Set();
       Object.values(state.rpg.progress).forEach((progress) => {
         if (!progress || progress.completed) return;
-        const symbol = SYMBOLS[progress.symbolIndex];
+        const tier = Math.max(1, Math.min(4, progress.tier || 1));
+        const symbol = SYMBOLS[tier - 1];
         if (symbol) needed.add(symbol.key);
       });
       return needed;
@@ -3996,7 +4047,7 @@
 
     function getVisibilityDepth(skierCard) {
       if (!skierCard) return 1;
-      return Math.max(1, Math.min(5, (skierCard.difficultyRank || 1) + 1));
+      return Math.max(1, Math.min(5, getSkierSkillTier(skierCard) + 1));
     }
 
     function getCoachFocusSkierCard() {
@@ -4016,7 +4067,7 @@
 
     function getDecisionOutcomeEmoji(card, skierCard) {
       if (!card || !skierCard || card.type === "SPECIAL") return "";
-      return card.difficultyRank <= skierCard.difficultyRank ? "✅" : "❌";
+      return card.difficultyRank <= getSkierSkillTier(skierCard) ? "✅" : "❌";
     }
 
     function getTurnCountEmoji(count) {
@@ -4436,7 +4487,7 @@
         return `Triggers ${card.rank} ${card.specialEmoji || ""}.`.trim();
       }
       const symbol = getSymbol(card).icon;
-      const canCollect = card.difficultyRank <= skierCard.difficultyRank;
+      const canCollect = card.difficultyRank <= getSkierSkillTier(skierCard);
       if (canCollect) {
         return `Collects ${card.rank}${symbol}${card.bonusEmoji ? ` ${card.bonusEmoji}` : ""}.`;
       }
@@ -4460,7 +4511,7 @@
 
     function scoreMatchMode(card, skierCard, rankCounts) {
       if (!card || !skierCard) return 0;
-      const eligible = card.difficultyRank <= skierCard.difficultyRank;
+      const eligible = card.difficultyRank <= getSkierSkillTier(skierCard);
       const matches = rankCounts[card.rank] || 0;
       const suitMatch = card.symbol === skierCard.symbol ? 1 : 0;
       const rankValue = Number(card.rank) || 0;
@@ -4505,7 +4556,7 @@
 
     function scoreBrewMode(card, slot, skierCard) {
       if (!card || !skierCard) return 0;
-      const eligible = card.difficultyRank <= skierCard.difficultyRank;
+      const eligible = card.difficultyRank <= getSkierSkillTier(skierCard);
       const uncollectable = eligible ? 0 : 240;
       const burgerBonus = !eligible && slot.bonusEmoji === "🍔" ? 60 : 0;
       return uncollectable + burgerBonus + card.difficultyRank * 10;
@@ -4711,58 +4762,66 @@
         return;
       }
       const skierCard = state.cards[state.cards[skierId].cardId];
-      if (card.difficultyRank <= skierCard.difficultyRank) {
-        const bonusValue = getBonusValue(slot.missCount || 0);
-        const bonusEmoji = slot.bonusEmoji;
-        slot.conditionCardId = null;
-        slot.isFaceUp = false;
-        slot.lastResult = { cardId: card.id, outcome: "collected" };
-        getPlayer().collectedPile.push({
-          cardId: card.id,
-          bonus: bonusValue,
-          bonusEmoji: slot.bonusEmoji
-        });
-        state.memoriesPile.push(card.id);
-        slot.missCount = 0;
-        slot.bonusEmoji = null;
-        const run = state.activeRun;
-        if (run) {
-          run.collectedScore = (run.collectedScore || 0) + Number(card.rank) + bonusValue;
-          if (run.collectedRanks) {
-            run.collectedRanks.push(card.rank);
+      const skierTier = getSkierSkillTier(skierCard);
+      const eligible = card.difficultyRank <= skierTier;
+      const tierGap = Math.max(0, card.difficultyRank - skierTier);
+      const bonusValue = eligible ? getBonusValue(slot.missCount || 0) : 0;
+      const bonusEmoji = eligible ? slot.bonusEmoji : null;
+      const progressionGain = getProgressionGain(card, skierTier);
+      const runDelta = eligible
+        ? Number(card.rank) + bonusValue
+        : -getOverSkillPenalty(card, tierGap);
+      slot.conditionCardId = null;
+      slot.isFaceUp = false;
+      slot.lastResult = { cardId: card.id, outcome: eligible ? "collected" : "over-skill" };
+      getPlayer().collectedPile.push({
+        cardId: card.id,
+        bonus: bonusValue,
+        bonusEmoji,
+        runDelta,
+        progressionGain,
+        eligible
+      });
+      state.memoriesPile.push(card.id);
+      slot.missCount = 0;
+      slot.bonusEmoji = null;
+      const run = state.activeRun;
+      if (run) {
+        run.collectedScore = (run.collectedScore || 0) + runDelta;
+        if (run.collectedRanks) {
+          run.collectedRanks.push(card.rank);
+        }
+        if (run.surgeActive && eligible) {
+          run.collectedScore += Number(card.rank);
+          run.surgeActive = false;
+        }
+        if (run.firelineActive) {
+          if (run.lastMoveDirection && run.lastMoveDirection === run.firelineDirection && eligible) {
+            run.collectedScore += 1;
           }
-          if (run.surgeActive) {
-            run.collectedScore += Number(card.rank);
-            run.surgeActive = false;
-          }
-          if (run.firelineActive) {
-            if (run.lastMoveDirection && run.lastMoveDirection === run.firelineDirection) {
-              run.collectedScore += 1;
-            }
-            run.firelineActive = false;
-          }
-          if (bonusEmoji) {
-            run.collectedEmojis.add(bonusEmoji);
-          }
+          run.firelineActive = false;
         }
         if (bonusEmoji) {
-          spawnEmojiRain(bonusEmoji, 8);
-          if (state.mode === "RPG" && state.rpg) {
-            const current = state.rpg.bonusCounts?.[bonusEmoji] || 0;
-            state.rpg.bonusCounts = state.rpg.bonusCounts || {};
-            state.rpg.bonusCounts[bonusEmoji] = current + 1;
-          }
+          run.collectedEmojis.add(bonusEmoji);
         }
+      }
+      if (bonusEmoji) {
+        spawnEmojiRain(bonusEmoji, 8);
+        if (state.mode === "RPG" && state.rpg) {
+          const current = state.rpg.bonusCounts?.[bonusEmoji] || 0;
+          state.rpg.bonusCounts = state.rpg.bonusCounts || {};
+          state.rpg.bonusCounts[bonusEmoji] = current + 1;
+        }
+      }
+      const nextSymbol = updateRpgProgress(skierId, progressionGain);
+      if (nextSymbol) {
+        state.message = `Rank up! ${nextSymbol.icon} unlocked at ${skierCard.progressionXp} XP.`;
+      } else if (eligible) {
         state.message = bonusValue
-          ? `Condition collected with bonus +${bonusValue}!`
-          : "Condition collected!";
-        const nextSymbol = updateRpgProgress(skierId, card);
-        if (nextSymbol) {
-          state.message = `Rank up! ${nextSymbol.icon} unlocked.`;
-        }
+          ? `Condition collected with bonus +${bonusValue} (${progressionGain} XP).`
+          : `Condition collected (+${progressionGain} XP).`;
       } else {
-        slot.lastResult = { cardId: card.id, outcome: "missed" };
-        state.message = "Condition too difficult. It remains on the mountain.";
+        state.message = `Collected above skill: ${runDelta} run score (${progressionGain} XP).`;
       }
     }
 
@@ -5015,7 +5074,7 @@
 
     function computeScore(modeKey = state.scoringMode) {
       const pile = getPlayer().collectedPile;
-      const baseTotal = pile.reduce((sum, entry) => sum + Number(state.cards[entry.cardId].rank) + entry.bonus, 0);
+      const baseTotal = pile.reduce((sum, entry) => sum + (Number.isFinite(entry.runDelta) ? Number(entry.runDelta) : Number(state.cards[entry.cardId].rank) + entry.bonus), 0);
       const counts = pile.reduce((acc, entry) => {
         const card = state.cards[entry.cardId];
         acc[card.rank] = (acc[card.rank] || 0) + 1;
@@ -5265,7 +5324,7 @@
               const slot = state.mountain[id];
               const card = slot?.conditionCardId ? state.cards[slot.conditionCardId] : null;
               if (!card || card.type !== "CONDITION") return count;
-              return count + (card.difficultyRank <= skierCard.difficultyRank ? 1 : 0);
+              return count + (card.difficultyRank <= getSkierSkillTier(skierCard) ? 1 : 0);
             }, 0);
             headlineLine = `${turnText} · ${collectableCount}/${options.length} options can be collected`;
           }
@@ -5535,7 +5594,7 @@
           }
           if (state.activeRun && card.type !== "SPECIAL") {
             const skierCard = getSkierCard(state.activeRun.leadSkierId);
-            const willCollect = card.difficultyRank <= skierCard.difficultyRank;
+            const willCollect = card.difficultyRank <= getSkierSkillTier(skierCard);
             if (willCollect) {
               button.classList.add("can-collect");
               indicator = "✅ Collects";
@@ -6306,7 +6365,8 @@
         `;
         if (bonusTrackerEl) {
           bonusTrackerEl.innerHTML = `
-            <span class="footer-note">Collect 7 unique ranks per tier to level up.</span><br />
+            <span class="footer-note">Progression: 100 XP → 🟦, 250 XP → ◆, 500 XP → ◆◆.</span><br />
+            <span class="footer-note">Over-skill cards are collected but reduce run score.</span><br />
             <span class="footer-note">Bonus goals: ${bonusSummary}</span>
           `;
         }
