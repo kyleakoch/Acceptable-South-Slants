@@ -2377,7 +2377,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">N</div>
+    <div class="loading-version">O</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2769,7 +2769,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37n — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37o — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -3306,8 +3306,7 @@
     const PROGRESSION_GAIN_TABLE = {
       byConditionTier: { 1: 12, 2: 18, 3: 26, 4: 36 },
       sameTierBonus: 4,
-      overSkillGain: 0,
-      overSkillPenaltyOffset: { 1: 4, 2: 10, 3: 18 }
+      overSkillGain: 0
     };
 
     function shuffle(array) {
@@ -3836,10 +3835,30 @@
       return base + Number(card.rank || 0) + sameTierBonus;
     }
 
-    function getOverSkillPenalty(card, tierGap = 0) {
+    function getTierRunBonus(tier = 1) {
+      const map = { 1: 0, 2: 2, 3: 4, 4: 6 };
+      return map[tier] || 0;
+    }
+
+    function getConditionBaseValue(card) {
+      return Math.max(1, Number(card?.rank || 0) - 1);
+    }
+
+    function getRunCardFullValue(card) {
       if (!card || card.type !== "CONDITION") return 0;
-      const offset = PROGRESSION_GAIN_TABLE.overSkillPenaltyOffset[tierGap] || 22;
-      return Number(card.rank || 0) + offset;
+      return getConditionBaseValue(card) + getTierRunBonus(card.difficultyRank);
+    }
+
+    function getRunStreakBonus(run, eligible) {
+      if (!run) return 0;
+      if (!eligible) {
+        run.eligibleStreak = 0;
+        return 0;
+      }
+      run.eligibleStreak = (run.eligibleStreak || 0) + 1;
+      if (run.eligibleStreak === 2) return 1;
+      if (run.eligibleStreak >= 3) return 2;
+      return 0;
     }
 
     function updateRpgProgress(skierId, progressionGain = 0) {
@@ -4323,7 +4342,8 @@
           firelineActive: false,
           firelineDirection: null,
           lastMoveDirection: null,
-          multiplierBonus: 0
+          multiplierBonus: 0,
+          eligibleStreak: 0
         };
         state.currentAutoModeForRun = getActiveAutoModeForSkier(pausedSkierId);
         state.message = "Resuming paused skier. Choose your next step.";
@@ -4420,7 +4440,8 @@
         firelineActive: false,
         firelineDirection: null,
         lastMoveDirection: null,
-        multiplierBonus: 0
+        multiplierBonus: 0,
+        eligibleStreak: 0
       };
       if (state.arcadeMode && state.firstPersonView) {
         state.arcadeCurrentBlueprint = {
@@ -4489,12 +4510,9 @@
       const symbol = getSymbol(card).icon;
       const canCollect = card.difficultyRank <= getSkierSkillTier(skierCard);
       if (canCollect) {
-        return `Collects ${card.rank}${symbol}${card.bonusEmoji ? ` ${card.bonusEmoji}` : ""}.`;
+        return `Collects ${card.rank}${symbol}${card.bonusEmoji ? ` ${card.bonusEmoji}` : ""} at full value.`;
       }
-      if (slot.bonusEmoji) {
-        return `Leaves ${card.rank}${symbol} (upgrades bonus).`;
-      }
-      return `Leaves ${card.rank}${symbol} on the mountain.`;
+      return `Collects ${card.rank}${symbol} at half value (rounded up).`;
     }
 
     function getBonusCounts() {
@@ -4764,13 +4782,14 @@
       const skierCard = state.cards[state.cards[skierId].cardId];
       const skierTier = getSkierSkillTier(skierCard);
       const eligible = card.difficultyRank <= skierTier;
-      const tierGap = Math.max(0, card.difficultyRank - skierTier);
       const bonusValue = eligible ? getBonusValue(slot.missCount || 0) : 0;
       const bonusEmoji = eligible ? slot.bonusEmoji : null;
       const progressionGain = getProgressionGain(card, skierTier);
+      const cardFullValue = getRunCardFullValue(card);
+      const streakBonus = getRunStreakBonus(state.activeRun, eligible);
       const runDelta = eligible
-        ? Number(card.rank) + bonusValue
-        : -getOverSkillPenalty(card, tierGap);
+        ? cardFullValue + bonusValue + streakBonus
+        : Math.ceil(cardFullValue / 2);
       slot.conditionCardId = null;
       slot.isFaceUp = false;
       slot.lastResult = { cardId: card.id, outcome: eligible ? "collected" : "over-skill" };
@@ -4818,10 +4837,10 @@
         state.message = `Rank up! ${nextSymbol.icon} unlocked at ${skierCard.progressionXp} XP.`;
       } else if (eligible) {
         state.message = bonusValue
-          ? `Condition collected with bonus +${bonusValue} (${progressionGain} XP).`
-          : `Condition collected (+${progressionGain} XP).`;
+          ? `Condition collected: +${runDelta} run (${progressionGain} XP, bonus +${bonusValue}${streakBonus ? `, streak +${streakBonus}` : ""}).`
+          : `Condition collected: +${runDelta} run (${progressionGain} XP${streakBonus ? `, streak +${streakBonus}` : ""}).`;
       } else {
-        state.message = `Collected above skill: ${runDelta} run score (${progressionGain} XP).`;
+        state.message = `Collected above skill at half value: +${runDelta} run (${progressionGain} XP).`;
       }
     }
 
@@ -5485,7 +5504,7 @@
             }
           } else if (slot.lastResult) {
             const lastCard = state.cards[slot.lastResult.cardId];
-            const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
+            const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : slot.lastResult.outcome === "over-skill" ? "⚠️" : "❌";
             label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
           }
           let tokenMarkup = "";
@@ -5600,12 +5619,12 @@
               indicator = "✅ Collects";
             } else {
               button.classList.add("will-miss");
-              indicator = slot.bonusEmoji ? "⚠️ Miss upgrades" : "⚠️ Miss stays";
+              indicator = "⚠️ Half value";
             }
           }
         } else if (slot.lastResult) {
           const lastCard = state.cards[slot.lastResult.cardId];
-          const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
+          const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : slot.lastResult.outcome === "over-skill" ? "⚠️" : "❌";
           label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
         }
         const coachText = coachActive
@@ -6366,7 +6385,8 @@
         if (bonusTrackerEl) {
           bonusTrackerEl.innerHTML = `
             <span class="footer-note">Progression: 100 XP → 🟦, 250 XP → ◆, 500 XP → ◆◆.</span><br />
-            <span class="footer-note">Over-skill cards are collected but reduce run score.</span><br />
+            <span class="footer-note">Run value = (rank-1) + tier bonus (🟢+0, 🟦+2, ◆+4, ◆◆+6).</span><br />
+            <span class="footer-note">Over-skill cards collect at half value (rounded up). Streak bonus: +1 (2nd), +2 (3rd+).</span><br />
             <span class="footer-note">Bonus goals: ${bonusSummary}</span>
           `;
         }
