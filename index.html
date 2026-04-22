@@ -2377,7 +2377,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">P</div>
+    <div class="loading-version">Q</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2769,7 +2769,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37p — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37q — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -3304,8 +3304,8 @@
       { tier: 4, minXp: 500, label: "◆◆ Double Black" }
     ];
     const PROGRESSION_GAIN_TABLE = {
-      byConditionTier: { 1: 12, 2: 18, 3: 26, 4: 36 },
-      sameTierBonus: 4,
+      byConditionTier: { 1: 3, 2: 5, 3: 8, 4: 11 },
+      sameTierBonus: 1,
       overSkillGain: 0
     };
 
@@ -3832,7 +3832,7 @@
       const base = PROGRESSION_GAIN_TABLE.byConditionTier[card.difficultyRank] || 0;
       if (card.difficultyRank > skierTier) return PROGRESSION_GAIN_TABLE.overSkillGain;
       const sameTierBonus = card.difficultyRank === skierTier ? PROGRESSION_GAIN_TABLE.sameTierBonus : 0;
-      return base + Number(card.rank || 0) + sameTierBonus;
+      return base + sameTierBonus;
     }
 
     function getTierRunBonus(tier = 1) {
