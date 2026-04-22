@@ -2377,7 +2377,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">Q</div>
+    <div class="loading-version">R</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2769,7 +2769,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37q — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37r — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -3117,7 +3117,13 @@
       fullModeCompletions: 0,
       fullModeCompletionCounted: false,
       autoModesIntroSeen: false,
-      autoModesIntroStep: 0
+      autoModesIntroStep: 0,
+      gamepadLoopId: null,
+      gamepadInput: {
+        leftHeld: false,
+        rightHeld: false,
+        downHeld: false
+      }
     };
 
 
@@ -8385,9 +8391,65 @@
         emitPlayerInteraction();
       }, { passive: true });
     });
+    function getPrimaryGamepad() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      if (!pads) return null;
+      return Array.from(pads).find((pad) => pad && pad.connected) || null;
+    }
+
+    function readGamepadPressed(pad, index) {
+      const button = pad?.buttons?.[index];
+      if (!button) return false;
+      return typeof button === "object" ? button.pressed : Boolean(button);
+    }
+
+    function pollGamepadInput() {
+      const pad = getPrimaryGamepad();
+      const input = state.gamepadInput;
+      if (!pad) {
+        input.leftHeld = false;
+        input.rightHeld = false;
+        input.downHeld = false;
+      } else {
+        const axisX = Number(pad.axes?.[0] || 0);
+        const axisY = Number(pad.axes?.[1] || 0);
+        const leftPressed = readGamepadPressed(pad, 14) || axisX <= -0.55;
+        const rightPressed = readGamepadPressed(pad, 15) || axisX >= 0.55;
+        const downPressed = readGamepadPressed(pad, 13) || axisY >= 0.6;
+
+        if (leftPressed && !input.leftHeld) {
+          notePlayerInteraction();
+          stopAttractMode();
+          handleDirectionalMove("LEFT");
+        }
+        if (rightPressed && !input.rightHeld) {
+          notePlayerInteraction();
+          stopAttractMode();
+          handleDirectionalMove("RIGHT");
+        }
+        if (downPressed && !input.downHeld) {
+          notePlayerInteraction();
+          stopAttractMode();
+          cycleLiftZoneOrder();
+          render();
+        }
+
+        input.leftHeld = leftPressed;
+        input.rightHeld = rightPressed;
+        input.downHeld = downPressed;
+      }
+      state.gamepadLoopId = requestAnimationFrame(pollGamepadInput);
+    }
+
+    function startGamepadPolling() {
+      if (state.gamepadLoopId) return;
+      state.gamepadLoopId = requestAnimationFrame(pollGamepadInput);
+    }
+
     startLoadingSequence();
     enableMusicOnInteraction();
     startMusic();
+    startGamepadPolling();
     scheduleStartupAttractTimer();
     scheduleScreenIdleTimer();
     queueInitialEmojiRain();
