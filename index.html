@@ -2404,7 +2404,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">A</div>
+    <div class="loading-version">B</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2796,7 +2796,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.38a — single-player Party Mode (mouse or touch controls)
+    Prototype v0.38b — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -3096,6 +3096,7 @@
       firstPersonView: false,
       coachMode: "ON",
       introStep: 0,
+      introOverlaySeen: false,
       coachTipShown: false,
       endTipShown: false,
       musicIndex: 0,
@@ -8074,6 +8075,7 @@
       if (!overlay) return;
       overlay.classList.toggle("active", show);
       if (show) {
+        state.introOverlaySeen = true;
         state.introStep = 0;
         renderIntroOverlay();
       }
@@ -8303,6 +8305,9 @@
       renderIntroOverlay();
     });
     document.getElementById("introSkip").addEventListener("click", () => {
+      if (state.introOverlaySeen) {
+        return;
+      }
       showIntroOverlay(false);
       showModeOverlay(true);
     });
