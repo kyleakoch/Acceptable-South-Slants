@@ -2404,7 +2404,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">B</div>
+    <div class="loading-version">C</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2796,7 +2796,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.38b — single-player Party Mode (mouse or touch controls)
+    Prototype v0.38c — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -2842,6 +2842,9 @@
           <span class="footer-note">Aim, push, and sweep your way to the button.</span>
           <button id="startCurling">Start Curling</button>
         </div>
+      </div>
+      <div class="mode-auto-idle">
+        <button id="startAutoIdle" class="secondary" type="button" aria-label="Start auto idle mode">∞ Auto / Idle</button>
       </div>
       <button id="returnToGame" class="secondary">Return to current game</button>
     </div>
@@ -8005,6 +8008,19 @@
       }
     }
 
+    function startAutoIdleMode() {
+      finalizeLoading();
+      setNightSkiing(false);
+      state.fullAutoGames = 0;
+      state.autoStrategy = "RANDOM";
+      state.autoSpeed = "ONE_X";
+      setPeak("PEAK_1");
+      document.body.classList.remove("hide-coords");
+      document.body.classList.add("debug-enabled");
+      toggleDebugButton.textContent = "Hide debug";
+      startFullAuto();
+    }
+
     function startMode(mode) {
       stopFullAuto();
       state.autoStrategy = "MANUAL";
@@ -8096,6 +8112,7 @@
     document.getElementById("startRpgSnowboarders").addEventListener("click", () => startRpgMode("SNOWBOARDER"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
     document.getElementById("startCurling").addEventListener("click", () => startMode("CURLING"));
+    document.getElementById("startAutoIdle").addEventListener("click", () => startAutoIdleMode());
     document.getElementById("peak1").addEventListener("click", () => setPeak("PEAK_1"));
     document.getElementById("peak2").addEventListener("click", () => setPeak("PEAK_2"));
     document.getElementById("peak3").addEventListener("click", () => setPeak("PEAK_3"));
@@ -8389,20 +8406,9 @@
       }
       if (event.target === loadingEmoji) {
         finalizeLoading();
-        setNightSkiing(false);
-        state.fullAutoGames = 0;
-        state.autoStrategy = "RANDOM";
-        state.autoSpeed = "ONE_X";
-        setPeak("PEAK_1");
-        document.body.classList.remove("hide-coords");
-        document.body.classList.add("debug-enabled");
-        toggleDebugButton.textContent = "Hide debug";
-        startFullAuto();
-        return;
+        showIntroOverlay(false);
+        showModeOverlay(true);
       }
-      finalizeLoading();
-      showIntroOverlay(false);
-      showModeOverlay(true);
     });
     document.addEventListener("keydown", (event) => {
       const key = event.key;
