@@ -203,9 +203,11 @@
       background: #e2e8f0;
     }
     .shuffle-flight {
-      position: absolute;
+      position: fixed;
       inset: 0;
       pointer-events: none;
+      overflow: hidden;
+      z-index: 220;
     }
     .shuffle-fly-card {
       position: absolute;
@@ -381,9 +383,19 @@
       background: rgba(255, 255, 255, 0.92);
       border: 2px solid #1e2430;
       border-radius: 12px;
-      padding: 8px 10px;
+      padding: 8px 10px 8px 40px;
       font-size: 13px;
       font-weight: 700;
+      position: relative;
+    }
+    .full-mode-coach-bubble .coach-badge {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.45;
+      font-size: 18px;
+      pointer-events: none;
     }
     .full-mode-coach-bubble.active {
       display: block;
@@ -2388,7 +2400,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">S</div>
+    <div class="loading-version">T</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2780,7 +2792,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37s — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37t — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -5405,6 +5417,7 @@
         fullModeBubble.classList.toggle("active", showFullBubble);
         if (showFullBubble) {
           fullModeBubble.innerHTML = `
+            <span class="coach-badge" aria-hidden="true">🗣️</span>
             <strong>${headlineLine}</strong><br />
             ${collectLine || goalLine}<br />
             ${progressLine || visibilityLine}
@@ -7804,11 +7817,11 @@
         cloudGrid.appendChild(chip);
       });
       shuffleFlight.innerHTML = "";
-      const width = shuffleCard.clientWidth;
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
       const conditionCards = SYMBOLS.flatMap((symbol) => CONDITION_RANKS.map((rank) => `${rank}${symbol.icon}`));
-      for (let i = 0; i < 72; i += 1) {
+      for (let i = 0; i < 96; i += 1) {
         const fly = document.createElement("div");
-        const x = Math.random() * Math.max(220, width - 120);
+        const x = Math.random() * Math.max(220, viewportWidth - 120);
         fly.className = "shuffle-fly-card";
         fly.textContent = conditionCards[Math.floor(Math.random() * conditionCards.length)];
         fly.style.setProperty("--x", `${x}px`);
