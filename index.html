@@ -203,37 +203,45 @@
       background: #e2e8f0;
     }
     .shuffle-flight {
-      position: absolute;
+      position: fixed;
       inset: 0;
       pointer-events: none;
+      overflow: hidden;
+      z-index: 220;
     }
     .shuffle-fly-card {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 64px;
-      height: 86px;
-      border-radius: 8px;
-      background: #f8fafc;
+      top: -18vh;
+      left: 0;
+      min-width: 52px;
+      height: 72px;
+      border-radius: 10px;
+      background: rgba(248, 250, 252, 0.9);
       box-shadow: 0 6px 12px rgba(15, 23, 42, 0.25);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
-      animation: shuffle-fly 9s ease-in-out forwards;
+      font-size: 17px;
+      font-weight: 800;
+      color: #0f172a;
+      padding: 0 8px;
+      animation: shuffle-fall var(--duration, 6.8s) linear forwards;
       animation-delay: var(--delay);
+      filter: hue-rotate(var(--hue, 0deg));
     }
-    @keyframes shuffle-fly {
+    @keyframes shuffle-fall {
       0% {
-        transform: translate3d(-50%, -50%, 0) rotate(0deg) scale(0.6);
+        transform: translate3d(var(--x), -20vh, 0);
         opacity: 0;
       }
-      15% {
-        opacity: 1;
+      6% {
+        opacity: 0.95;
+      }
+      90% {
+        opacity: 0.9;
       }
       100% {
-        transform: translate3d(calc(-50% + var(--x)), calc(-50% + var(--y)), 0) rotate(var(--rot))
-          scale(var(--scale, 1));
+        transform: translate3d(var(--x), 120vh, 0);
         opacity: 0;
       }
     }
@@ -379,12 +387,27 @@
       background: rgba(255, 255, 255, 0.92);
       border: 2px solid #1e2430;
       border-radius: 12px;
-      padding: 8px 10px;
+      padding: 8px 10px 8px 40px;
       font-size: 13px;
       font-weight: 700;
+      position: relative;
+    }
+    .full-mode-coach-bubble .coach-badge {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.45;
+      font-size: 18px;
+      pointer-events: none;
     }
     .full-mode-coach-bubble.active {
       display: block;
+    }
+    body.night-skiing .full-mode-coach-bubble {
+      background: rgba(15, 23, 42, 0.92);
+      border-color: rgba(226, 232, 240, 0.7);
+      color: #f8fafc;
     }
     .auto-modes-unlock-overlay {
       position: fixed;
@@ -559,8 +582,8 @@
       border-color: #8b5cf6;
     }
     .music-quick-panel {
-      display: none;
-      gap: 8px;
+      display: grid;
+      gap: 10px;
       margin: 4px 0 10px;
       background: rgba(255, 255, 255, 0.96);
       border: 2px solid rgba(30, 36, 48, 0.85);
@@ -568,14 +591,61 @@
       padding: 10px;
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
     }
-    .music-quick-panel.active {
+    .music-quick-trackline {
       display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .music-quick-icon,
+    .music-quick-radio {
+      font-size: 18px;
+      line-height: 1;
+    }
+    .music-quick-title-wrap {
+      min-width: 0;
+      overflow: hidden;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.08);
+      padding: 4px 8px;
     }
     .music-quick-title {
       font-size: 12px;
       font-weight: 700;
       opacity: 0.8;
-      text-align: center;
+      text-align: left;
+      white-space: nowrap;
+      display: inline-block;
+      padding-right: 0;
+      transform: translateX(0);
+    }
+    .music-quick-title.scroll {
+      animation: music-marquee 12s linear infinite;
+      padding-right: 36px;
+    }
+    @keyframes music-marquee {
+      from {
+        transform: translateX(0);
+      }
+      to {
+        transform: translateX(calc(-1 * var(--scroll-distance, 0px)));
+      }
+    }
+    .music-quick-eq {
+      height: 12px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 3px;
+    }
+    .music-quick-eq span {
+      width: 3px;
+      min-height: 2px;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #60a5fa, #22c55e);
+      opacity: 0.9;
+      transition: height 80ms linear, opacity 120ms ease;
     }
     .music-quick-controls {
       display: grid;
@@ -654,6 +724,8 @@
       padding: 4px 8px;
       font-size: 12px;
       font-weight: 600;
+      color: #1f2937;
+      border: 1px solid rgba(148, 163, 184, 0.45);
     }
     .collected-bubble .pile {
       grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
@@ -1452,17 +1524,32 @@
       background: rgba(255, 255, 255, 0.9);
       border: 2px solid #1e2430;
       border-radius: 18px;
-      padding: 10px 14px;
+      padding: 10px 14px 10px 44px;
       max-width: 520px;
       width: 100%;
       text-align: center;
       font-weight: 600;
       position: relative;
     }
+    .coach-card .coach-badge {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.45;
+      font-size: 20px;
+      pointer-events: none;
+    }
     body.night-skiing .coach-card {
       background: rgba(15, 23, 42, 0.9);
       color: #e2e8f0;
       border-color: rgba(226, 232, 240, 0.6);
+    }
+    body.night-skiing .coach-summary {
+      color: #f8fafc;
+    }
+    body.night-skiing .coach-summary .subtle {
+      color: #cbd5e1;
     }
     .coach-timing {
       margin-top: 6px;
@@ -1615,6 +1702,19 @@
     }
     body.night-skiing .coach-bubble .bubble-text {
       color: #e2e8f0;
+    }
+    body.night-skiing .collected-pill {
+      background: rgba(15, 23, 42, 0.82);
+      color: #f8fafc;
+      border-color: rgba(226, 232, 240, 0.35);
+    }
+    body.night-skiing .music-quick-panel {
+      background: rgba(15, 23, 42, 0.92);
+      border-color: rgba(226, 232, 240, 0.75);
+      color: #f8fafc;
+    }
+    body.night-skiing .music-quick-title-wrap {
+      background: rgba(148, 163, 184, 0.14);
     }
     .ambient-snow {
       position: fixed;
@@ -2304,7 +2404,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">K</div>
+    <div class="loading-version">X</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2326,8 +2426,8 @@
       <div id="shuffleFlight" class="shuffle-flight" aria-hidden="true"></div>
     </div>
   </div>
-  <audio id="bgMusic" preload="auto" autoplay playsinline></audio>
-  <video id="bgMusicVideo" class="bg-music-video" preload="auto" playsinline></video>
+  <audio id="bgMusic" preload="auto" autoplay playsinline crossorigin="anonymous"></audio>
+  <video id="bgMusicVideo" class="bg-music-video" preload="auto" playsinline crossorigin="anonymous"></video>
   <div id="scoreModal" class="score-modal" aria-live="polite">
     <div class="snowstorm" aria-hidden="true"></div>
     <div class="modal-card">
@@ -2598,7 +2698,22 @@
         <button id="musicPanelToggle" class="panel-icon-button" type="button" aria-label="Toggle music controls">📻</button>
       </div>
       <div id="musicQuickPanel" class="music-quick-panel" aria-live="polite">
-        <div id="musicQuickTitle" class="music-quick-title"></div>
+        <div class="music-quick-trackline">
+          <span class="music-quick-icon" aria-hidden="true">📺</span>
+          <div class="music-quick-title-wrap">
+            <div id="musicQuickTitle" class="music-quick-title"></div>
+          </div>
+          <span class="music-quick-radio" aria-hidden="true">📻</span>
+        </div>
+        <div id="musicQuickEq" class="music-quick-eq" aria-hidden="true">
+          <span style="--delay:0s"></span>
+          <span style="--delay:0.1s"></span>
+          <span style="--delay:0.2s"></span>
+          <span style="--delay:0.3s"></span>
+          <span style="--delay:0.4s"></span>
+          <span style="--delay:0.5s"></span>
+          <span style="--delay:0.6s"></span>
+        </div>
         <div class="music-quick-controls">
           <button id="musicQuickStart" type="button">Start</button>
           <button id="musicQuickStop" type="button" class="secondary">Stop</button>
@@ -2681,8 +2796,8 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37k — single-player Party Mode (mouse or touch controls)
-    <div class="footer-note">Designed by <a href="https://www.llinkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
+    Prototype v0.37x — single-player Party Mode (mouse or touch controls)
+    <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
       <button id="toggleDebug" type="button" class="secondary">Hide debug</button>
@@ -2698,9 +2813,9 @@
         <span class="footer-note">Select your peak layout.</span>
         <div class="mode-grid">
           <button id="peak1">🏔️¹ Classic</button>
-          <button id="peak2">🏔️² Diamond</button>
-          <button id="peak3">🏔️³ Twin</button>
-          <button id="peak100">🏔️💯 Peak 100</button>
+          <button id="peak2">🚧 🏔️² Diamond</button>
+          <button id="peak3">🚧 🏔️³ Twin</button>
+          <button id="peak100">🚧 🏔️💯 Peak 100</button>
         </div>
       </div>
       <div class="mode-grid">
@@ -2723,7 +2838,7 @@
           <button id="startFullCrowd">Start Full Tram</button>
         </div>
         <div class="mode-option">
-          <strong>Curling Session</strong>
+          <strong>🚧 Curling Session</strong>
           <span class="footer-note">Aim, push, and sweep your way to the button.</span>
           <button id="startCurling">Start Curling</button>
         </div>
@@ -2986,9 +3101,13 @@
       musicIndex: 0,
       loopCurrentTrack: false,
       liftDetailsOpen: true,
-      musicPanelOpen: false,
+      musicPanelOpen: true,
       musicDirectorBooted: false,
       musicCurrentTrackNumber: null,
+      musicAnalyser: null,
+      musicFreqData: null,
+      musicVisualizerFrame: null,
+      musicElementSources: new WeakMap(),
       lastGlide: null,
       coachTrusted: false,
       frameUiEnabled: false,
@@ -3025,7 +3144,13 @@
       fullModeCompletions: 0,
       fullModeCompletionCounted: false,
       autoModesIntroSeen: false,
-      autoModesIntroStep: 0
+      autoModesIntroStep: 0,
+      gamepadLoopId: null,
+      gamepadInput: {
+        leftHeld: false,
+        rightHeld: false,
+        downHeld: false
+      }
     };
 
 
@@ -3205,6 +3330,17 @@
     const DAY_ICONS = ["☀️", "🌤️", "⛅️", "🌥️", "☁️", "🌨️"];
 
     const TOTAL_CROWD = 32;
+    const SKIER_PROGRESSION_THRESHOLDS = [
+      { tier: 1, minXp: 0, label: "🟢 Green" },
+      { tier: 2, minXp: 100, label: "🟦 Blue" },
+      { tier: 3, minXp: 250, label: "◆ Black" },
+      { tier: 4, minXp: 500, label: "◆◆ Double Black" }
+    ];
+    const PROGRESSION_GAIN_TABLE = {
+      byConditionTier: { 1: 3, 2: 5, 3: 8, 4: 11 },
+      sameTierBonus: 1,
+      overSkillGain: 0
+    };
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i -= 1) {
@@ -3685,41 +3821,109 @@
       player.skierQueue.forEach((skierId) => {
         const skierState = state.cards[skierId];
         const card = state.cards[skierState.cardId];
-        const baseSymbol = SYMBOLS[0];
-        card.symbol = baseSymbol.key;
-        card.difficultyRank = baseSymbol.difficultyRank;
+        card.progressionXp = 0;
+        syncSkierSkillFromProgress(card);
         state.rpg.progress[skierId] = {
-          symbolIndex: 0,
-          collectedRanks: new Set(),
+          xp: card.progressionXp,
+          tier: getSkierSkillTier(card),
           completed: false
         };
       });
+    }
+
+    function getProgressTierFromXp(xp = 0) {
+      let tier = 1;
+      SKIER_PROGRESSION_THRESHOLDS.forEach((entry) => {
+        if (xp >= entry.minXp) tier = entry.tier;
+      });
+      return tier;
+    }
+
+    function getSkierSkillTier(skierCard) {
+      if (!skierCard) return 1;
+      if (Number.isFinite(skierCard.progressionXp)) {
+        return getProgressTierFromXp(skierCard.progressionXp);
+      }
+      return skierCard.difficultyRank || 1;
+    }
+
+    function syncSkierSkillFromProgress(skierCard) {
+      if (!skierCard) return 1;
+      const tier = getSkierSkillTier(skierCard);
+      const symbol = SYMBOLS[Math.max(0, Math.min(SYMBOLS.length - 1, tier - 1))] || SYMBOLS[0];
+      skierCard.symbol = symbol.key;
+      skierCard.difficultyRank = symbol.difficultyRank;
+      return tier;
     }
 
     function getRpgProgress(skierId) {
       return state.rpg?.progress?.[skierId] || null;
     }
 
-    function updateRpgProgress(skierId, card) {
-      if (state.mode !== "RPG" || !state.rpg || !card || card.type !== "CONDITION") return null;
-      const progress = getRpgProgress(skierId);
-      if (!progress || progress.completed) return null;
-      const currentSymbol = SYMBOLS[progress.symbolIndex];
-      if (!currentSymbol || card.symbol !== currentSymbol.key) return null;
-      progress.collectedRanks.add(card.rank);
-      if (progress.collectedRanks.size < 7) return null;
-      const nextIndex = Math.min(SYMBOLS.length - 1, progress.symbolIndex + 1);
-      progress.symbolIndex = nextIndex;
-      progress.collectedRanks = new Set();
-      if (progress.symbolIndex >= SYMBOLS.length - 1) {
-        progress.completed = true;
+    function getProgressionGain(card, skierTier) {
+      if (!card || card.type !== "CONDITION") return 0;
+      const base = PROGRESSION_GAIN_TABLE.byConditionTier[card.difficultyRank] || 0;
+      if (card.difficultyRank > skierTier) return PROGRESSION_GAIN_TABLE.overSkillGain;
+      const sameTierBonus = card.difficultyRank === skierTier ? PROGRESSION_GAIN_TABLE.sameTierBonus : 0;
+      return base + sameTierBonus;
+    }
+
+    function getTierRunBonus(tier = 1) {
+      const map = { 1: 0, 2: 2, 3: 4, 4: 6 };
+      return map[tier] || 0;
+    }
+
+    function getConditionBaseValue(card) {
+      return Math.max(1, Number(card?.rank || 0) - 1);
+    }
+
+    function getRunCardFullValue(card) {
+      if (!card || card.type !== "CONDITION") return 0;
+      return getConditionBaseValue(card) + getTierRunBonus(card.difficultyRank);
+    }
+
+    function getMemoryDivisorForGap(tierGap = 0) {
+      if (tierGap <= 0) return 1;
+      if (tierGap === 1) return 2;
+      if (tierGap === 2) return 3;
+      return 4;
+    }
+
+    function getRememberedRunValue(fullValue, tierGap = 0) {
+      const divisor = getMemoryDivisorForGap(tierGap);
+      return Math.ceil(fullValue / divisor);
+    }
+
+    function getRunStreakBonus(run, eligible) {
+      if (!run) return 0;
+      if (!eligible) {
+        run.eligibleStreak = 0;
+        return 0;
       }
+      run.eligibleStreak = (run.eligibleStreak || 0) + 1;
+      if (run.eligibleStreak === 2) return 1;
+      if (run.eligibleStreak >= 3) return 2;
+      return 0;
+    }
+
+    function updateRpgProgress(skierId, progressionGain = 0) {
+      if (state.mode !== "RPG" || !state.rpg) return null;
       const skierState = state.cards[skierId];
-      const skierCard = state.cards[skierState.cardId];
-      const nextSymbol = SYMBOLS[progress.symbolIndex];
-      skierCard.symbol = nextSymbol.key;
-      skierCard.difficultyRank = nextSymbol.difficultyRank;
-      return nextSymbol;
+      const skierCard = skierState ? state.cards[skierState.cardId] : null;
+      if (!skierCard) return null;
+      skierCard.progressionXp = Math.max(0, Number(skierCard.progressionXp || 0) + Number(progressionGain || 0));
+      const prevTier = skierCard.difficultyRank || 1;
+      const nextTier = syncSkierSkillFromProgress(skierCard);
+      const progress = getRpgProgress(skierId);
+      if (progress) {
+        progress.xp = skierCard.progressionXp;
+        progress.tier = nextTier;
+        progress.completed = nextTier >= 4;
+      }
+      if (nextTier > prevTier) {
+        return SYMBOLS[nextTier - 1];
+      }
+      return null;
     }
 
     function getRpgElapsedMs() {
@@ -3736,12 +3940,14 @@
     function getRpgProgressText(skierId) {
       const progress = getRpgProgress(skierId);
       if (!progress) return "";
-      const symbol = SYMBOLS[progress.symbolIndex];
-      const count = progress.collectedRanks.size;
+      const xp = progress.xp || 0;
+      const tier = progress.tier || 1;
+      const symbol = SYMBOLS[Math.max(0, tier - 1)] || SYMBOLS[0];
+      const nextThreshold = SKIER_PROGRESSION_THRESHOLDS.find((entry) => entry.tier === Math.min(4, tier + 1));
       if (progress.completed) {
-        return `${symbol.icon} complete`;
+        return `${symbol.icon} ${xp} XP (max tier)`;
       }
-      return `${symbol.icon} ${count}/7`;
+      return `${symbol.icon} ${xp} XP / ${nextThreshold?.minXp || 500}`;
     }
 
     function buildRpgAwards(player) {
@@ -3779,7 +3985,8 @@
       const needed = new Set();
       Object.values(state.rpg.progress).forEach((progress) => {
         if (!progress || progress.completed) return;
-        const symbol = SYMBOLS[progress.symbolIndex];
+        const tier = Math.max(1, Math.min(4, progress.tier || 1));
+        const symbol = SYMBOLS[tier - 1];
         if (symbol) needed.add(symbol.key);
       });
       return needed;
@@ -3904,7 +4111,7 @@
 
     function getVisibilityDepth(skierCard) {
       if (!skierCard) return 1;
-      return Math.max(1, Math.min(5, (skierCard.difficultyRank || 1) + 1));
+      return Math.max(1, Math.min(5, getSkierSkillTier(skierCard) + 1));
     }
 
     function getCoachFocusSkierCard() {
@@ -3924,7 +4131,7 @@
 
     function getDecisionOutcomeEmoji(card, skierCard) {
       if (!card || !skierCard || card.type === "SPECIAL") return "";
-      return card.difficultyRank <= skierCard.difficultyRank ? "✅" : "❌";
+      return card.difficultyRank <= getSkierSkillTier(skierCard) ? "✅" : "❌";
     }
 
     function getTurnCountEmoji(count) {
@@ -4180,7 +4387,8 @@
           firelineActive: false,
           firelineDirection: null,
           lastMoveDirection: null,
-          multiplierBonus: 0
+          multiplierBonus: 0,
+          eligibleStreak: 0
         };
         state.currentAutoModeForRun = getActiveAutoModeForSkier(pausedSkierId);
         state.message = "Resuming paused skier. Choose your next step.";
@@ -4277,7 +4485,8 @@
         firelineActive: false,
         firelineDirection: null,
         lastMoveDirection: null,
-        multiplierBonus: 0
+        multiplierBonus: 0,
+        eligibleStreak: 0
       };
       if (state.arcadeMode && state.firstPersonView) {
         state.arcadeCurrentBlueprint = {
@@ -4344,14 +4553,11 @@
         return `Triggers ${card.rank} ${card.specialEmoji || ""}.`.trim();
       }
       const symbol = getSymbol(card).icon;
-      const canCollect = card.difficultyRank <= skierCard.difficultyRank;
+      const canCollect = card.difficultyRank <= getSkierSkillTier(skierCard);
       if (canCollect) {
-        return `Collects ${card.rank}${symbol}${card.bonusEmoji ? ` ${card.bonusEmoji}` : ""}.`;
+        return `Collects ${card.rank}${symbol}${card.bonusEmoji ? ` ${card.bonusEmoji}` : ""} at full value.`;
       }
-      if (slot.bonusEmoji) {
-        return `Leaves ${card.rank}${symbol} (upgrades bonus).`;
-      }
-      return `Leaves ${card.rank}${symbol} on the mountain.`;
+      return `Collects ${card.rank}${symbol} at half value (rounded up).`;
     }
 
     function getBonusCounts() {
@@ -4368,7 +4574,7 @@
 
     function scoreMatchMode(card, skierCard, rankCounts) {
       if (!card || !skierCard) return 0;
-      const eligible = card.difficultyRank <= skierCard.difficultyRank;
+      const eligible = card.difficultyRank <= getSkierSkillTier(skierCard);
       const matches = rankCounts[card.rank] || 0;
       const suitMatch = card.symbol === skierCard.symbol ? 1 : 0;
       const rankValue = Number(card.rank) || 0;
@@ -4413,7 +4619,7 @@
 
     function scoreBrewMode(card, slot, skierCard) {
       if (!card || !skierCard) return 0;
-      const eligible = card.difficultyRank <= skierCard.difficultyRank;
+      const eligible = card.difficultyRank <= getSkierSkillTier(skierCard);
       const uncollectable = eligible ? 0 : 240;
       const burgerBonus = !eligible && slot.bonusEmoji === "🍔" ? 60 : 0;
       return uncollectable + burgerBonus + card.difficultyRank * 10;
@@ -4619,58 +4825,69 @@
         return;
       }
       const skierCard = state.cards[state.cards[skierId].cardId];
-      if (card.difficultyRank <= skierCard.difficultyRank) {
-        const bonusValue = getBonusValue(slot.missCount || 0);
-        const bonusEmoji = slot.bonusEmoji;
-        slot.conditionCardId = null;
-        slot.isFaceUp = false;
-        slot.lastResult = { cardId: card.id, outcome: "collected" };
-        getPlayer().collectedPile.push({
-          cardId: card.id,
-          bonus: bonusValue,
-          bonusEmoji: slot.bonusEmoji
-        });
-        state.memoriesPile.push(card.id);
-        slot.missCount = 0;
-        slot.bonusEmoji = null;
-        const run = state.activeRun;
-        if (run) {
-          run.collectedScore = (run.collectedScore || 0) + Number(card.rank) + bonusValue;
-          if (run.collectedRanks) {
-            run.collectedRanks.push(card.rank);
+      const skierTier = getSkierSkillTier(skierCard);
+      const eligible = card.difficultyRank <= skierTier;
+      const tierGap = Math.max(0, card.difficultyRank - skierTier);
+      const bonusValue = eligible ? getBonusValue(slot.missCount || 0) : 0;
+      const bonusEmoji = eligible ? slot.bonusEmoji : null;
+      const progressionGain = getProgressionGain(card, skierTier);
+      const cardFullValue = getRunCardFullValue(card);
+      const streakBonus = getRunStreakBonus(state.activeRun, eligible);
+      const rememberedValue = getRememberedRunValue(cardFullValue, tierGap);
+      const runDelta = eligible
+        ? cardFullValue + bonusValue + streakBonus
+        : rememberedValue;
+      slot.conditionCardId = null;
+      slot.isFaceUp = false;
+      slot.lastResult = { cardId: card.id, outcome: eligible ? "collected" : "over-skill" };
+      getPlayer().collectedPile.push({
+        cardId: card.id,
+        bonus: bonusValue,
+        bonusEmoji,
+        runDelta,
+        progressionGain,
+        eligible
+      });
+      state.memoriesPile.push(card.id);
+      slot.missCount = 0;
+      slot.bonusEmoji = null;
+      const run = state.activeRun;
+      if (run) {
+        run.collectedScore = (run.collectedScore || 0) + runDelta;
+        if (run.collectedRanks) {
+          run.collectedRanks.push(card.rank);
+        }
+        if (run.surgeActive && eligible) {
+          run.collectedScore += Number(card.rank);
+          run.surgeActive = false;
+        }
+        if (run.firelineActive) {
+          if (run.lastMoveDirection && run.lastMoveDirection === run.firelineDirection && eligible) {
+            run.collectedScore += 1;
           }
-          if (run.surgeActive) {
-            run.collectedScore += Number(card.rank);
-            run.surgeActive = false;
-          }
-          if (run.firelineActive) {
-            if (run.lastMoveDirection && run.lastMoveDirection === run.firelineDirection) {
-              run.collectedScore += 1;
-            }
-            run.firelineActive = false;
-          }
-          if (bonusEmoji) {
-            run.collectedEmojis.add(bonusEmoji);
-          }
+          run.firelineActive = false;
         }
         if (bonusEmoji) {
-          spawnEmojiRain(bonusEmoji, 8);
-          if (state.mode === "RPG" && state.rpg) {
-            const current = state.rpg.bonusCounts?.[bonusEmoji] || 0;
-            state.rpg.bonusCounts = state.rpg.bonusCounts || {};
-            state.rpg.bonusCounts[bonusEmoji] = current + 1;
-          }
+          run.collectedEmojis.add(bonusEmoji);
         }
+      }
+      if (bonusEmoji) {
+        spawnEmojiRain(bonusEmoji, 8);
+        if (state.mode === "RPG" && state.rpg) {
+          const current = state.rpg.bonusCounts?.[bonusEmoji] || 0;
+          state.rpg.bonusCounts = state.rpg.bonusCounts || {};
+          state.rpg.bonusCounts[bonusEmoji] = current + 1;
+        }
+      }
+      const nextSymbol = updateRpgProgress(skierId, progressionGain);
+      if (nextSymbol) {
+        state.message = `Rank up! ${nextSymbol.icon} unlocked at ${skierCard.progressionXp} XP.`;
+      } else if (eligible) {
         state.message = bonusValue
-          ? `Condition collected with bonus +${bonusValue}!`
-          : "Condition collected!";
-        const nextSymbol = updateRpgProgress(skierId, card);
-        if (nextSymbol) {
-          state.message = `Rank up! ${nextSymbol.icon} unlocked.`;
-        }
+          ? `Condition collected: +${runDelta} run (${progressionGain} XP, bonus +${bonusValue}${streakBonus ? `, streak +${streakBonus}` : ""}).`
+          : `Condition collected: +${runDelta} run (${progressionGain} XP${streakBonus ? `, streak +${streakBonus}` : ""}).`;
       } else {
-        slot.lastResult = { cardId: card.id, outcome: "missed" };
-        state.message = "Condition too difficult. It remains on the mountain.";
+        state.message = `Collected above skill at 1/${getMemoryDivisorForGap(tierGap)} memory value: +${runDelta} run (${progressionGain} XP).`;
       }
     }
 
@@ -4713,20 +4930,24 @@
       if (state.mode === "RPG" && state.rpg) {
         state.rpg.totalScore += run.collectedScore || 0;
       }
-      state.lastRunToken = {
-        slotId: run.currentSlotId,
-        skierId: run.leadSkierId,
-        clicksRemaining: 2,
-        collectedRanks: run.collectedRanks || []
-      };
-      state.landingZoneTokens.push({
-        skierId: run.leadSkierId,
-        slotId: run.currentSlotId,
-        landedAt: Date.now(),
-        collectedRanks: [...(run.collectedRanks || [])]
-      });
-      if (state.landingZoneTokens.length > 4) {
-        state.landingZoneTokens = state.landingZoneTokens.slice(-4);
+      const tramFinishPosition = (state.usedCrowdCount % 4) + 1;
+      if (tramFinishPosition < 4) {
+        state.lastRunToken = {
+          slotId: run.currentSlotId,
+          skierId: run.leadSkierId,
+          clicksRemaining: 2,
+          collectedRanks: run.collectedRanks || []
+        };
+        state.landingZoneTokens.push({
+          skierId: run.leadSkierId,
+          slotId: run.currentSlotId,
+          landedAt: Date.now(),
+          collectedRanks: [...(run.collectedRanks || [])],
+          tramFinishPosition
+        });
+      } else {
+        state.lastRunToken = null;
+        state.landingZoneTokens = [];
       }
       if (!state.bestRun || (run.collectedScore || 0) > state.bestRun.finalScore) {
         const skierCardId = state.cards[run.leadSkierId].cardId;
@@ -4919,7 +5140,7 @@
 
     function computeScore(modeKey = state.scoringMode) {
       const pile = getPlayer().collectedPile;
-      const baseTotal = pile.reduce((sum, entry) => sum + Number(state.cards[entry.cardId].rank) + entry.bonus, 0);
+      const baseTotal = pile.reduce((sum, entry) => sum + (Number.isFinite(entry.runDelta) ? Number(entry.runDelta) : Number(state.cards[entry.cardId].rank) + entry.bonus), 0);
       const counts = pile.reduce((acc, entry) => {
         const card = state.cards[entry.cardId];
         acc[card.rank] = (acc[card.rank] || 0) + 1;
@@ -5039,12 +5260,29 @@
       const title = document.getElementById("musicQuickTitle");
       const loop = document.getElementById("musicQuickLoop");
       const toggle = document.getElementById("musicPanelToggle");
-      if (!panel || !title || !loop || !toggle) return;
-      panel.classList.toggle("active", state.musicPanelOpen);
+      const titleWrap = panel?.querySelector(".music-quick-title-wrap");
+      const eq = document.getElementById("musicQuickEq");
+      if (!panel || !title || !loop || !toggle || !titleWrap) return;
+      panel.style.display = state.musicPanelOpen ? "grid" : "none";
       toggle.classList.toggle("active", state.musicPanelOpen);
       const track = MUSIC_PLAYLIST[state.musicIndex] || MUSIC_PLAYLIST[0];
       title.textContent = track ? `🎵 ${track.title}` : "🎵";
       loop.textContent = state.loopCurrentTrack ? "Looping" : "Loop";
+
+      title.classList.remove("scroll");
+      title.style.removeProperty("--scroll-distance");
+      requestAnimationFrame(() => {
+        const overflow = Math.ceil(title.scrollWidth - titleWrap.clientWidth);
+        if (overflow > 6) {
+          title.style.setProperty("--scroll-distance", `${overflow}px`);
+          title.classList.add("scroll");
+        }
+      });
+
+      if (eq) {
+        eq.style.opacity = state.musicPanelOpen ? "1" : "0";
+      }
+      ensureMusicEqualizerRunning();
     }
 
     function runGlideAnimation() {
@@ -5124,6 +5362,8 @@
           </div>`
         : "";
 
+      let headlineLine = turnText;
+      let collectLine = "";
       let visibilityLine = "Select a skier to preview visibility range.";
       let goalLine = "Goal: guide each skier downhill and collect as many matching/easier condition cards as possible.";
       let progressLine = "";
@@ -5135,30 +5375,41 @@
           const symbol = getSymbol(skierCard);
           const riderLabel = skierCard.riderType === "SNOWBOARDER" ? "boarder" : "skier";
           const turnsAhead = Math.max(0, getVisibilityDepth(skierCard) - 1);
-          visibilityLine = `${skierCard.rank} ${riderLabel} can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
-          goalLine = `Goal for ${skierCard.rank}${symbol.icon}: collect ${skierCard.rank}${symbol.icon} cards or easier, then keep building your combo score.`;
+          const skillByRank = {
+            1: "Green Circle",
+            2: "Blue Square",
+            3: "Black Diamond",
+            4: "Double Black Diamond"
+          };
+          const humanRankLabel = `${skierCard.rank}${symbol.icon}`;
+          visibilityLine = `${symbol.icon} ${riderLabel} can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
+          goalLine = `Goal for ${humanRankLabel}: collect ${humanRankLabel} cards or easier, then keep building your combo score.`;
           const options = getMoveOptionsOrdered();
           if (options.length) {
             const collectableCount = options.reduce((count, id) => {
               const slot = state.mountain[id];
               const card = slot?.conditionCardId ? state.cards[slot.conditionCardId] : null;
               if (!card || card.type !== "CONDITION") return count;
-              return count + (card.difficultyRank <= skierCard.difficultyRank ? 1 : 0);
+              return count + (card.difficultyRank <= getSkierSkillTier(skierCard) ? 1 : 0);
             }, 0);
-            progressLine = `Current choices: ${collectableCount}/${options.length} options are collectable right now.`;
+            headlineLine = `${turnText} · ${collectableCount}/${options.length} options can be collected`;
           }
+
+          const riderEmoji = skierCard.riderType === "SNOWBOARDER" ? "🏂" : "⛷️";
+          collectLine = goalLine;
+          progressLine = `${symbol.icon} ${riderEmoji} can see next ${turnsAhead} turn${turnsAhead === 1 ? "" : "s"}.`;
         }
       }
 
       if (panelActive) {
         coachPanel.innerHTML = `
           <div class="coach-card">
+            <div class="coach-badge" aria-hidden="true">🗣️</div>
             <div class="coach-summary">
-              <div>${turnText}</div>
-              <div>${statusText}</div>
-              <div>${goalLine}</div>
-              <div>${visibilityLine}</div>
-              ${progressLine ? `<div>${progressLine}</div>` : ""}
+              <div>${headlineLine}</div>
+              <div class="subtle">${statusText}</div>
+              <div>${collectLine || goalLine}</div>
+              <div>${progressLine || visibilityLine}</div>
               ${timingText}
               ${arcadeHud}
             </div>
@@ -5171,10 +5422,10 @@
         fullModeBubble.classList.toggle("active", showFullBubble);
         if (showFullBubble) {
           fullModeBubble.innerHTML = `
-            <strong>${turnText}</strong><br />
-            ${goalLine}<br />
-            ${visibilityLine}
-            ${progressLine ? `<br />${progressLine}` : ""}
+            <span class="coach-badge" aria-hidden="true">🗣️</span>
+            <strong>${headlineLine}</strong><br />
+            ${collectLine || goalLine}<br />
+            ${progressLine || visibilityLine}
           `;
         } else {
           fullModeBubble.textContent = "";
@@ -5215,7 +5466,7 @@
       if (!shouldShow) return;
       const lastRowSize = state.rowSizes[state.rowSizes.length - 1] || 0;
       finishTokensEl.style.gridTemplateColumns = `repeat(${Math.max(1, lastRowSize)}, minmax(var(--slot-min), 1fr))`;
-      const landedTokens = (state.landingZoneTokens || []).slice(-4);
+      const landedTokens = state.landingZoneTokens || [];
       const tokensByColumn = new Map();
       landedTokens.forEach((entry) => {
         const { idx } = rowIdxFromSlotId(entry.slotId);
@@ -5297,7 +5548,7 @@
             }
           } else if (slot.lastResult) {
             const lastCard = state.cards[slot.lastResult.cardId];
-            const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
+            const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : slot.lastResult.outcome === "over-skill" ? "⚠️" : "❌";
             label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
           }
           let tokenMarkup = "";
@@ -5406,18 +5657,18 @@
           }
           if (state.activeRun && card.type !== "SPECIAL") {
             const skierCard = getSkierCard(state.activeRun.leadSkierId);
-            const willCollect = card.difficultyRank <= skierCard.difficultyRank;
+            const willCollect = card.difficultyRank <= getSkierSkillTier(skierCard);
             if (willCollect) {
               button.classList.add("can-collect");
               indicator = "✅ Collects";
             } else {
               button.classList.add("will-miss");
-              indicator = slot.bonusEmoji ? "⚠️ Miss upgrades" : "⚠️ Miss stays";
+              indicator = "⚠️ Half value";
             }
           }
         } else if (slot.lastResult) {
           const lastCard = state.cards[slot.lastResult.cardId];
-          const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : "❌";
+          const resultIcon = slot.lastResult.outcome === "collected" ? "✅" : slot.lastResult.outcome === "over-skill" ? "⚠️" : "❌";
           label = `${getCardLabel(lastCard)} <span class="result-badge">${resultIcon}</span>`;
         }
         const coachText = coachActive
@@ -5879,15 +6130,22 @@
 
     function handleKeyMove(event) {
       if (!state.gameStarted || state.gameEnded) return;
-      if (event.code === "Space" || event.key === " ") {
+      const key = event.key;
+      const code = event.code;
+      if (code === "Space" || key === " ") {
         event.preventDefault();
         cycleLiftZoneOrder();
         render();
         return;
       }
-      if (event.key === "ArrowLeft") {
+      const isLeft = key === "ArrowLeft" || key === "Left" || code === "ArrowLeft";
+      const isRight = key === "ArrowRight" || key === "Right" || code === "ArrowRight";
+      if (isLeft || isRight) {
+        event.preventDefault();
+      }
+      if (isLeft) {
         handleDirectionalMove("LEFT");
-      } else if (event.key === "ArrowRight") {
+      } else if (isRight) {
         handleDirectionalMove("RIGHT");
       }
     }
@@ -6177,7 +6435,9 @@
         `;
         if (bonusTrackerEl) {
           bonusTrackerEl.innerHTML = `
-            <span class="footer-note">Collect 7 unique ranks per tier to level up.</span><br />
+            <span class="footer-note">Progression: 100 XP → 🟦, 250 XP → ◆, 500 XP → ◆◆.</span><br />
+            <span class="footer-note">Run value = (rank-1) + tier bonus (🟢+0, 🟦+2, ◆+4, ◆◆+6).</span><br />
+            <span class="footer-note">Memory scoring: +1 tier = 1/2 value, +2 tiers = 1/3 value, +3 tiers = 1/4 value. Streak +1/+2.</span><br />
             <span class="footer-note">Bonus goals: ${bonusSummary}</span>
           `;
         }
@@ -6266,6 +6526,12 @@
         returnButton.style.display = show && state.gameStarted ? "inline-flex" : "none";
       }
       overlay.style.display = show ? "flex" : "none";
+    }
+
+    function isModeOverlayOpen() {
+      const overlay = document.getElementById("modeOverlay");
+      if (!overlay) return false;
+      return overlay.style.display !== "none";
     }
 
     function showPowderModal(show) {
@@ -6760,6 +7026,10 @@
       if (bgMusicVideo) {
         bgMusicVideo.loop = state.loopCurrentTrack;
       }
+      connectMusicElementToAnalyser(bgMusic);
+      connectMusicElementToAnalyser(bgMusicVideo);
+      connectMusicElementToAnalyser(iosAudio);
+      ensureMusicEqualizerRunning();
     }
 
     function isIOSDevice() {
@@ -6774,7 +7044,6 @@
     }
 
     function unlockAudioContext() {
-      if (state.audioUnlocked) return;
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       if (!state.audioContext) {
@@ -6784,6 +7053,13 @@
       if (context.state === "suspended") {
         context.resume().catch(() => {});
       }
+      if (!state.musicAnalyser) {
+        state.musicAnalyser = context.createAnalyser();
+        state.musicAnalyser.fftSize = 128;
+        state.musicAnalyser.smoothingTimeConstant = 0.72;
+        state.musicFreqData = new Uint8Array(state.musicAnalyser.frequencyBinCount);
+      }
+      if (state.audioUnlocked) return;
       try {
         const source = context.createBufferSource();
         source.buffer = context.createBuffer(1, 1, 22050);
@@ -6793,6 +7069,64 @@
       } catch (error) {
         state.audioUnlocked = true;
       }
+    }
+
+    function connectMusicElementToAnalyser(element) {
+      if (!element || !state.audioContext || !state.musicAnalyser) return;
+      if (state.musicElementSources.has(element)) return;
+      try {
+        const sourceNode = state.audioContext.createMediaElementSource(element);
+        sourceNode.connect(state.musicAnalyser);
+        sourceNode.connect(state.audioContext.destination);
+        state.musicElementSources.set(element, sourceNode);
+      } catch (error) {
+        // Some browsers or CORS policies can block analyzer routing.
+      }
+    }
+
+    function animateMusicEqualizer() {
+      const eq = document.getElementById("musicQuickEq");
+      if (!eq) {
+        state.musicVisualizerFrame = null;
+        return;
+      }
+      const bars = Array.from(eq.querySelectorAll("span"));
+      if (!bars.length) {
+        state.musicVisualizerFrame = null;
+        return;
+      }
+
+      const anyPlaying = [state.iosMusicElement, document.getElementById("bgMusic"), document.getElementById("bgMusicVideo")]
+        .filter(Boolean)
+        .some((el) => !el.paused && !el.ended);
+
+      if (state.musicAnalyser && state.musicFreqData && anyPlaying) {
+        state.musicAnalyser.getByteFrequencyData(state.musicFreqData);
+        const binsPerBar = Math.max(1, Math.floor(state.musicFreqData.length / bars.length));
+        bars.forEach((bar, index) => {
+          const start = index * binsPerBar;
+          const end = Math.min(state.musicFreqData.length, start + binsPerBar);
+          let sum = 0;
+          for (let i = start; i < end; i += 1) sum += state.musicFreqData[i];
+          const avg = end > start ? sum / (end - start) : 0;
+          const normalized = avg / 255;
+          const px = Math.max(2, Math.round(2 + normalized * 16));
+          bar.style.height = `${px}px`;
+          bar.style.opacity = `${Math.max(0.35, 0.45 + normalized * 0.55)}`;
+        });
+      } else {
+        bars.forEach((bar, index) => {
+          bar.style.height = `${2 + ((index + Math.floor(Date.now() / 240)) % 2)}px`;
+          bar.style.opacity = "0.35";
+        });
+      }
+
+      state.musicVisualizerFrame = requestAnimationFrame(animateMusicEqualizer);
+    }
+
+    function ensureMusicEqualizerRunning() {
+      if (state.musicVisualizerFrame) return;
+      state.musicVisualizerFrame = requestAnimationFrame(animateMusicEqualizer);
     }
 
     function tryPlayMedia(element) {
@@ -7501,35 +7835,17 @@
         cloudGrid.appendChild(chip);
       });
       shuffleFlight.innerHTML = "";
-      const width = shuffleCard.clientWidth;
-      const height = shuffleCard.clientHeight;
-      const flightEmojis = [
-        "🟢",
-        "🟦",
-        "◆",
-        "◆◆",
-        "☁️",
-        "⛷️",
-        "🏂",
-        "❄️",
-        "❄️",
-        "❄️",
-        "🌨️",
-        "🌬️",
-        "✨",
-        "⛄️"
-      ];
-      for (let i = 0; i < 60; i += 1) {
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+      const conditionCards = SYMBOLS.flatMap((symbol) => CONDITION_RANKS.map((rank) => `${rank}${symbol.icon}`));
+      for (let i = 0; i < 96; i += 1) {
         const fly = document.createElement("div");
-        const x = Math.random() * (width * 0.7);
-        const y = Math.random() * (height * 0.6) + height * 0.2;
+        const x = Math.random() * Math.max(220, viewportWidth - 120);
         fly.className = "shuffle-fly-card";
-        fly.textContent = flightEmojis[Math.floor(Math.random() * flightEmojis.length)];
+        fly.textContent = conditionCards[Math.floor(Math.random() * conditionCards.length)];
         fly.style.setProperty("--x", `${x}px`);
-        fly.style.setProperty("--y", `${y}px`);
-        fly.style.setProperty("--rot", `${-30 + Math.random() * 60}deg`);
-        fly.style.setProperty("--scale", `${0.75 + Math.random() * 1.25}`);
-        fly.style.setProperty("--delay", `${Math.random() * 2400}ms`);
+        fly.style.setProperty("--hue", `${-20 + Math.random() * 40}deg`);
+        fly.style.setProperty("--duration", `${4.8 + Math.random() * 4.2}s`);
+        fly.style.setProperty("--delay", `${Math.random() * 2200}ms`);
         shuffleFlight.appendChild(fly);
       }
     }
@@ -8074,6 +8390,11 @@
       showModeOverlay(true);
     });
     document.addEventListener("keydown", (event) => {
+      const key = event.key;
+      const code = event.code;
+      const isLeft = key === "ArrowLeft" || key === "Left" || code === "ArrowLeft";
+      const isRight = key === "ArrowRight" || key === "Right" || code === "ArrowRight";
+
       if (event.key === "Escape") {
         hideScoreModal();
         closeScheduleModal();
@@ -8084,9 +8405,19 @@
         return;
       }
       if (!state.loadingDismissed) {
+        if (isLeft || isRight || ["ArrowUp", "ArrowDown"].includes(key) || ["ArrowUp", "ArrowDown"].includes(code)) {
+          return;
+        }
         finalizeLoading();
         showIntroOverlay(false);
         showModeOverlay(true);
+        return;
+      }
+      if ((isLeft || isRight) && !isModeOverlayOpen()) {
+        event.preventDefault();
+        notePlayerInteraction();
+        stopAttractMode();
+        handleDirectionalMove(isLeft ? "LEFT" : "RIGHT");
         return;
       }
       notePlayerInteraction();
@@ -8100,9 +8431,65 @@
         emitPlayerInteraction();
       }, { passive: true });
     });
+    function getPrimaryGamepad() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      if (!pads) return null;
+      return Array.from(pads).find((pad) => pad && pad.connected) || null;
+    }
+
+    function readGamepadPressed(pad, index) {
+      const button = pad?.buttons?.[index];
+      if (!button) return false;
+      return typeof button === "object" ? button.pressed : Boolean(button);
+    }
+
+    function pollGamepadInput() {
+      const pad = getPrimaryGamepad();
+      const input = state.gamepadInput;
+      if (!pad) {
+        input.leftHeld = false;
+        input.rightHeld = false;
+        input.downHeld = false;
+      } else {
+        const axisX = Number(pad.axes?.[0] || 0);
+        const axisY = Number(pad.axes?.[1] || 0);
+        const leftPressed = readGamepadPressed(pad, 14) || axisX <= -0.55;
+        const rightPressed = readGamepadPressed(pad, 15) || axisX >= 0.55;
+        const downPressed = readGamepadPressed(pad, 13) || axisY >= 0.6;
+
+        if (leftPressed && !input.leftHeld) {
+          notePlayerInteraction();
+          stopAttractMode();
+          handleDirectionalMove("LEFT");
+        }
+        if (rightPressed && !input.rightHeld) {
+          notePlayerInteraction();
+          stopAttractMode();
+          handleDirectionalMove("RIGHT");
+        }
+        if (downPressed && !input.downHeld) {
+          notePlayerInteraction();
+          stopAttractMode();
+          cycleLiftZoneOrder();
+          render();
+        }
+
+        input.leftHeld = leftPressed;
+        input.rightHeld = rightPressed;
+        input.downHeld = downPressed;
+      }
+      state.gamepadLoopId = requestAnimationFrame(pollGamepadInput);
+    }
+
+    function startGamepadPolling() {
+      if (state.gamepadLoopId) return;
+      state.gamepadLoopId = requestAnimationFrame(pollGamepadInput);
+    }
+
     startLoadingSequence();
     enableMusicOnInteraction();
     startMusic();
+    startGamepadPolling();
     scheduleStartupAttractTimer();
     scheduleScreenIdleTimer();
     queueInitialEmojiRain();
