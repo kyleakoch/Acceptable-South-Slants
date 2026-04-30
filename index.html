@@ -211,33 +211,37 @@
     }
     .shuffle-fly-card {
       position: absolute;
-      top: -16%;
+      top: -18vh;
       left: 0;
-      min-width: 56px;
-      height: 76px;
+      min-width: 52px;
+      height: 72px;
       border-radius: 10px;
-      background: rgba(248, 250, 252, 0.95);
+      background: rgba(248, 250, 252, 0.9);
       box-shadow: 0 6px 12px rgba(15, 23, 42, 0.25);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 800;
       color: #0f172a;
       padding: 0 8px;
-      animation: shuffle-fall var(--duration, 7.2s) linear forwards;
+      animation: shuffle-fall var(--duration, 6.8s) linear forwards;
       animation-delay: var(--delay);
+      filter: hue-rotate(var(--hue, 0deg));
     }
     @keyframes shuffle-fall {
       0% {
-        transform: translate3d(var(--x), -20%, 0) rotate(var(--rot));
+        transform: translate3d(var(--x), -20vh, 0);
         opacity: 0;
       }
-      10% {
-        opacity: 1;
+      6% {
+        opacity: 0.95;
+      }
+      90% {
+        opacity: 0.9;
       }
       100% {
-        transform: translate3d(calc(var(--x) + var(--drift, 0px)), 125%, 0) rotate(calc(var(--rot) + var(--spin, 0deg)));
+        transform: translate3d(var(--x), 120vh, 0);
         opacity: 0;
       }
     }
@@ -2400,7 +2404,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">T</div>
+    <div class="loading-version">U</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2792,7 +2796,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37t — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37u — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -7825,11 +7829,9 @@
         fly.className = "shuffle-fly-card";
         fly.textContent = conditionCards[Math.floor(Math.random() * conditionCards.length)];
         fly.style.setProperty("--x", `${x}px`);
-        fly.style.setProperty("--drift", `${-50 + Math.random() * 100}px`);
-        fly.style.setProperty("--rot", `${-25 + Math.random() * 25}deg`);
-        fly.style.setProperty("--spin", `${-80 + Math.random() * 160}deg`);
-        fly.style.setProperty("--duration", `${5.5 + Math.random() * 4.5}s`);
-        fly.style.setProperty("--delay", `${Math.random() * 2800}ms`);
+        fly.style.setProperty("--hue", `${-20 + Math.random() * 40}deg`);
+        fly.style.setProperty("--duration", `${4.8 + Math.random() * 4.2}s`);
+        fly.style.setProperty("--delay", `${Math.random() * 2200}ms`);
         shuffleFlight.appendChild(fly);
       }
     }
