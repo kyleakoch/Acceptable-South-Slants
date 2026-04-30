@@ -2404,7 +2404,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">V</div>
+    <div class="loading-version">W</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2796,7 +2796,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.37v — single-player Party Mode (mouse or touch controls)
+    Prototype v0.37w — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -6130,15 +6130,22 @@
 
     function handleKeyMove(event) {
       if (!state.gameStarted || state.gameEnded) return;
-      if (event.code === "Space" || event.key === " ") {
+      const key = event.key;
+      const code = event.code;
+      if (code === "Space" || key === " ") {
         event.preventDefault();
         cycleLiftZoneOrder();
         render();
         return;
       }
-      if (event.key === "ArrowLeft") {
+      const isLeft = key === "ArrowLeft" || key === "Left" || code === "ArrowLeft";
+      const isRight = key === "ArrowRight" || key === "Right" || code === "ArrowRight";
+      if (isLeft || isRight) {
+        event.preventDefault();
+      }
+      if (isLeft) {
         handleDirectionalMove("LEFT");
-      } else if (event.key === "ArrowRight") {
+      } else if (isRight) {
         handleDirectionalMove("RIGHT");
       }
     }
@@ -8387,7 +8394,7 @@
         return;
       }
       if (!state.loadingDismissed) {
-        if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+        if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) || ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.code)) {
           return;
         }
         finalizeLoading();
