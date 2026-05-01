@@ -151,7 +151,7 @@
       padding: 20px 24px 28px;
       box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
       position: relative;
-      overflow: hidden;
+      overflow: visible;
     }
     .shuffle-card h2 {
       margin: 0 0 12px;
@@ -203,6 +203,7 @@
       background: #e2e8f0;
     }
     .shuffle-flight {
+      z-index: 4;
       position: fixed;
       inset: 0;
       pointer-events: none;
@@ -2386,7 +2387,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">D</div>
+    <div class="loading-version">E</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2777,7 +2778,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.38d — single-player Party Mode (mouse or touch controls)
+    Prototype v0.38e — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
