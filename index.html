@@ -134,7 +134,7 @@
     .shuffle-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(12, 20, 38, 0.9);
+      background: linear-gradient(180deg, rgba(24, 26, 31, 0.95) 0%, rgba(12, 14, 18, 0.96) 100%);
       display: none;
       align-items: center;
       justify-content: center;
@@ -146,10 +146,10 @@
     }
     .shuffle-card {
       width: min(960px, 92vw);
-      background: rgba(255, 255, 255, 0.96);
+      background: linear-gradient(180deg, rgba(62, 67, 76, 0.95) 0%, rgba(35, 39, 46, 0.96) 100%);
       border-radius: 18px;
       padding: 20px 24px 28px;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
       position: relative;
       overflow: hidden;
     }
@@ -157,6 +157,7 @@
       margin: 0 0 12px;
       font-size: 22px;
       text-align: center;
+      color: #e5e7eb;
     }
     .shuffle-stage {
       display: grid;
@@ -172,7 +173,7 @@
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      color: #64748b;
+      color: #cbd5e1;
       text-align: center;
       margin: 8px 0 6px;
     }
@@ -203,11 +204,11 @@
       background: #e2e8f0;
     }
     .shuffle-flight {
-      position: fixed;
+      position: absolute;
       inset: 0;
       pointer-events: none;
       overflow: hidden;
-      z-index: 220;
+      z-index: 260;
     }
     .shuffle-fly-card {
       position: absolute;
@@ -228,6 +229,8 @@
       animation: shuffle-fall var(--duration, 6.8s) linear forwards;
       animation-delay: var(--delay);
       filter: hue-rotate(var(--hue, 0deg));
+      will-change: transform, opacity;
+      backface-visibility: hidden;
     }
     @keyframes shuffle-fall {
       0% {
@@ -2404,7 +2407,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">C</div>
+    <div class="loading-version">D</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2796,7 +2799,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.38c — single-player Party Mode (mouse or touch controls)
+    Prototype v0.38d — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -7851,7 +7854,9 @@
       shuffleFlight.innerHTML = "";
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
       const conditionCards = SYMBOLS.flatMap((symbol) => CONDITION_RANKS.map((rank) => `${rank}${symbol.icon}`));
-      for (let i = 0; i < 96; i += 1) {
+      const isNarrowScreen = (window.innerWidth || 0) <= 768;
+      const flyCount = isNarrowScreen ? 44 : 72;
+      for (let i = 0; i < flyCount; i += 1) {
         const fly = document.createElement("div");
         const x = Math.random() * Math.max(220, viewportWidth - 120);
         fly.className = "shuffle-fly-card";
@@ -7859,7 +7864,7 @@
         fly.style.setProperty("--x", `${x}px`);
         fly.style.setProperty("--hue", `${-20 + Math.random() * 40}deg`);
         fly.style.setProperty("--duration", `${4.8 + Math.random() * 4.2}s`);
-        fly.style.setProperty("--delay", `${Math.random() * 2200}ms`);
+        fly.style.setProperty("--delay", `${Math.random() * (isNarrowScreen ? 1200 : 1800)}ms`);
         shuffleFlight.appendChild(fly);
       }
     }
@@ -7878,7 +7883,7 @@
         setTimeout(() => {
           showShuffleOverlay(false);
           resolve();
-        }, 9000);
+        }, 4500);
       });
     }
 
