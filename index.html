@@ -2164,24 +2164,6 @@
       border-color: #ef4444;
       box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
     }
-    #frameUiToggle {
-      position: absolute;
-      right: 64px;
-      bottom: 16px;
-      border-radius: 999px;
-      border: 2px solid rgba(15, 23, 42, 0.2);
-      background: rgba(255, 255, 255, 0.9);
-      font-size: 22px;
-      padding: 6px 10px;
-      cursor: pointer;
-      line-height: 1;
-      display: none;
-    }
-    .debug-enabled #frameUiToggle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
     .debug-footer .secondary {
       display: none;
     }
@@ -2404,7 +2386,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">X</div>
+    <div class="loading-version">D</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2791,12 +2773,11 @@
           <div class="legend" id="legend"></div>
         </div>
       </div>
-      <button id="frameUiToggle" class="goggles-button" type="button" aria-label="Toggle frame UI" aria-pressed="false">🖼️</button>
       <button id="bugToggle" class="bug-toggle" type="button" aria-label="Toggle debug mode">🐞</button>
     </section>
   </main>
   <footer>
-    Prototype v0.37x — single-player Party Mode (mouse or touch controls)
+    Prototype v0.38d — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -2842,6 +2823,9 @@
           <span class="footer-note">Aim, push, and sweep your way to the button.</span>
           <button id="startCurling">Start Curling</button>
         </div>
+      </div>
+      <div class="mode-auto-idle">
+        <button id="startAutoIdle" class="secondary" type="button" aria-label="Start auto idle mode">∞ Auto / Idle</button>
       </div>
       <button id="returnToGame" class="secondary">Return to current game</button>
     </div>
@@ -3096,6 +3080,7 @@
       firstPersonView: false,
       coachMode: "ON",
       introStep: 0,
+      introOverlaySeen: false,
       coachTipShown: false,
       endTipShown: false,
       musicIndex: 0,
@@ -6093,6 +6078,16 @@
       executeDirectionalMove(direction);
     }
 
+    function pressDirectionalButton(direction) {
+      const buttonId = direction === "LEFT" ? "tramLeftButton" : "tramRightButton";
+      const button = document.getElementById(buttonId);
+      if (button) {
+        button.click();
+        return true;
+      }
+      return false;
+    }
+
     function isSelectableSlot(id) {
       if (state.gameEnded) return false;
       if (state.awaitingStartChoice) {
@@ -7006,10 +7001,11 @@
       const bgMusic = document.getElementById("bgMusic");
       const bgMusicVideo = document.getElementById("bgMusicVideo");
       const trackUrl = track ? track.url : "";
+      const iosMode = isIOSDevice();
       if (bgMusic && trackUrl && bgMusic.src !== trackUrl) {
         bgMusic.src = trackUrl;
       }
-      if (bgMusicVideo && trackUrl && bgMusicVideo.src !== trackUrl) {
+      if (!iosMode && bgMusicVideo && trackUrl && bgMusicVideo.src !== trackUrl) {
         bgMusicVideo.src = trackUrl;
       }
       const iosAudio = ensureIosMusicElement(track);
@@ -7299,6 +7295,24 @@
       playerInteractionCallbacks.forEach((callback) => callback());
     }
 
+    function waitForMediaReady(element, timeoutMs = 2200) {
+      if (!element) return Promise.resolve();
+      if (element.readyState >= 2) return Promise.resolve();
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          element.removeEventListener("canplay", finish);
+          element.removeEventListener("loadeddata", finish);
+          resolve();
+        };
+        element.addEventListener("canplay", finish, { once: true });
+        element.addEventListener("loadeddata", finish, { once: true });
+        setTimeout(finish, timeoutMs);
+      });
+    }
+
     function playTrack(trackNumber, { loop = false, fadeMs = 700 } = {}) {
       const track = TRACK_BY_NUMBER[trackNumber];
       if (!track) return Promise.resolve();
@@ -7329,7 +7343,7 @@
         return Promise.resolve();
       }
       console.debug("[MusicDirector] playTrack", { trackNumber, loop, fadeMs });
-      return tryPlayMedia(primary).catch(() => {});
+      return waitForMediaReady(primary).then(() => tryPlayMedia(primary)).catch(() => {});
     }
 
     function stopTrack({ fadeMs = 700 } = {}) {
@@ -7994,6 +8008,19 @@
       }
     }
 
+    function startAutoIdleMode() {
+      finalizeLoading();
+      setNightSkiing(false);
+      state.fullAutoGames = 0;
+      state.autoStrategy = "RANDOM";
+      state.autoSpeed = "ONE_X";
+      setPeak("PEAK_1");
+      document.body.classList.remove("hide-coords");
+      document.body.classList.add("debug-enabled");
+      toggleDebugButton.textContent = "Hide debug";
+      startFullAuto();
+    }
+
     function startMode(mode) {
       stopFullAuto();
       state.autoStrategy = "MANUAL";
@@ -8064,6 +8091,7 @@
       if (!overlay) return;
       overlay.classList.toggle("active", show);
       if (show) {
+        state.introOverlaySeen = true;
         state.introStep = 0;
         renderIntroOverlay();
       }
@@ -8084,6 +8112,7 @@
     document.getElementById("startRpgSnowboarders").addEventListener("click", () => startRpgMode("SNOWBOARDER"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
     document.getElementById("startCurling").addEventListener("click", () => startMode("CURLING"));
+    document.getElementById("startAutoIdle").addEventListener("click", () => startAutoIdleMode());
     document.getElementById("peak1").addEventListener("click", () => setPeak("PEAK_1"));
     document.getElementById("peak2").addEventListener("click", () => setPeak("PEAK_2"));
     document.getElementById("peak3").addEventListener("click", () => setPeak("PEAK_3"));
@@ -8166,11 +8195,6 @@
       if (!document.body.classList.contains("debug-enabled")) return;
       state.firstPersonView = !state.firstPersonView;
       render();
-    });
-    document.getElementById("frameUiToggle").addEventListener("click", () => {
-      state.frameUiEnabled = !state.frameUiEnabled;
-      render();
-      renderPowderModal();
     });
     document.getElementById("powderOverlayToggle").addEventListener("click", () => {
       state.emojiOverlayEnabled = !state.emojiOverlayEnabled;
@@ -8293,6 +8317,9 @@
       renderIntroOverlay();
     });
     document.getElementById("introSkip").addEventListener("click", () => {
+      if (state.introOverlaySeen) {
+        return;
+      }
       showIntroOverlay(false);
       showModeOverlay(true);
     });
@@ -8374,20 +8401,9 @@
       }
       if (event.target === loadingEmoji) {
         finalizeLoading();
-        setNightSkiing(false);
-        state.fullAutoGames = 0;
-        state.autoStrategy = "RANDOM";
-        state.autoSpeed = "ONE_X";
-        setPeak("PEAK_1");
-        document.body.classList.remove("hide-coords");
-        document.body.classList.add("debug-enabled");
-        toggleDebugButton.textContent = "Hide debug";
-        startFullAuto();
-        return;
+        showIntroOverlay(false);
+        showModeOverlay(true);
       }
-      finalizeLoading();
-      showIntroOverlay(false);
-      showModeOverlay(true);
     });
     document.addEventListener("keydown", (event) => {
       const key = event.key;
@@ -8405,19 +8421,18 @@
         return;
       }
       if (!state.loadingDismissed) {
-        if (isLeft || isRight || ["ArrowUp", "ArrowDown"].includes(key) || ["ArrowUp", "ArrowDown"].includes(code)) {
-          return;
-        }
         finalizeLoading();
         showIntroOverlay(false);
         showModeOverlay(true);
         return;
       }
-      if ((isLeft || isRight) && !isModeOverlayOpen()) {
+      if (isLeft || isRight) {
         event.preventDefault();
         notePlayerInteraction();
         stopAttractMode();
-        handleDirectionalMove(isLeft ? "LEFT" : "RIGHT");
+        if (!pressDirectionalButton(isLeft ? "LEFT" : "RIGHT")) {
+          handleDirectionalMove(isLeft ? "LEFT" : "RIGHT");
+        }
         return;
       }
       notePlayerInteraction();
