@@ -139,7 +139,7 @@
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 18;
+      z-index: 300;
       padding: 20px;
     }
     .shuffle-overlay.active {
@@ -209,7 +209,7 @@
       inset: 0;
       pointer-events: none;
       overflow: hidden;
-      z-index: 3;
+      z-index: 400;
     }
     .shuffle-fly-card {
       position: absolute;
@@ -622,16 +622,13 @@
       transform: translateX(0);
     }
     .music-quick-title.scroll {
-      animation: music-marquee 12s linear infinite;
+      animation: music-marquee 10s linear infinite;
       padding-right: 36px;
     }
     @keyframes music-marquee {
-      from {
-        transform: translateX(0);
-      }
-      to {
-        transform: translateX(var(--scroll-distance, 0px));
-      }
+      0% { transform: translateX(calc(-1 * var(--scroll-left, 0px))); }
+      50% { transform: translateX(var(--scroll-right, 0px)); }
+      100% { transform: translateX(calc(-1 * var(--scroll-left, 0px))); }
     }
     .music-replay {
       margin: 6px 0;
@@ -648,12 +645,17 @@
     }
     .music-replay-grid {
       display: grid;
-      gap: 2px;
-      align-content: stretch;
+      gap: 3px;
+      align-content: center;
+      height: 100%;
     }
+    .music-replay-row { display:flex; justify-content:center; gap:3px; }
+    .music-replay-line { position:absolute; inset: 6px; pointer-events:none; }
     .music-replay-cell { background: rgba(148,163,184,0.18); border-radius: 2px; position: relative; }
     .music-replay-cell.path { background: rgba(59,130,246,0.45); }
     .music-replay-cell.current::after { content: ""; position: absolute; inset: 20%; border-radius: 999px; background: #f97316; }
+    .music-replay-cell.good::before { content:"✅"; position:absolute; inset:auto 2px 2px auto; font-size:9px; }
+    .music-replay-cell.bad::before { content:"❌"; position:absolute; inset:auto 2px 2px auto; font-size:9px; }
     .music-replay-meta { font-size: 11px; font-weight: 700; display:flex; justify-content:space-between; }
     .music-quick-eq {
       height: 12px;
@@ -2410,7 +2412,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">G</div>
+    <div class="loading-version">H</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2802,7 +2804,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.38g — single-player Party Mode (mouse or touch controls)
+    Prototype v0.38h — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -4400,7 +4402,8 @@
           lastMoveDirection: null,
           multiplierBonus: 0,
           eligibleStreak: 0,
-        path: [slotIdChoice]
+        path: [slotIdChoice],
+        outcomes: [{ slotId: slotIdChoice, collected: null }]
         };
         state.currentAutoModeForRun = getActiveAutoModeForSkier(pausedSkierId);
         state.message = "Resuming paused skier. Choose your next step.";
@@ -4916,7 +4919,10 @@
       state.lastGlide = { from: prevSlotId, to: slotId, skierId: state.activeRun.leadSkierId };
       state.activeRun.currentSlotId = slotId;
       if (Array.isArray(state.activeRun.path)) state.activeRun.path.push(slotId);
+      const beforeScore = state.activeRun.collectedScore || 0;
       resolveSlot(slotId, state.activeRun.leadSkierId);
+      const gained = (state.activeRun.collectedScore || 0) > beforeScore;
+      if (Array.isArray(state.activeRun.outcomes)) state.activeRun.outcomes.push({ slotId, collected: gained });
       const { row } = rowIdxFromSlotId(slotId);
       if (row === state.rowSizes.length) {
         finishRun();
@@ -4973,7 +4979,8 @@
       state.lastRunReplay = {
         path: Array.isArray(run.path) ? [...run.path] : [run.currentSlotId],
         skierId: run.leadSkierId,
-        score: run.collectedScore || 0
+        score: run.collectedScore || 0,
+        outcomes: Array.isArray(run.outcomes) ? [...run.outcomes] : []
       };
       state.currentAutoModeForRun = null;
       state.activeRun = null;
@@ -5288,13 +5295,12 @@
       loop.textContent = state.loopCurrentTrack ? "Looping" : "Loop";
 
       title.classList.remove("scroll");
-      title.style.removeProperty("--scroll-distance");
       requestAnimationFrame(() => {
-        const overflow = Math.ceil(title.scrollWidth - titleWrap.clientWidth);
-        if (overflow > 6) {
-          title.style.setProperty("--scroll-distance", `${overflow}px`);
-          title.classList.add("scroll");
-        }
+        const left = Math.max(8, Math.ceil(title.scrollWidth));
+        const right = Math.max(8, Math.ceil(titleWrap.clientWidth - title.scrollWidth));
+        title.style.setProperty("--scroll-left", `${left}px`);
+        title.style.setProperty("--scroll-right", `${right}px`);
+        title.classList.add("scroll");
       });
 
       renderMusicReplay();
@@ -5313,24 +5319,28 @@
         host.innerHTML = '<div class="music-replay-meta"><span>Replay / Commentary</span><span>No run yet</span></div>';
         return;
       }
-      const rows = state.rowSizes.length;
-      const cols = Math.max(...state.rowSizes);
-      const pathSet = new Set(replay.path);
-      const last = replay.path[replay.path.length - 1];
-      let cells = '';
-      for (let r = 1; r <= rows; r += 1) {
-        for (let c = 0; c < cols; c += 1) {
-          const isReal = c < state.rowSizes[r - 1];
-          if (!isReal) {
-            cells += '<div class="music-replay-cell" style="opacity:0"></div>';
-            continue;
-          }
-          const id = slotId(r, c);
-          const cls = `music-replay-cell${pathSet.has(id) ? ' path' : ''}${id === last ? ' current' : ''}`;
-          cells += `<div class="${cls}"></div>`;
+      const points = replay.path.map((id) => rowIdxFromSlotId(id));
+      const maxCols = Math.max(...state.rowSizes);
+      const rowsHtml = state.rowSizes.map((size, rowIndex) => {
+        let row = '<div class="music-replay-row">';
+        for (let idx = 0; idx < size; idx += 1) {
+          const id = slotId(rowIndex + 1, idx);
+          const isPath = replay.path.includes(id);
+          const isCurrent = replay.path[replay.path.length - 1] === id;
+          const outcome = (replay.outcomes || []).find((o) => o.slotId === id);
+          const outcomeClass = outcome?.collected === true ? ' good' : outcome?.collected === false ? ' bad' : '';
+          row += `<div class="music-replay-cell${isPath ? ' path' : ''}${isCurrent ? ' current' : ''}${outcomeClass}" style="width:${Math.max(14, Math.floor((100 / maxCols) * 0.9))}%;"></div>`;
         }
-      }
-      host.innerHTML = `<div class="music-replay-grid" style="grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr);">${cells}</div><div class="music-replay-meta"><span>${getSkierTokenMarkup(replay.skierId)} prev route</span><span>Run ${formatNumber(replay.score)}</span></div>`;
+        row += '</div>';
+        return row;
+      }).join('');
+      const poly = points.map(({row, idx}) => {
+        const rowSize = state.rowSizes[row - 1];
+        const x = ((maxCols - rowSize) / 2 + idx + 0.5) / maxCols * 100;
+        const y = (row - 0.5) / state.rowSizes.length * 100;
+        return `${x},${y}`;
+      }).join(' ');
+      host.innerHTML = `<svg class="music-replay-line" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${poly}" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="music-replay-grid">${rowsHtml}</div><div class="music-replay-meta"><span>${getSkierTokenMarkup(replay.skierId)} prev route</span><span>Run ${formatNumber(replay.score)}</span></div>`;
     }
 
     function runGlideAnimation() {
