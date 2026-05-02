@@ -622,13 +622,12 @@
       transform: translateX(0);
     }
     .music-quick-title.scroll {
-      animation: music-marquee 10s linear infinite;
+      animation: music-marquee 12s linear infinite;
       padding-right: 36px;
     }
     @keyframes music-marquee {
-      0% { transform: translateX(calc(-1 * var(--scroll-left, 0px))); }
-      50% { transform: translateX(var(--scroll-right, 0px)); }
-      100% { transform: translateX(calc(-1 * var(--scroll-left, 0px))); }
+      from { transform: translateX(var(--scroll-start, 0px)); }
+      to { transform: translateX(calc(-1 * var(--scroll-end, 0px))); }
     }
     .music-replay {
       margin: 6px 0;
@@ -2412,7 +2411,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">H</div>
+    <div class="loading-version">I</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2804,7 +2803,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.38h — single-player Party Mode (mouse or touch controls)
+    Prototype v0.38i — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -2885,157 +2884,157 @@
     const MUSIC_PLAYLIST = [
       {
         trackNumber: 1,
-        title: "Track 1",
+        title: "Sunrise Launch",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710874/1772662782713/01+-+Sunrise+Launch.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 2,
-        title: "Track 2",
+        title: "First Descent LR",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710875/1772662786047/02+-+First+Descent+LR.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 3,
-        title: "Track 3",
+        title: "Cold Boot Traverse (Part 1)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710876/1772662787053/03+-+Cold+Boot+Traverse+Part+1.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 4,
-        title: "Track 4",
+        title: "Crown Vector",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710877/1772662788003/04+-+Crown+Vector.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 5,
-        title: "Track 5",
+        title: "Ski Bum",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710878/1772662789113/05+-+Ski+Bum.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 6,
-        title: "Track 6",
+        title: "Compact Resolve",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710879/1772662790070/06+-+Compact+Resolve.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 7,
-        title: "Track 7",
+        title: "Soft Reset",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710880/1772662790933/07+-+Soft+Reset.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 8,
-        title: "Track 8",
+        title: "Cold Boot Traverse (Part 2)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710881/1772662791873/08+-+Cold+Boot+Traverse+Part+2.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 9,
-        title: "Track 9",
+        title: "Ski Bum (Set 2)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710882/1772662792940/09+-+Ski+Bum+Set+2.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 10,
-        title: "Track 10",
+        title: "🟢",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710883/1772662793873/10+-+.mp3?token=KpT6yTCUCDy7rt30zzV3J%2FrV0Tk%3D"
       },
       {
         trackNumber: 11,
-        title: "Track 11",
+        title: "🟦",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710884/1772662852080/11+-+.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 12,
-        title: "Track 12",
+        title: "◆",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710885/1772662860297/12+-+.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 13,
-        title: "Track 13",
+        title: "◆◆",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710886/1772662861423/13+-+.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 14,
-        title: "Track 14",
+        title: "Peak Auto",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710887/1772662862703/14+-+Peak+Auto.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 15,
-        title: "Track 15",
+        title: "Auto Logic",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710888/1772662863673/15+-+Auto+Logic.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 16,
-        title: "Track 16",
+        title: "Bootleg Midway",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710889/1772662864663/16+-+Bootleg+Midway.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 17,
-        title: "Track 17",
+        title: "Powder Protocol",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710890/1772662865583/17+-+Powder+Protocol.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 18,
-        title: "Track 18",
+        title: "Snowballin'",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710891/1772662866397/18+-+Snowballin%27.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 19,
-        title: "Track 19",
+        title: "Passione Traverse",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710892/1772662867577/19+-+Passione+Traverse.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 20,
-        title: "Track 20",
+        title: "Hardpack Hotfix",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710893/1772662868553/20+-+Hardpack+Hotfix.mp3?token=TambHsk7GKv3a8NYIwBNymMHhAk%3D"
       },
       {
         trackNumber: 21,
-        title: "Track 21",
+        title: "Lowlight Liaison",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710894/1772663076127/21+-+Lowlight+Liaison.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
       },
       {
         trackNumber: 22,
-        title: "Track 22",
+        title: "Neon Moguls",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710895/1772663077923/22+-+Neon+Moguls.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
       },
       {
         trackNumber: 23,
-        title: "Track 23",
+        title: "Night Kernel",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710896/1772663078863/23+-+Night+Kernel.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
       },
       {
         trackNumber: 24,
-        title: "Track 24",
+        title: "🟢 (Night)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710897/1772663079763/24+-++Night.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
       },
       {
         trackNumber: 25,
-        title: "Track 25",
+        title: "🟦 (Night)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710898/1772663081363/25+-++Night.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
       },
       {
         trackNumber: 26,
-        title: "Track 26",
+        title: "◆ (Night)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710899/1772663082467/26+-++Night.mp3?token=wTwfwIwo2LEbDgF1Pg8SvlI1k40%3D"
       },
       {
         trackNumber: 27,
-        title: "Track 27",
+        title: "◆◆ (Night)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710900/1772663083533/27+-++Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
       },
       {
         trackNumber: 28,
-        title: "Track 28",
+        title: "Peak Auto (Night)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710901/1772663085183/28+-+Peak+Auto+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
       },
       {
         trackNumber: 29,
-        title: "Track 29",
+        title: "Auto Logic (Night)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710902/1772663086127/29+-+Auto+Logic+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
       },
       {
         trackNumber: 30,
-        title: "Track 30",
+        title: "Powder Protocol (Night)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710903/1772663087207/30+-+Powder+Protocol+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
       },
       {
         trackNumber: 31,
-        title: "Track 31",
+        title: "Snowballin' (Night)",
         url: "https://static1.1.sqspcdn.com/static/f/292180/28710904/1772663088660/31+-+Snowballin%27+Night.mp3?token=HfbRTcuI%2F85z7Uf2VF1PucdAYTg%3D"
       }
     ];
@@ -3116,6 +3115,7 @@
       liftDetailsOpen: true,
       musicPanelOpen: true,
       musicDirectorBooted: false,
+      musicTickerKey: "",
       musicCurrentTrackNumber: null,
       musicAnalyser: null,
       musicFreqData: null,
@@ -5294,14 +5294,18 @@
       title.textContent = track ? `${track.trackNumber} - ${track.title}` : "—";
       loop.textContent = state.loopCurrentTrack ? "Looping" : "Loop";
 
-      title.classList.remove("scroll");
-      requestAnimationFrame(() => {
-        const left = Math.max(8, Math.ceil(title.scrollWidth));
-        const right = Math.max(8, Math.ceil(titleWrap.clientWidth - title.scrollWidth));
-        title.style.setProperty("--scroll-left", `${left}px`);
-        title.style.setProperty("--scroll-right", `${right}px`);
-        title.classList.add("scroll");
-      });
+      const tickerKey = `${state.musicIndex}:${title.textContent}`;
+      if (state.musicTickerKey !== tickerKey) {
+        state.musicTickerKey = tickerKey;
+        title.classList.remove("scroll");
+        requestAnimationFrame(() => {
+          const start = Math.max(12, Math.ceil(titleWrap.clientWidth));
+          const end = Math.max(12, Math.ceil(title.scrollWidth));
+          title.style.setProperty("--scroll-start", `${start}px`);
+          title.style.setProperty("--scroll-end", `${end}px`);
+          title.classList.add("scroll");
+        });
+      }
 
       renderMusicReplay();
       if (eq) {
