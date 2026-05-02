@@ -132,6 +132,7 @@
       opacity: 1;
     }
     .shuffle-overlay {
+      isolation: isolate;
       position: fixed;
       inset: 0;
       background: rgba(12, 20, 38, 0.9);
@@ -145,6 +146,7 @@
       display: flex;
     }
     .shuffle-card {
+      z-index: 2;
       width: min(960px, 92vw);
       background: rgba(255, 255, 255, 0.96);
       border-radius: 18px;
@@ -203,12 +205,11 @@
       background: #e2e8f0;
     }
     .shuffle-flight {
-      z-index: 4;
       position: fixed;
       inset: 0;
       pointer-events: none;
       overflow: hidden;
-      z-index: 220;
+      z-index: 3;
     }
     .shuffle-fly-card {
       position: absolute;
@@ -2387,7 +2388,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">E</div>
+    <div class="loading-version">F</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2406,8 +2407,8 @@
           <div id="shuffleCloud" class="shuffle-grid"></div>
         </div>
       </div>
-      <div id="shuffleFlight" class="shuffle-flight" aria-hidden="true"></div>
     </div>
+    <div id="shuffleFlight" class="shuffle-flight" aria-hidden="true"></div>
   </div>
   <audio id="bgMusic" preload="auto" autoplay playsinline crossorigin="anonymous"></audio>
   <video id="bgMusicVideo" class="bg-music-video" preload="auto" playsinline crossorigin="anonymous"></video>
@@ -2778,7 +2779,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.38e — single-player Party Mode (mouse or touch controls)
+    Prototype v0.38f — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
