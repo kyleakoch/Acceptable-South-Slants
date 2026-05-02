@@ -184,6 +184,7 @@
       gap: 6px;
     }
     .shuffle-chip {
+      transition: transform 420ms ease, opacity 280ms ease;
       background: #f1f5f9;
       border-radius: 10px;
       padding: 6px 4px;
@@ -2411,7 +2412,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">I</div>
+    <div class="loading-version">J</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2803,7 +2804,7 @@
     </section>
   </main>
   <footer>
-    Prototype v0.38i — single-player Party Mode (mouse or touch controls)
+    Prototype v0.38j — single-player Party Mode (mouse or touch controls)
     <div class="footer-note">Designed by <a href="https://www.linkedin.com/in/kyleakoch" target="_blank" rel="noopener noreferrer">@KyleAKoch</a></div>
     <div class="debug-footer">
       <span id="debugFooterLink" class="debug-link" role="button" tabindex="0">Debug overlay shows (row, idx).</span>
@@ -5323,28 +5324,29 @@
         host.innerHTML = '<div class="music-replay-meta"><span>Replay / Commentary</span><span>No run yet</span></div>';
         return;
       }
-      const points = replay.path.map((id) => rowIdxFromSlotId(id));
       const maxCols = Math.max(...state.rowSizes);
+      const outcomesBySlot = new Map((replay.outcomes || []).map((o) => [o.slotId, o.collected]));
       const rowsHtml = state.rowSizes.map((size, rowIndex) => {
         let row = '<div class="music-replay-row">';
         for (let idx = 0; idx < size; idx += 1) {
           const id = slotId(rowIndex + 1, idx);
           const isPath = replay.path.includes(id);
           const isCurrent = replay.path[replay.path.length - 1] === id;
-          const outcome = (replay.outcomes || []).find((o) => o.slotId === id);
-          const outcomeClass = outcome?.collected === true ? ' good' : outcome?.collected === false ? ' bad' : '';
-          row += `<div class="music-replay-cell${isPath ? ' path' : ''}${isCurrent ? ' current' : ''}${outcomeClass}" style="width:${Math.max(14, Math.floor((100 / maxCols) * 0.9))}%;"></div>`;
+          const outcome = outcomesBySlot.get(id);
+          const outcomeClass = outcome === true ? ' good' : outcome === false ? ' bad' : '';
+          row += `<div class="music-replay-cell${isPath ? ' path' : ''}${isCurrent ? ' current' : ''}${outcomeClass}" style="width:${Math.max(14, Math.floor(88 / maxCols))}%; height: 12px;"></div>`;
         }
         row += '</div>';
         return row;
       }).join('');
-      const poly = points.map(({row, idx}) => {
+      const points = replay.path.map((id) => {
+        const { row, idx } = rowIdxFromSlotId(id);
         const rowSize = state.rowSizes[row - 1];
         const x = ((maxCols - rowSize) / 2 + idx + 0.5) / maxCols * 100;
         const y = (row - 0.5) / state.rowSizes.length * 100;
         return `${x},${y}`;
       }).join(' ');
-      host.innerHTML = `<svg class="music-replay-line" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${poly}" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="music-replay-grid">${rowsHtml}</div><div class="music-replay-meta"><span>${getSkierTokenMarkup(replay.skierId)} prev route</span><span>Run ${formatNumber(replay.score)}</span></div>`;
+      host.innerHTML = `<svg class="music-replay-line" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="#f59e0b" stroke-width="2.4"/></svg><div class="music-replay-grid">${rowsHtml}</div><div class="music-replay-meta"><span>${getSkierTokenMarkup(replay.skierId)} prev route</span><span>Run ${formatNumber(replay.score)}</span></div>`;
     }
 
     function runGlideAnimation() {
@@ -7952,7 +7954,23 @@
         showShuffleOverlay(true);
         markMusicUnlocked();
         ensureMusicPlaying({ forceRestart: true });
+        const shouldShift = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
+        let shiftTimer = null;
+        if (shouldShift) {
+          shiftTimer = setInterval(() => {
+            ["shuffleCrowdSkiers", "shuffleCrowdBoarders", "shuffleCloud"].forEach((id) => {
+              const grid = document.getElementById(id);
+              if (!grid) return;
+              const kids = Array.from(grid.children);
+              kids.forEach((el) => {
+                el.style.transform = `translate(${Math.round((Math.random() - 0.5) * 6)}px, ${Math.round((Math.random() - 0.5) * 6)}px)`;
+              });
+              kids.sort(() => Math.random() - 0.5).forEach((el) => grid.appendChild(el));
+            });
+          }, 850);
+        }
         setTimeout(() => {
+          if (shiftTimer) clearInterval(shiftTimer);
           showShuffleOverlay(false);
           resolve();
         }, 9000);
