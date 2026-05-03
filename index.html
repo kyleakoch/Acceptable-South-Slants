@@ -2422,7 +2422,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">N</div>
+    <div class="loading-version">O</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -3127,6 +3127,7 @@
       lastRunReplay: null,
       lastRunContractsResult: null,
       contractHistory: [],
+      pendingContracts: [],
       tvChannelIndex: 0,
       landingZoneTokens: [],
       firstPersonView: false,
@@ -4387,6 +4388,7 @@
       state.coachMode = "ON";
       state.coachTipShown = state.coachTipShown || false;
       state.endTipShown = state.endTipShown || false;
+      refreshPendingContracts();
       state.curling = null;
       if (!Object.keys(state.allTimeHighScores).length) {
         state.allTimeHighScores = loadAllTimeHighScores();
@@ -4535,6 +4537,10 @@
       ];
     }
 
+    function refreshPendingContracts() {
+      state.pendingContracts = selectContractsForRun(state.mode, state.peak);
+    }
+
     function evaluateContracts(run) {
       const path = Array.isArray(run.path) ? run.path : [];
       const touchedCards = path
@@ -4565,6 +4571,9 @@
     function startRunAt(slotIdChoice) {
       const player = getPlayer();
       const nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
+      if (!state.pendingContracts?.length && contractsEnabledFor(state.peak, state.mode)) {
+        refreshPendingContracts();
+      }
       state.activeRun = {
         playerId: player.id,
         leadSkierId: nextSkierId,
@@ -4579,9 +4588,10 @@
         lastMoveDirection: null,
         multiplierBonus: 0,
         eligibleStreak: 0,
-        contracts: selectContractsForRun(state.mode, state.peak),
+        contracts: [...(state.pendingContracts || [])],
         shadowConfig: state.mode === "PARTNER_SHADOWS" ? { policyId: "GREEDY_RANK", visibleToPlayer: true } : null
       };
+      refreshPendingContracts();
       if (state.arcadeMode && state.firstPersonView) {
         state.arcadeCurrentBlueprint = {
           moves: [],
@@ -5407,10 +5417,15 @@
       if (currentChannel === "CONTRACTS") {
         const contractResults = state.lastRunContractsResult || [];
         const activeContracts = state.activeRun?.contracts || [];
+        const queuedContracts = state.pendingContracts || [];
         const listing = activeContracts.length ? activeContracts.map((c) => ({
           label: c.label,
           details: c.description || c.id,
           status: "🟡 LIVE"
+        })) : queuedContracts.length ? queuedContracts.map((c) => ({
+          label: c.label,
+          details: c.description || c.id,
+          status: "🟢 NEXT"
         })) : contractResults.map((r) => ({
           label: r.id,
           details: r.completed ? "Completed" : "Missed",
