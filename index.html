@@ -2412,7 +2412,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">K</div>
+    <div class="loading-version">L</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2680,6 +2680,7 @@
       <div id="fullModeCoachBubble" class="full-mode-coach-bubble" aria-live="polite"></div>
       <button id="autoModesToggle" class="auto-modes-toggle" type="button" aria-label="Toggle auto modes" aria-expanded="false">🎮</button>
       <div class="mountain-footer">
+        <div id="contractHud" class="footer-note">Contracts: off</div>
         <div class="collected-bubble">
           <div class="collected-bubble-header">🗺️</div>
           <div id="collectedPile" class="collected-rows"></div>
@@ -2824,6 +2825,7 @@
           <button id="peak2">🚧 🏔️² Diamond</button>
           <button id="peak3">🚧 🏔️³ Twin</button>
           <button id="peak100">🚧 🏔️💯 Peak 100</button>
+          <button id="peakContract">🧪 Contract Peak</button>
         </div>
       </div>
       <div class="mode-grid">
@@ -2849,6 +2851,7 @@
           <strong>🚧 Curling Session</strong>
           <span class="footer-note">Aim, push, and sweep your way to the button.</span>
           <button id="startCurling">Start Curling</button>
+          <button id="startPartnerShadows">Start Partner Shadows</button>
         </div>
       </div>
       <div class="mode-auto-idle">
@@ -2870,7 +2873,12 @@
       PEAK_1: { label: "🏔️¹", rows: [1, 2, 3, 4, 5] },
       PEAK_2: { label: "🏔️²", rows: [1, 2, 3, 4, 5, 4, 3, 2, 2] },
       PEAK_3: { label: "🏔️³", rows: [2, 3, 4, 5, 4] },
-      PEAK_100: { label: "🏔️💯", rows: Array(10).fill(10) }
+      PEAK_100: { label: "🏔️💯", rows: Array(10).fill(10) },
+      PEAK_CONTRACT_TEST: {
+        label: "🧪🏔️",
+        rows: [1, 2, 3, 4, 4],
+        contractConfig: { enabled: true, families: ["SOLO", "PARRENDO", "GATE"], maxContractsPerRun: 2 }
+      }
     };
     const SPECIAL_CARDS = [
       { key: "WHITEOUT", name: "Whiteout", emoji: "🌀", effect: "WHITEOUT" },
@@ -3104,6 +3112,8 @@
       currentAutoModeForRun: null,
       lastRunToken: null,
       lastRunReplay: null,
+      lastRunContractsResult: null,
+      contractHistory: [],
       landingZoneTokens: [],
       firstPersonView: false,
       coachMode: "ON",
@@ -4486,6 +4496,58 @@
       }
     }
 
+    function contractsEnabledFor(peakKey, mode) {
+      if (mode === "RPG" || mode === "FREE" || mode === "FULL") return false;
+      return !!PEAKS[peakKey]?.contractConfig?.enabled;
+    }
+
+    function selectContractsForRun(mode, peakKey) {
+      if (!contractsEnabledFor(peakKey, mode)) return [];
+      return [
+        {
+          id: "SOLO_SCORE_AT_LEAST",
+          label: "Score Sprint",
+          description: "Score at least 25 points this run.",
+          params: { minScore: 25 },
+          rewardSpec: { type: "SCORE_FLAT", amount: 120 }
+        },
+        {
+          id: "SOLO_SYMBOL_COUNT_AT_LEAST",
+          label: "Green Hunt",
+          description: "Collect at least 2 green symbols this run.",
+          params: { symbol: "GREEN", count: 2 },
+          rewardSpec: { type: "MULTIPLIER", amount: 0.2 }
+        }
+      ];
+    }
+
+    function evaluateContracts(run) {
+      const path = Array.isArray(run.path) ? run.path : [];
+      const touchedCards = path
+        .map((id) => state.mountain[id]?.lastResult?.cardId)
+        .filter(Boolean)
+        .map((id) => state.cards[id])
+        .filter(Boolean);
+      return (run.contracts || []).map((contract) => {
+        let completed = false;
+        if (contract.id === "SOLO_SCORE_AT_LEAST") {
+          completed = (run.collectedScore || 0) >= (contract.params?.minScore || 0);
+        } else if (contract.id === "SOLO_SYMBOL_COUNT_AT_LEAST") {
+          const hits = touchedCards.filter((card) => card.symbol === contract.params?.symbol).length;
+          completed = hits >= (contract.params?.count || 0);
+        }
+        return { id: contract.id, completed, rewardSpec: contract.rewardSpec, rewardApplied: completed ? (contract.rewardSpec?.amount || 0) : 0 };
+      });
+    }
+
+    function applyContractRewards(run, results) {
+      results.forEach((result) => {
+        if (!result.completed) return;
+        if (result.rewardSpec?.type === "SCORE_FLAT") run.collectedScore += result.rewardSpec.amount || 0;
+        if (result.rewardSpec?.type === "MULTIPLIER") run.collectedScore *= 1 + (result.rewardSpec.amount || 0);
+      });
+    }
+
     function startRunAt(slotIdChoice) {
       const player = getPlayer();
       const nextSkierId = player.skierQueue.find((skierId) => state.cards[skierId].status === "available");
@@ -4502,7 +4564,9 @@
         firelineDirection: null,
         lastMoveDirection: null,
         multiplierBonus: 0,
-        eligibleStreak: 0
+        eligibleStreak: 0,
+        contracts: selectContractsForRun(state.mode, state.peak),
+        shadowConfig: state.mode === "PARTNER_SHADOWS" ? { policyId: "GREEDY_RANK", visibleToPlayer: true } : null
       };
       if (state.arcadeMode && state.firstPersonView) {
         state.arcadeCurrentBlueprint = {
@@ -4947,6 +5011,10 @@
       if (run.multiplierBonus) {
         run.collectedScore *= 1 + run.multiplierBonus;
       }
+      const contractResults = evaluateContracts(run);
+      applyContractRewards(run, contractResults);
+      state.lastRunContractsResult = contractResults;
+      state.contractHistory.push({ runAt: Date.now(), results: contractResults });
       if (state.mode === "RPG" && state.rpg) {
         state.rpg.totalScore += run.collectedScore || 0;
       }
@@ -4981,7 +5049,8 @@
         path: Array.isArray(run.path) ? [...run.path] : [run.currentSlotId],
         skierId: run.leadSkierId,
         score: run.collectedScore || 0,
-        outcomes: Array.isArray(run.outcomes) ? [...run.outcomes] : []
+        outcomes: Array.isArray(run.outcomes) ? [...run.outcomes] : [],
+        contractResults: contractResults
       };
       state.currentAutoModeForRun = null;
       state.activeRun = null;
@@ -5247,6 +5316,20 @@
       return neighbors.filter((id) => state.mountain[id].occupiedBySkierId === null);
     }
 
+    function renderContractHud() {
+      const hud = document.getElementById("contractHud");
+      if (!hud) return;
+      if (state.activeRun?.contracts?.length) {
+        hud.textContent = `Contracts: ${state.activeRun.contracts.map((c) => c.label).join(" | ")}`;
+        return;
+      }
+      if (state.lastRunContractsResult?.length) {
+        hud.textContent = `Contracts: ${state.lastRunContractsResult.map((r) => `${r.completed ? "✅" : "❌"} ${r.id}`).join(" · ")}`;
+        return;
+      }
+      hud.textContent = "Contracts: off";
+    }
+
     function render() {
       noteScreenActivity();
       fillEmptyMountainSlots();
@@ -5256,6 +5339,7 @@
       renderCoachPanel();
       renderInputBuffer();
       renderSidebar();
+      renderContractHud();
       document.body.classList.toggle("frame-ui-enabled", state.frameUiEnabled);
       const coachButton = document.getElementById("coachButton");
       if (coachButton) {
@@ -8148,14 +8232,15 @@
       if (peakIcon) {
         peakIcon.textContent = peak.label;
       }
-      ["peak1", "peak2", "peak3", "peak100"].forEach((id) => {
+      ["peak1", "peak2", "peak3", "peak100", "peakContract"].forEach((id) => {
         const button = document.getElementById(id);
         if (!button) return;
         const isActive =
           (id === "peak1" && peakKey === "PEAK_1") ||
           (id === "peak2" && peakKey === "PEAK_2") ||
           (id === "peak3" && peakKey === "PEAK_3") ||
-          (id === "peak100" && peakKey === "PEAK_100");
+          (id === "peak100" && peakKey === "PEAK_100") ||
+          (id === "peakContract" && peakKey === "PEAK_CONTRACT_TEST");
         button.classList.toggle("active", isActive);
       });
     }
@@ -8207,11 +8292,13 @@
     document.getElementById("startRpgSnowboarders").addEventListener("click", () => startRpgMode("SNOWBOARDER"));
     document.getElementById("startFullCrowd").addEventListener("click", () => startMode("FULL"));
     document.getElementById("startCurling").addEventListener("click", () => startMode("CURLING"));
+    document.getElementById("startPartnerShadows").addEventListener("click", () => startMode("PARTNER_SHADOWS"));
     document.getElementById("startAutoIdle").addEventListener("click", () => startAutoIdleMode());
     document.getElementById("peak1").addEventListener("click", () => setPeak("PEAK_1"));
     document.getElementById("peak2").addEventListener("click", () => setPeak("PEAK_2"));
     document.getElementById("peak3").addEventListener("click", () => setPeak("PEAK_3"));
     document.getElementById("peak100").addEventListener("click", () => setPeak("PEAK_100"));
+    document.getElementById("peakContract").addEventListener("click", () => setPeak("PEAK_CONTRACT_TEST"));
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
