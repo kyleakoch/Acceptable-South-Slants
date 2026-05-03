@@ -2422,7 +2422,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">M</div>
+    <div class="loading-version">N</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -4511,7 +4511,7 @@
     }
 
     function contractsEnabledFor(peakKey, mode) {
-      if (mode === "RPG" || mode === "FREE" || mode === "FULL") return false;
+      if (mode === "RPG") return false;
       return !!PEAKS[peakKey]?.contractConfig?.enabled;
     }
 
@@ -8228,6 +8228,7 @@
       state.autoStrategy = "MANUAL";
       state.autoMode = null;
       state.mode = mode;
+      state.tvChannelIndex = state.peak === "PEAK_CONTRACT_TEST" ? 0 : 1;
       state.firstPersonView = false;
       hideErrorOverlay();
       hideRpgSuccessModal();
