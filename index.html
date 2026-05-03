@@ -657,6 +657,16 @@
     .music-replay-cell.good::before { content:"✅"; position:absolute; inset:auto 2px 2px auto; font-size:9px; }
     .music-replay-cell.bad::before { content:"❌"; position:absolute; inset:auto 2px 2px auto; font-size:9px; }
     .music-replay-meta { font-size: 11px; font-weight: 700; display:flex; justify-content:space-between; }
+    .tv-channel-controls { display:flex; gap:8px; margin-bottom:8px; }
+    .tv-channel-controls button { flex:1; }
+    .tv-guide { display:grid; gap:4px; max-height: 132px; overflow: hidden; position: relative; }
+    .tv-guide-list { display:grid; gap:4px; }
+    .tv-guide-list.scroll { animation: tv-guide-scroll 11s linear infinite; }
+    .tv-guide-item { font-size: 11px; padding: 4px 6px; border-radius: 6px; background: rgba(148,163,184,0.18); display:flex; justify-content:space-between; gap:8px; }
+    @keyframes tv-guide-scroll {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-50%); }
+    }
     .music-quick-eq {
       height: 12px;
       display: flex;
@@ -2412,7 +2422,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">L</div>
+    <div class="loading-version">M</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -2680,7 +2690,6 @@
       <div id="fullModeCoachBubble" class="full-mode-coach-bubble" aria-live="polite"></div>
       <button id="autoModesToggle" class="auto-modes-toggle" type="button" aria-label="Toggle auto modes" aria-expanded="false">🎮</button>
       <div class="mountain-footer">
-        <div id="contractHud" class="footer-note">Contracts: off</div>
         <div class="collected-bubble">
           <div class="collected-bubble-header">🗺️</div>
           <div id="collectedPile" class="collected-rows"></div>
@@ -2713,6 +2722,10 @@
             <div id="musicQuickTitle" class="music-quick-title"></div>
           </div>
           <span class="music-quick-radio" aria-hidden="true">📻</span>
+        </div>
+        <div class="tv-channel-controls">
+          <button id="tvChannelDown" type="button" class="secondary">Channel ▼</button>
+          <button id="tvChannelUp" type="button" class="secondary">Channel ▲</button>
         </div>
         <div id="musicReplay" class="music-replay" aria-live="polite"></div>
         <div id="musicQuickEq" class="music-quick-eq" aria-hidden="true">
@@ -2876,7 +2889,7 @@
       PEAK_100: { label: "🏔️💯", rows: Array(10).fill(10) },
       PEAK_CONTRACT_TEST: {
         label: "🧪🏔️",
-        rows: [1, 2, 3, 4, 4],
+        rows: [1, 2, 3, 4, 5],
         contractConfig: { enabled: true, families: ["SOLO", "PARRENDO", "GATE"], maxContractsPerRun: 2 }
       }
     };
@@ -3114,6 +3127,7 @@
       lastRunReplay: null,
       lastRunContractsResult: null,
       contractHistory: [],
+      tvChannelIndex: 0,
       landingZoneTokens: [],
       firstPersonView: false,
       coachMode: "ON",
@@ -5316,20 +5330,6 @@
       return neighbors.filter((id) => state.mountain[id].occupiedBySkierId === null);
     }
 
-    function renderContractHud() {
-      const hud = document.getElementById("contractHud");
-      if (!hud) return;
-      if (state.activeRun?.contracts?.length) {
-        hud.textContent = `Contracts: ${state.activeRun.contracts.map((c) => c.label).join(" | ")}`;
-        return;
-      }
-      if (state.lastRunContractsResult?.length) {
-        hud.textContent = `Contracts: ${state.lastRunContractsResult.map((r) => `${r.completed ? "✅" : "❌"} ${r.id}`).join(" · ")}`;
-        return;
-      }
-      hud.textContent = "Contracts: off";
-    }
-
     function render() {
       noteScreenActivity();
       fillEmptyMountainSlots();
@@ -5339,7 +5339,6 @@
       renderCoachPanel();
       renderInputBuffer();
       renderSidebar();
-      renderContractHud();
       document.body.classList.toggle("frame-ui-enabled", state.frameUiEnabled);
       const coachButton = document.getElementById("coachButton");
       if (coachButton) {
@@ -5403,6 +5402,30 @@
     function renderMusicReplay() {
       const host = document.getElementById("musicReplay");
       if (!host) return;
+      const channels = ["CONTRACTS", "REPLAY"];
+      const currentChannel = channels[((state.tvChannelIndex % channels.length) + channels.length) % channels.length];
+      if (currentChannel === "CONTRACTS") {
+        const contractResults = state.lastRunContractsResult || [];
+        const activeContracts = state.activeRun?.contracts || [];
+        const listing = activeContracts.length ? activeContracts.map((c) => ({
+          label: c.label,
+          details: c.description || c.id,
+          status: "🟡 LIVE"
+        })) : contractResults.map((r) => ({
+          label: r.id,
+          details: r.completed ? "Completed" : "Missed",
+          status: r.completed ? "✅" : "❌"
+        }));
+        if (!listing.length) {
+          host.innerHTML = '<div class="music-replay-meta"><span>TV Guide: Contracts</span><span>No contracts</span></div>';
+          return;
+        }
+        const needsScroll = listing.length > 5;
+        const visible = needsScroll ? listing.concat(listing) : listing;
+        const rows = visible.map((item, idx) => `<div class="tv-guide-item"><span>${String(idx + 1).padStart(2, "0")} ${item.label}</span><span>${item.status}</span></div>`).join("");
+        host.innerHTML = `<div class="music-replay-meta"><span>TV Guide: Contracts</span><span>${listing.length} listed</span></div><div class="tv-guide"><div class="tv-guide-list${needsScroll ? " scroll" : ""}">${rows}</div></div>`;
+        return;
+      }
       const replay = state.lastRunReplay;
       if (!replay || !Array.isArray(replay.path) || !replay.path.length) {
         host.innerHTML = '<div class="music-replay-meta"><span>Replay / Commentary</span><span>No run yet</span></div>';
@@ -5430,7 +5453,7 @@
         const y = (row - 0.5) / state.rowSizes.length * 100;
         return `${x},${y}`;
       }).join(' ');
-      host.innerHTML = `<svg class="music-replay-line" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="#f59e0b" stroke-width="2.4"/></svg><div class="music-replay-grid">${rowsHtml}</div><div class="music-replay-meta"><span>${getSkierTokenMarkup(replay.skierId)} prev route</span><span>Run ${formatNumber(replay.score)}</span></div>`;
+      host.innerHTML = `<svg class="music-replay-line" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="#f59e0b" stroke-width="2.4"/></svg><div class="music-replay-grid">${rowsHtml}</div><div class="music-replay-meta"><span>${getSkierTokenMarkup(replay.skierId)} replay route</span><span>Run ${formatNumber(replay.score)}</span></div>`;
     }
 
     function runGlideAnimation() {
@@ -8339,6 +8362,14 @@
       markMusicUnlocked();
       ensureMusicPlaying({ forceRestart: true });
       renderMusicQuickPanel();
+    });
+    document.getElementById("tvChannelUp").addEventListener("click", () => {
+      state.tvChannelIndex += 1;
+      renderMusicReplay();
+    });
+    document.getElementById("tvChannelDown").addEventListener("click", () => {
+      state.tvChannelIndex -= 1;
+      renderMusicReplay();
     });
     document.getElementById("autoModesToggle").addEventListener("click", () => {
       if (!canAccessAutoModes()) {
