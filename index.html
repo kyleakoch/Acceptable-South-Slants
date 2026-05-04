@@ -2422,7 +2422,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">P</div>
+    <div class="loading-version">Q</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -4533,6 +4533,20 @@
           description: "Collect at least 2 green symbols this run.",
           params: { symbol: "GREEN", count: 2 },
           rewardSpec: { type: "MULTIPLIER", amount: 0.2 }
+        },
+        {
+          id: "SOLO_EMOJI_COUNT_AT_LEAST",
+          label: "Snack Run",
+          description: "Pick up at least 2 emoji bonuses this run.",
+          params: { count: 2 },
+          rewardSpec: { type: "SCORE_FLAT", amount: 90 }
+        },
+        {
+          id: "SOLO_DISTINCT_EMOJI_AT_LEAST",
+          label: "Sampler",
+          description: "Pick up at least 2 distinct emoji this run.",
+          params: { count: 2 },
+          rewardSpec: { type: "MULTIPLIER", amount: 0.1 }
         }
       ];
     }
@@ -4555,6 +4569,12 @@
         } else if (contract.id === "SOLO_SYMBOL_COUNT_AT_LEAST") {
           const hits = touchedCards.filter((card) => card.symbol === contract.params?.symbol).length;
           completed = hits >= (contract.params?.count || 0);
+        } else if (contract.id === "SOLO_EMOJI_COUNT_AT_LEAST") {
+          const totalEmoji = Object.values(run.emojiCounts || {}).reduce((sum, value) => sum + value, 0);
+          completed = totalEmoji >= (contract.params?.count || 0);
+        } else if (contract.id === "SOLO_DISTINCT_EMOJI_AT_LEAST") {
+          const distinctEmoji = run.collectedEmojis ? run.collectedEmojis.size : 0;
+          completed = distinctEmoji >= (contract.params?.count || 0);
         }
         return { id: contract.id, completed, rewardSpec: contract.rewardSpec, rewardApplied: completed ? (contract.rewardSpec?.amount || 0) : 0 };
       });
@@ -8426,7 +8446,15 @@
     document.getElementById("peak2").addEventListener("click", () => setPeak("PEAK_2"));
     document.getElementById("peak3").addEventListener("click", () => setPeak("PEAK_3"));
     document.getElementById("peak100").addEventListener("click", () => setPeak("PEAK_100"));
-    document.getElementById("peakContract").addEventListener("click", () => setPeak("PEAK_CONTRACT_TEST"));
+    document.getElementById("peakContract").addEventListener("click", () => {
+      setPeak("PEAK_CONTRACT_TEST");
+      if (!state.gameStarted || state.mode !== "FREE") {
+        startMode("FREE");
+      } else {
+        showModeOverlay(false);
+        render();
+      }
+    });
     document.getElementById("peakButton").addEventListener("click", () => showModeOverlay(true));
     document.getElementById("powderButton").addEventListener("click", () => showPowderModal(true));
     document.getElementById("powderClose").addEventListener("click", () => showPowderModal(false));
