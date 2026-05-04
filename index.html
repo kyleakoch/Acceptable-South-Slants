@@ -657,6 +657,14 @@
     .music-replay-cell.good::before { content:"✅"; position:absolute; inset:auto 2px 2px auto; font-size:9px; }
     .music-replay-cell.bad::before { content:"❌"; position:absolute; inset:auto 2px 2px auto; font-size:9px; }
     .music-replay-meta { font-size: 11px; font-weight: 700; display:flex; justify-content:space-between; }
+    .tv-guide-progress { display:flex; gap:4px; }
+    .tv-guide-dot { width:8px; height:8px; border-radius:999px; border:1px solid #64748b; background: transparent; }
+    .tv-guide-dot.filled { background:#22c55e; border-color:#22c55e; }
+    .tv-guide-item { cursor:pointer; }
+    .tv-guide-item-detail { font-size:10px; color:#334155; margin-top:2px; }
+    .music-replay-cell.emoji-left { background: rgba(16,185,129,0.25); }
+    .music-replay-emoji { font-size:9px; position:absolute; inset:auto 2px 1px auto; }
+
     .tv-channel-controls { display:flex; gap:8px; margin-bottom:8px; }
     .tv-channel-controls button { flex:1; }
     .tv-guide { display:grid; gap:4px; max-height: 132px; overflow: hidden; position: relative; }
@@ -2422,7 +2430,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">Q</div>
+    <div class="loading-version">R</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -3129,6 +3137,7 @@
       contractHistory: [],
       pendingContracts: [],
       tvChannelIndex: 0,
+      expandedContractId: null,
       landingZoneTokens: [],
       firstPersonView: false,
       coachMode: "ON",
@@ -5514,17 +5523,38 @@
         const activeContracts = state.activeRun?.contracts || [];
         const queuedContracts = state.pendingContracts || [];
         const listing = activeContracts.length ? activeContracts.map((c) => ({
+          id: c.id,
           label: c.label,
           details: c.description || c.id,
-          status: "🟡 LIVE"
+          status: "🟡 LIVE",
+          progress: (() => {
+            if (c.id === "SOLO_SCORE_AT_LEAST") return { done: Math.min(c.params?.minScore || 1, Math.floor(state.activeRun?.collectedScore || 0)), need: c.params?.minScore || 1 };
+            if (c.id === "SOLO_SYMBOL_COUNT_AT_LEAST") {
+              const cnt = Object.values(state.activeRun?.emojiCounts || {}).reduce((a, b) => a + b, 0);
+              return { done: cnt, need: c.params?.count || 1 };
+            }
+            if (c.id === "SOLO_EMOJI_COUNT_AT_LEAST") {
+              const cnt = Object.values(state.activeRun?.emojiCounts || {}).reduce((a, b) => a + b, 0);
+              return { done: cnt, need: c.params?.count || 1 };
+            }
+            if (c.id === "SOLO_DISTINCT_EMOJI_AT_LEAST") {
+              const cnt = state.activeRun?.collectedEmojis ? state.activeRun.collectedEmojis.size : 0;
+              return { done: cnt, need: c.params?.count || 1 };
+            }
+            return { done: 0, need: 1 };
+          })()
         })) : queuedContracts.length ? queuedContracts.map((c) => ({
+          id: c.id,
           label: c.label,
           details: c.description || c.id,
-          status: "🟢 NEXT"
+          status: "🟢 NEXT",
+          progress: { done: 0, need: c.params?.count || c.params?.minScore || 1 }
         })) : contractResults.map((r) => ({
+          id: r.id,
           label: r.id,
           details: r.completed ? "Completed" : "Missed",
-          status: r.completed ? "✅" : "❌"
+          status: r.completed ? "✅" : "❌",
+          progress: { done: r.completed ? 1 : 0, need: 1 }
         }));
         if (!listing.length) {
           host.innerHTML = '<div class="music-replay-meta"><span>TV Guide: Contracts</span><span>No contracts</span></div>';
@@ -5532,8 +5562,19 @@
         }
         const needsScroll = listing.length > 5;
         const visible = needsScroll ? listing.concat(listing) : listing;
-        const rows = visible.map((item, idx) => `<div class="tv-guide-item"><span>${String(idx + 1).padStart(2, "0")} ${item.label}</span><span>${item.status}</span></div>`).join("");
+        const rows = visible.map((item, idx) => {
+          const dots = Array.from({ length: Math.min(8, Math.max(1, item.progress.need)) }).map((_, i) => `<span class="tv-guide-dot${i < item.progress.done ? " filled" : ""}"></span>`).join("");
+          const open = state.expandedContractId === `${item.id}-${idx}`;
+          return `<div class="tv-guide-item" data-contract-id="${item.id}-${idx}"><div style="display:flex;justify-content:space-between;gap:8px;"><span>${String(idx + 1).padStart(2, "0")} ${item.label}</span><span>${item.status}</span></div><div class="tv-guide-progress">${dots}</div>${open ? `<div class="tv-guide-item-detail">${item.details}</div>` : ""}</div>`;
+        }).join("");
         host.innerHTML = `<div class="music-replay-meta"><span>TV Guide: Contracts</span><span>${listing.length} listed</span></div><div class="tv-guide"><div class="tv-guide-list${needsScroll ? " scroll" : ""}">${rows}</div></div>`;
+        host.querySelectorAll('.tv-guide-item').forEach((el) => {
+          el.addEventListener('click', () => {
+            const id = el.getAttribute('data-contract-id');
+            state.expandedContractId = state.expandedContractId === id ? null : id;
+            renderMusicReplay();
+          });
+        });
         return;
       }
       const replay = state.lastRunReplay;
@@ -5551,7 +5592,10 @@
           const isCurrent = replay.path[replay.path.length - 1] === id;
           const outcome = outcomesBySlot.get(id);
           const outcomeClass = outcome === true ? ' good' : outcome === false ? ' bad' : '';
-          row += `<div class="music-replay-cell${isPath ? ' path' : ''}${isCurrent ? ' current' : ''}${outcomeClass}" style="width:${Math.max(14, Math.floor(88 / maxCols))}%; height: 12px;"></div>`;
+          const slotNow = state.mountain[id];
+          const leftEmoji = slotNow?.conditionCardId && slotNow?.bonusEmoji ? slotNow.bonusEmoji : '';
+          const leftClass = leftEmoji ? ' emoji-left' : '';
+          row += `<div class="music-replay-cell${isPath ? ' path' : ''}${isCurrent ? ' current' : ''}${outcomeClass}${leftClass}" style="width:${Math.max(14, Math.floor(88 / maxCols))}%; height: 12px;">${leftEmoji ? `<span class="music-replay-emoji">${leftEmoji}</span>` : ''}</div>`;
         }
         row += '</div>';
         return row;
@@ -7238,6 +7282,11 @@
         const comboLine = lastReplay.flowCombos.map((hit) => `${hit.emoji || "✨"} ${hit.label || hit.comboId} (${hit.strength || 0})`).join(", ");
         summaryEl.innerHTML += `<div class="status">Flow combos: <strong>${comboLine}</strong></div>`;
       }
+      const totalEmojiLine = Object.entries(summary.bonusCounts || {}).map(([emoji, count]) => `${emoji}×${count}`).join(", ");
+      if (totalEmojiLine) {
+        summaryEl.innerHTML += `<div class="status">Total emoji tally: <strong>${totalEmojiLine}</strong></div>`;
+      }
+
       heroEl.textContent = `Current score: ${formatNumber(summary.endDayScore)}`;
       bestRunEl.innerHTML = bestRun
         ? `<div class="best-icon">${bestRunLabel}</div><div>Best run: ${formatNumber(bestRun.finalScore)}</div>`
@@ -8769,8 +8818,9 @@
       if (!state.loadingDismissed) {
         finalizeLoading();
         showIntroOverlay(false);
-        showModeOverlay(true);
-        return;
+        if (!state.gameStarted && !state.mode) {
+          showModeOverlay(true);
+        }
       }
       if (isLeft || isRight) {
         event.preventDefault();
