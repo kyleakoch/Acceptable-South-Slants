@@ -2422,7 +2422,7 @@
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
     <div id="loadingEmoji" class="loading-emoji">❄️</div>
-    <div class="loading-version">O</div>
+    <div class="loading-version">P</div>
     <div id="snowstorm" class="snowstorm"></div>
   </div>
   <div id="shuffleOverlay" class="shuffle-overlay" aria-live="polite">
@@ -4588,6 +4588,13 @@
         lastMoveDirection: null,
         multiplierBonus: 0,
         eligibleStreak: 0,
+        emojiBonusScore: 0,
+        emojiCounts: Object.create(null),
+        emojiPickupSequence: [],
+        pathDirections: [],
+        flowCombos: [],
+        emojiComboStrength: 0,
+        crownMultiplierBonus: 0,
         contracts: [...(state.pendingContracts || [])],
         shadowConfig: state.mode === "PARTNER_SHADOWS" ? { policyId: "GREEDY_RANK", visibleToPlayer: true } : null
       };
@@ -4887,7 +4894,21 @@
           break;
         case "CROWN":
           if (run) {
-            run.multiplierBonus += run.collectedEmojis.size;
+            if (state.mode === "RPG") {
+              const emojiCounts = run.emojiCounts || {};
+              const metGoals = Object.entries(BONUS_TARGETS).filter(([emoji, target]) =>
+                (emojiCounts[emoji] || 0) >= target
+              );
+              const distinctEmojiCount = run.collectedEmojis ? run.collectedEmojis.size : 0;
+              const flowStrength = run.emojiComboStrength || 0;
+              const crownBonus =
+                0.02 * distinctEmojiCount +
+                0.03 * metGoals.length +
+                0.01 * Math.min(flowStrength, 5);
+              run.crownMultiplierBonus = (run.crownMultiplierBonus || 0) + crownBonus;
+            } else {
+              run.multiplierBonus += run.collectedEmojis.size;
+            }
           }
           break;
         case "SURGE":
@@ -4973,6 +4994,11 @@
         }
         if (bonusEmoji) {
           run.collectedEmojis.add(bonusEmoji);
+          run.emojiCounts = run.emojiCounts || Object.create(null);
+          run.emojiCounts[bonusEmoji] = (run.emojiCounts[bonusEmoji] || 0) + 1;
+          run.emojiBonusScore = (run.emojiBonusScore || 0) + bonusValue;
+          run.emojiPickupSequence = run.emojiPickupSequence || [];
+          run.emojiPickupSequence.push({ row: rowIdxFromSlotId(slotId).row, emoji: bonusEmoji });
         }
       }
       if (bonusEmoji) {
@@ -4998,12 +5024,25 @@
     function moveTo(slotId) {
       if (!state.activeRun) return;
       const prevSlotId = state.activeRun.currentSlotId;
+      const candidateSlots = (state.downNeighbors[prevSlotId] || []).filter((id) => id !== slotId);
+      candidateSlots.forEach((id) => {
+        const missedSlot = state.mountain[id];
+        if (!missedSlot || !missedSlot.isFaceUp || !missedSlot.conditionCardId) return;
+        const missedCard = state.cards[missedSlot.conditionCardId];
+        if (!missedCard || missedCard.type !== "CONDITION") return;
+        missedSlot.missCount = (missedSlot.missCount || 0) + 1;
+        missedSlot.bonusEmoji = getBonusEmoji(missedSlot.missCount);
+      });
       const { idx: prevIdx } = rowIdxFromSlotId(prevSlotId);
       const { idx: nextIdx } = rowIdxFromSlotId(slotId);
       if (nextIdx < prevIdx) {
         state.activeRun.lastMoveDirection = "LEFT";
       } else if (nextIdx > prevIdx) {
         state.activeRun.lastMoveDirection = "RIGHT";
+      }
+      if (state.activeRun.lastMoveDirection) {
+        state.activeRun.pathDirections = state.activeRun.pathDirections || [];
+        state.activeRun.pathDirections.push(state.activeRun.lastMoveDirection === "LEFT" ? "L" : "R");
       }
       state.lastGlide = { from: prevSlotId, to: slotId, skierId: state.activeRun.leadSkierId };
       state.activeRun.currentSlotId = slotId;
@@ -5027,6 +5066,32 @@
       state.arcadeCurrentBlueprint.timings.push(timing || null);
     }
 
+    function evaluateFlowCombos(run) {
+      const hits = [];
+      const counts = run.emojiCounts || {};
+      const metGoals = Object.entries(BONUS_TARGETS).filter(([emoji, target]) => (counts[emoji] || 0) >= target);
+      if (metGoals.length > 0) hits.push({ comboId: "full_tray", strength: metGoals.length, emoji: "🍱", label: "Full Tray" });
+      const distinct = run.collectedEmojis ? run.collectedEmojis.size : 0;
+      if (distinct >= 3) hits.push({ comboId: "sampler_platter", strength: distinct, emoji: "🍽️", label: "Sampler Platter" });
+      const seq = run.emojiPickupSequence || [];
+      let bestStreak = 1;
+      let cur = 1;
+      for (let i = 1; i < seq.length; i += 1) {
+        if (seq[i].emoji === seq[i - 1].emoji) {
+          cur += 1;
+          bestStreak = Math.max(bestStreak, cur);
+        } else {
+          cur = 1;
+        }
+      }
+      if (bestStreak >= 3) hits.push({ comboId: "streak_eater", strength: bestStreak, emoji: "🍟", label: "Streak Eater" });
+      const dirs = run.pathDirections || [];
+      let changes = 0;
+      for (let i = 1; i < dirs.length; i += 1) if (dirs[i] !== dirs[i - 1]) changes += 1;
+      if (dirs.length && changes <= 1) hits.push({ comboId: "clean_line", strength: dirs.length, emoji: "❄️", label: "Clean Line" });
+      return hits;
+    }
+
     function finishRun() {
       const run = state.activeRun;
       const skierState = state.cards[run.leadSkierId];
@@ -5034,6 +5099,13 @@
       skierState.pausedPos = null;
       if (run.multiplierBonus) {
         run.collectedScore *= 1 + run.multiplierBonus;
+      }
+      run.flowCombos = evaluateFlowCombos(run);
+      run.emojiComboStrength = (run.flowCombos || [])
+        .filter((hit) => ["full_tray", "sampler_platter", "streak_eater"].includes(hit.comboId))
+        .reduce((sum, hit) => sum + (hit.strength || 0), 0);
+      if (run.crownMultiplierBonus) {
+        run.collectedScore *= 1 + run.crownMultiplierBonus;
       }
       const contractResults = evaluateContracts(run);
       applyContractRewards(run, contractResults);
@@ -5074,7 +5146,10 @@
         skierId: run.leadSkierId,
         score: run.collectedScore || 0,
         outcomes: Array.isArray(run.outcomes) ? [...run.outcomes] : [],
-        contractResults: contractResults
+        contractResults: contractResults,
+        emojiCounts: { ...(run.emojiCounts || {}) },
+        emojiBonusScore: run.emojiBonusScore || 0,
+        flowCombos: Array.isArray(run.flowCombos) ? [...run.flowCombos] : []
       };
       state.currentAutoModeForRun = null;
       state.activeRun = null;
@@ -7129,6 +7204,20 @@
         <div class="status">End of day score: <strong>${formatNumber(summary.endDayScore)}</strong></div>
         <div class="status">Exponent: <strong>${summary.exponent}</strong></div>
       `;
+      const lastReplay = state.lastRunReplay || {};
+      const emojiCountsLine = Object.entries(lastReplay.emojiCounts || {})
+        .map(([emoji, count]) => `${emoji}×${count}`)
+        .join(", ");
+      if (emojiCountsLine) {
+        summaryEl.innerHTML += `<div class="status">Emoji picked up: <strong>${emojiCountsLine}</strong></div>`;
+      }
+      if ((lastReplay.emojiBonusScore || 0) > 0) {
+        summaryEl.innerHTML += `<div class="status">Emoji bonus: <strong>+${formatNumber(lastReplay.emojiBonusScore)}</strong></div>`;
+      }
+      if (Array.isArray(lastReplay.flowCombos) && lastReplay.flowCombos.length) {
+        const comboLine = lastReplay.flowCombos.map((hit) => `${hit.emoji || "✨"} ${hit.label || hit.comboId} (${hit.strength || 0})`).join(", ");
+        summaryEl.innerHTML += `<div class="status">Flow combos: <strong>${comboLine}</strong></div>`;
+      }
       heroEl.textContent = `Current score: ${formatNumber(summary.endDayScore)}`;
       bestRunEl.innerHTML = bestRun
         ? `<div class="best-icon">${bestRunLabel}</div><div>Best run: ${formatNumber(bestRun.finalScore)}</div>`
